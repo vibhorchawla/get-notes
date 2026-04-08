@@ -1,17 +1,15 @@
 import React from 'react';
-import { View, Text, StyleSheet, ScrollView } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, ActivityIndicator } from 'react-native';
 import GradientBackground from '../../components/GradientBackground';
 import NoteItem from '../../components/NoteItem';
 import { colors } from '../../constants/colors';
 import { spacing } from '../../constants/spacing';
 import { typography } from '../../constants/typography';
-
-const DOWNLOADED_NOTES = [
-    { id: '1', title: 'Object Oriented Programming Concepts', subject: 'OOP', unit: 'Unit 2' },
-    { id: '2', title: 'Operating Systems - Process Management', subject: 'OS', unit: 'Unit 2' },
-];
+import { useDownloads } from '../../hooks/useDownloads';
 
 export default function DownloadsScreen() {
+    const { downloads, isLoading } = useDownloads();
+
     return (
         <GradientBackground>
             <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
@@ -19,9 +17,11 @@ export default function DownloadsScreen() {
                     <Text style={styles.title}>Downloads</Text>
                     <Text style={styles.subtitle}>Offline available notes</Text>
 
-                    {DOWNLOADED_NOTES.length > 0 ? (
+                    {isLoading ? (
+                        <ActivityIndicator size="large" color={colors.primary} style={{ marginTop: spacing.xl }} />
+                    ) : downloads.length > 0 ? (
                         <View style={styles.notesList}>
-                            {DOWNLOADED_NOTES.map((note) => (
+                            {downloads.map((note) => (
                                 <NoteItem
                                     key={note.id}
                                     title={note.title}

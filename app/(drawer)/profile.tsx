@@ -3,12 +3,14 @@ import { View, Text, StyleSheet, ScrollView } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import GradientBackground from '../../components/GradientBackground';
 import { useAuth } from '../../context/AuthContext';
+import { useUserStats } from '../../hooks/useUserStats';
 import { colors } from '../../constants/colors';
 import { spacing } from '../../constants/spacing';
 import { typography } from '../../constants/typography';
 
 export default function ProfileScreen() {
     const { user } = useAuth();
+    const { stats } = useUserStats();
 
     return (
         <GradientBackground>
@@ -52,7 +54,7 @@ export default function ProfileScreen() {
                                 <Ionicons name="calendar-outline" size={20} color={colors.primary} />
                                 <View style={styles.infoContent}>
                                     <Text style={styles.infoLabel}>Member Since</Text>
-                                    <Text style={styles.infoValue}>January 2026</Text>
+                                    <Text style={styles.infoValue}>March 2026</Text>
                                 </View>
                             </View>
                         </View>
@@ -65,19 +67,19 @@ export default function ProfileScreen() {
                         <View style={styles.statsContainer}>
                             <View style={styles.statCard}>
                                 <Ionicons name="document-text" size={32} color={colors.primary} />
-                                <Text style={styles.statValue}>24</Text>
+                                <Text style={styles.statValue}>{stats.notesRead}</Text>
                                 <Text style={styles.statLabel}>Notes Read</Text>
                             </View>
 
                             <View style={styles.statCard}>
                                 <Ionicons name="bookmark" size={32} color={colors.secondary} />
-                                <Text style={styles.statValue}>12</Text>
+                                <Text style={styles.statValue}>{stats.saved}</Text>
                                 <Text style={styles.statLabel}>Saved</Text>
                             </View>
 
                             <View style={styles.statCard}>
                                 <Ionicons name="download" size={32} color={colors.accent} />
-                                <Text style={styles.statValue}>8</Text>
+                                <Text style={styles.statValue}>{stats.downloads}</Text>
                                 <Text style={styles.statLabel}>Downloads</Text>
                             </View>
                         </View>

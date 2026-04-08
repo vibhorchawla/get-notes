@@ -5,6 +5,7 @@ import {
     StyleSheet,
     ScrollView,
     Alert,
+    ActivityIndicator,
 } from 'react-native';
 import { useLocalSearchParams, Stack } from 'expo-router';
 import GradientBackground from '../../components/GradientBackground';
@@ -12,79 +13,38 @@ import NoteItem from '../../components/NoteItem';
 import { colors } from '../../constants/colors';
 import { spacing } from '../../constants/spacing';
 import { typography } from '../../constants/typography';
+import { useNotes } from '../../hooks/useNotes';
+import { useDownloads } from '../../hooks/useDownloads';
 
-interface Note {
-    id: string;
-    title: string;
-    subject: string;
-    unit?: string;
-}
-
-// Placeholder data for notes
-const NOTES_DATA: Record<string, Note[]> = {
-    'btech-cse': [
-        { id: '1', title: 'Data Structures - Arrays & Linked Lists', subject: 'Data Structures', unit: 'Unit 1' },
-        { id: '2', title: 'Algorithm Analysis & Complexity', subject: 'Algorithms', unit: 'Unit 1' },
-        { id: '3', title: 'Object Oriented Programming Concepts', subject: 'OOP', unit: 'Unit 2' },
-        { id: '4', title: 'Database Management Systems - ER Model', subject: 'DBMS', unit: 'Unit 1' },
-        { id: '5', title: 'Operating Systems - Process Management', subject: 'OS', unit: 'Unit 2' },
-    ],
-    'btech-me': [
-        { id: '1', title: 'Thermodynamics - First Law', subject: 'Thermodynamics', unit: 'Unit 1' },
-        { id: '2', title: 'Fluid Mechanics - Flow Properties', subject: 'Fluid Mechanics', unit: 'Unit 1' },
-        { id: '3', title: 'Machine Design - Stress Analysis', subject: 'Machine Design', unit: 'Unit 2' },
-    ],
-    'btech-ee': [
-        { id: '1', title: 'Circuit Theory - Network Theorems', subject: 'Circuit Theory', unit: 'Unit 1' },
-        { id: '2', title: 'Electromagnetic Fields', subject: 'EMF', unit: 'Unit 1' },
-        { id: '3', title: 'Power Systems - Generation', subject: 'Power Systems', unit: 'Unit 2' },
-    ],
-    'bca': [
-        { id: '1', title: 'C Programming - Basics', subject: 'C Programming', unit: 'Unit 1' },
-        { id: '2', title: 'Web Development - HTML & CSS', subject: 'Web Dev', unit: 'Unit 1' },
-        { id: '3', title: 'Database Concepts', subject: 'Database', unit: 'Unit 2' },
-    ],
-    'mca': [
-        { id: '1', title: 'Advanced Java - Servlets & JSP', subject: 'Advanced Java', unit: 'Unit 1' },
-        { id: '2', title: 'Software Engineering - SDLC', subject: 'Software Engg', unit: 'Unit 1' },
-        { id: '3', title: 'Data Mining Techniques', subject: 'Data Mining', unit: 'Unit 2' },
-    ],
-    'diploma': [
-        { id: '1', title: 'Basic Electronics', subject: 'Electronics', unit: 'Unit 1' },
-        { id: '2', title: 'Engineering Drawing', subject: 'Drawing', unit: 'Unit 1' },
-        { id: '3', title: 'Workshop Practice', subject: 'Workshop', unit: 'Unit 2' },
-    ],
+const COURSE_TITLES: Record<string, string> = {
+    'btech-cse': 'B.Tech CSE',
+    'btech-me': 'B.Tech ME',
+    'btech-ee': 'B.Tech EE',
+    'bca': 'BCA',
+    'mca': 'MCA',
+    'diploma': 'Diploma',
+    'bca-web': 'Full Stack Web Dev',
 };
 
 export default function NotesScreen() {
     const { id } = useLocalSearchParams<{ id: string }>();
-    const notes = NOTES_DATA[id] || [];
+    const { notes, isLoading } = useNotes(id);
+    const { addDownload } = useDownloads();
 
     const handleNotePress = (noteId: string) => {
-        Alert.alert('Note Viewer', 'PDF viewer placeholder - Note ID: ' + noteId);
+        Alert.alert('Note Viewer', 'PDF viewer — Note ID: ' + noteId);
     };
 
-    const handleDownload = (noteId: string) => {
-        Alert.alert('Download', 'Download functionality placeholder - Note ID: ' + noteId);
-    };
-
-    const getCourseTitle = (courseId: string) => {
-        const titles: Record<string, string> = {
-            'btech-cse': 'B.Tech CSE',
-            'btech-me': 'B.Tech ME',
-            'btech-ee': 'B.Tech EE',
-            'bca': 'BCA',
-            'mca': 'MCA',
-            'diploma': 'Diploma',
-        };
-        return titles[courseId] || 'Course Notes';
+    const handleDownload = async (noteId: string) => {
+        await addDownload(noteId);
+        Alert.alert('Downloaded', 'Note saved to your downloads!');
     };
 
     return (
         <>
             <Stack.Screen
                 options={{
-                    title: getCourseTitle(id),
+                    title: COURSE_TITLES[id] || 'Course Notes',
                     headerStyle: { backgroundColor: colors.primary },
                     headerTintColor: colors.textPrimary,
                 }}
@@ -94,7 +54,9 @@ export default function NotesScreen() {
                     <View style={styles.content}>
                         <Text style={styles.title}>Available Notes</Text>
 
-                        {notes.length > 0 ? (
+                        {isLoading ? (
+                            <ActivityIndicator size="large" color={colors.primary} style={{ marginTop: spacing.xl }} />
+                        ) : notes.length > 0 ? (
                             <View style={styles.notesList}>
                                 {notes.map((note) => (
                                     <NoteItem

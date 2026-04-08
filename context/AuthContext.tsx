@@ -1,7 +1,9 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import * as SecureStore from 'expo-secure-store';
+import { apiFetch, setToken, removeToken, getToken } from '../hooks/useApi';
 
 interface User {
+    id?: string;
     email: string;
     name: string;
     course: string;
@@ -18,7 +20,6 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 const USER_KEY = 'user_data';
-const AUTH_KEY = 'is_authenticated';
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
     const [user, setUser] = useState<User | null>(null);
@@ -30,8 +31,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     const loadUser = async () => {
         try {
-            const isAuth = await SecureStore.getItemAsync(AUTH_KEY);
-            if (isAuth === 'true') {
+            const token = await getToken();
+            if (token) {
                 const userData = await SecureStore.getItemAsync(USER_KEY);
                 if (userData) {
                     setUser(JSON.parse(userData));
@@ -46,22 +47,25 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     const login = async (email: string, password: string): Promise<boolean> => {
         try {
-            // Mock authentication - in production, validate against backend
-            if (email && password.length >= 6) {
-                const userData: User = {
-                    email,
-                    name: email.split('@')[0],
-                    course: 'B.Tech CSE',
-                };
+            console.log('[Auth] Attempting login for:', email);
+            const res = await apiFetch<{ token: string; user: User }>('/auth/login', {
+                method: 'POST',
+                body: JSON.stringify({ email, password }),
+                requiresAuth: false,
+            });
 
-                await SecureStore.setItemAsync(USER_KEY, JSON.stringify(userData));
-                await SecureStore.setItemAsync(AUTH_KEY, 'true');
-                setUser(userData);
+            console.log('[Auth] Login response:', JSON.stringify(res));
+
+            if (res.success && res.data) {
+                await setToken(res.data.token);
+                await SecureStore.setItemAsync(USER_KEY, JSON.stringify(res.data.user));
+                setUser(res.data.user);
                 return true;
             }
+            console.warn('[Auth] Login failed — server said:', res.message || 'no message');
             return false;
         } catch (error) {
-            console.error('Login error:', error);
+            console.error('[Auth] Login network/parse error:', error);
             return false;
         }
     };
@@ -73,30 +77,33 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         course: string
     ): Promise<boolean> => {
         try {
-            // Mock signup - in production, create user in backend
-            if (email && password.length >= 6 && name && course) {
-                const userData: User = {
-                    email,
-                    name,
-                    course,
-                };
+            console.log('[Auth] Attempting signup for:', email);
+            const res = await apiFetch<{ token: string; user: User }>('/auth/register', {
+                method: 'POST',
+                body: JSON.stringify({ email, password, name, course }),
+                requiresAuth: false,
+            });
 
-                await SecureStore.setItemAsync(USER_KEY, JSON.stringify(userData));
-                await SecureStore.setItemAsync(AUTH_KEY, 'true');
-                setUser(userData);
+            console.log('[Auth] Signup response:', JSON.stringify(res));
+
+            if (res.success && res.data) {
+                await setToken(res.data.token);
+                await SecureStore.setItemAsync(USER_KEY, JSON.stringify(res.data.user));
+                setUser(res.data.user);
                 return true;
             }
+            console.warn('[Auth] Signup failed — server said:', res.message || 'no message');
             return false;
         } catch (error) {
-            console.error('Signup error:', error);
+            console.error('[Auth] Signup network/parse error:', error);
             return false;
         }
     };
 
     const logout = async () => {
         try {
+            await removeToken();
             await SecureStore.deleteItemAsync(USER_KEY);
-            await SecureStore.deleteItemAsync(AUTH_KEY);
             setUser(null);
         } catch (error) {
             console.error('Logout error:', error);

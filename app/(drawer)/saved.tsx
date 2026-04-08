@@ -1,18 +1,15 @@
 import React from 'react';
-import { View, Text, StyleSheet, ScrollView } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, ActivityIndicator } from 'react-native';
 import GradientBackground from '../../components/GradientBackground';
 import NoteItem from '../../components/NoteItem';
 import { colors } from '../../constants/colors';
 import { spacing } from '../../constants/spacing';
 import { typography } from '../../constants/typography';
-
-const SAVED_NOTES = [
-    { id: '1', title: 'Data Structures - Arrays & Linked Lists', subject: 'Data Structures', unit: 'Unit 1' },
-    { id: '2', title: 'Algorithm Analysis & Complexity', subject: 'Algorithms', unit: 'Unit 1' },
-    { id: '3', title: 'Database Management Systems - ER Model', subject: 'DBMS', unit: 'Unit 1' },
-];
+import { useSaved } from '../../hooks/useSaved';
 
 export default function SavedScreen() {
+    const { savedNotes, isLoading, unsaveNote } = useSaved();
+
     return (
         <GradientBackground>
             <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
@@ -20,16 +17,18 @@ export default function SavedScreen() {
                     <Text style={styles.title}>Saved Notes</Text>
                     <Text style={styles.subtitle}>Your bookmarked study materials</Text>
 
-                    {SAVED_NOTES.length > 0 ? (
+                    {isLoading ? (
+                        <ActivityIndicator size="large" color={colors.primary} style={{ marginTop: spacing.xl }} />
+                    ) : savedNotes.length > 0 ? (
                         <View style={styles.notesList}>
-                            {SAVED_NOTES.map((note) => (
+                            {savedNotes.map((note) => (
                                 <NoteItem
                                     key={note.id}
                                     title={note.title}
                                     subject={note.subject}
                                     unit={note.unit}
                                     onPress={() => { }}
-                                    onDownload={() => { }}
+                                    onDownload={() => unsaveNote(note.id)}
                                 />
                             ))}
                         </View>
