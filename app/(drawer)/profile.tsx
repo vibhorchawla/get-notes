@@ -1,7 +1,7 @@
-import React from 'react';
-import { View, Text, StyleSheet, ScrollView } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, SafeAreaView } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import GradientBackground from '../../components/GradientBackground';
+import TopHeader from '../../components/TopHeader';
 import { useAuth } from '../../context/AuthContext';
 import { useUserStats } from '../../hooks/useUserStats';
 import { colors } from '../../constants/colors';
@@ -14,16 +14,18 @@ export default function ProfileScreen() {
 
     return (
         <GradientBackground>
-            <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
-                <View style={styles.content}>
-                    {/* Profile Header */}
-                    <View style={styles.profileHeader}>
-                        <View style={styles.avatar}>
-                            <Ionicons name="person" size={60} color={colors.primary} />
+            <SafeAreaView style={styles.container}>
+                <TopHeader title="My Profile" />
+                <ScrollView showsVerticalScrollIndicator={false}>
+                    <View style={styles.content}>
+                        {/* Profile Header */}
+                        <View style={styles.profileHeader}>
+                            <View style={styles.avatar}>
+                                <Ionicons name="person" size={60} color={colors.primary} />
+                            </View>
+                            <Text style={styles.name}>{user?.name || 'User Name'}</Text>
+                            <Text style={styles.email}>{user?.email || 'user@example.com'}</Text>
                         </View>
-                        <Text style={styles.name}>{user?.name || 'User Name'}</Text>
-                        <Text style={styles.email}>{user?.email || 'user@example.com'}</Text>
-                    </View>
 
                     {/* Profile Details */}
                     <View style={styles.section}>
@@ -86,6 +88,7 @@ export default function ProfileScreen() {
                     </View>
                 </View>
             </ScrollView>
+            </SafeAreaView>
         </GradientBackground>
     );
 }

@@ -1,7 +1,7 @@
-import React from 'react';
-import { View, Text, StyleSheet, ScrollView, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, ActivityIndicator, SafeAreaView } from 'react-native';
 import GradientBackground from '../../components/GradientBackground';
 import NoteItem from '../../components/NoteItem';
+import TopHeader from '../../components/TopHeader';
 import { colors } from '../../constants/colors';
 import { spacing } from '../../constants/spacing';
 import { typography } from '../../constants/typography';
@@ -12,12 +12,11 @@ export default function SavedScreen() {
 
     return (
         <GradientBackground>
-            <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
-                <View style={styles.content}>
-                    <Text style={styles.title}>Saved Notes</Text>
-                    <Text style={styles.subtitle}>Your bookmarked study materials</Text>
-
-                    {isLoading ? (
+            <SafeAreaView style={styles.container}>
+                <TopHeader title="Saved Notes" />
+                <ScrollView showsVerticalScrollIndicator={false}>
+                    <View style={styles.content}>
+                        {isLoading ? (
                         <ActivityIndicator size="large" color={colors.primary} style={{ marginTop: spacing.xl }} />
                     ) : savedNotes.length > 0 ? (
                         <View style={styles.notesList}>
@@ -39,6 +38,7 @@ export default function SavedScreen() {
                     )}
                 </View>
             </ScrollView>
+            </SafeAreaView>
         </GradientBackground>
     );
 }

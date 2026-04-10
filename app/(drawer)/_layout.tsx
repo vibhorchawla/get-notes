@@ -8,6 +8,7 @@ export default function DrawerLayout() {
         <Drawer
             drawerContent={(props) => <CustomDrawerContent {...props} />}
             screenOptions={{
+                headerShown: false,
                 headerStyle: {
                     backgroundColor: colors.primary,
                 },
@@ -66,6 +67,17 @@ export default function DrawerLayout() {
                     title: 'Settings',
                     drawerIcon: ({ color, size }) => (
                         <Ionicons name="settings-outline" size={size} color={color} />
+                    ),
+                }}
+            />
+            <Drawer.Screen
+                name="notes"
+                options={{
+                    headerShown: false,
+                    drawerLabel: 'My Notes',
+                    title: 'My Notes',
+                    drawerIcon: ({ color, size }) => (
+                        <Ionicons name="document-text-outline" size={size} color={color} />
                     ),
                 }}
             />

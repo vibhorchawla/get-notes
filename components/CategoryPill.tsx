@@ -26,7 +26,7 @@ const styles = StyleSheet.create({
         paddingHorizontal: spacing.lg,
         paddingVertical: spacing.sm,
         borderRadius: 20,
-        backgroundColor: '#fff',
+        backgroundColor: colors.cardBackground,
         marginRight: spacing.sm,
         borderWidth: 1,
         borderColor: colors.border,

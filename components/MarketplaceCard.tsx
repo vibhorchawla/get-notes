@@ -19,6 +19,7 @@ interface MarketplaceCardProps {
     students: string;
     instructor: string;
     icon: keyof typeof Ionicons.glyphMap;
+    imageUrl?: string;
     onPress: () => void;
     horizontal?: boolean;
 }
@@ -30,6 +31,7 @@ export default function MarketplaceCard({
     students,
     instructor,
     icon,
+    imageUrl,
     onPress,
     horizontal = false,
 }: MarketplaceCardProps) {
@@ -40,7 +42,11 @@ export default function MarketplaceCard({
             activeOpacity={0.8}
         >
             <View style={[styles.imagePlaceholder, horizontal ? styles.horizontalImage : styles.verticalImage]}>
-                <Ionicons name={icon} size={32} color={colors.primary} />
+                {imageUrl ? (
+                    <Image source={{ uri: imageUrl }} style={StyleSheet.absoluteFillObject} />
+                ) : (
+                    <Ionicons name={icon} size={32} color={colors.primary} />
+                )}
                 <View style={styles.badge}>
                     <Text style={styles.badgeText}>{category}</Text>
                 </View>
@@ -65,7 +71,7 @@ export default function MarketplaceCard({
 
 const styles = StyleSheet.create({
     container: {
-        backgroundColor: '#fff',
+        backgroundColor: colors.cardBackground,
         borderRadius: 16,
         shadowColor: colors.shadow,
         shadowOffset: { width: 0, height: 4 },

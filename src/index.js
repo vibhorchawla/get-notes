@@ -30,8 +30,8 @@ app.use((_req, res) => {
 });
 
 // ── Start ─────────────────────────────────────────────────────────────────────
-app.listen(PORT, () => {
-    console.log(`\n🚀 GetNotes API running on http://localhost:${PORT}`);
+app.listen(PORT, '0.0.0.0', () => {
+    console.log(`\n🚀 GetNotes API running on http://0.0.0.0:${PORT}`);
     console.log(`   Auth    → POST /api/auth/register  |  POST /api/auth/login`);
     console.log(`   Courses → GET  /api/courses         |  GET  /api/courses/featured`);
     console.log(`   Notes   → GET  /api/notes/:courseId`);

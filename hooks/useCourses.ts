@@ -8,7 +8,7 @@ interface Course {
     rating: number;
     students: string;
     instructor: string;
-    icon: string;
+    icon: keyof typeof import('@expo/vector-icons').Ionicons.glyphMap;
     featured: boolean;
 }
 

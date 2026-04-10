@@ -6,9 +6,11 @@ import {
     ScrollView,
     TouchableOpacity,
     Switch,
+    SafeAreaView,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import GradientBackground from '../../components/GradientBackground';
+import TopHeader from '../../components/TopHeader';
 import { colors } from '../../constants/colors';
 import { spacing } from '../../constants/spacing';
 import { typography } from '../../constants/typography';
@@ -20,9 +22,11 @@ export default function SettingsScreen() {
 
     return (
         <GradientBackground>
-            <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
-                <View style={styles.content}>
-                    {/* Preferences Section */}
+            <SafeAreaView style={styles.container}>
+                <TopHeader title="Settings" />
+                <ScrollView showsVerticalScrollIndicator={false}>
+                    <View style={styles.content}>
+                        {/* Preferences Section */}
                     <View style={styles.section}>
                         <Text style={styles.sectionTitle}>Preferences</Text>
 
@@ -129,6 +133,7 @@ export default function SettingsScreen() {
                     </View>
                 </View>
             </ScrollView>
+            </SafeAreaView>
         </GradientBackground>
     );
 }

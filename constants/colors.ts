@@ -1,29 +1,29 @@
 export const colors = {
-    // Soft pastel palette
-    primary: '#A8C5E6',      // Soft blue
-    secondary: '#E6C5D8',    // Soft pink
-    accent: '#C5E6D8',       // Soft mint
+    // Ultra-Premium Light Mode (Stripe/Vercel aesthetic)
+    primary: '#4F46E5',      // Deep Indigo (modern, highly clickable)
+    secondary: '#EC4899',    // Vibrant Pink (for soft accents)
+    accent: '#10B981',       // Success Mint
 
     // Backgrounds
-    background: '#F8F9FA',   // Very light gray
-    cardBackground: '#FFFFFF',
+    background: '#F8FAFC',   // Slate-50: Crisp, clean off-white background
+    cardBackground: '#FFFFFF', // Pure white for elevated cards to pop dynamically
 
     // Gradients
-    gradientStart: '#E8EAF6', // Light indigo
-    gradientEnd: '#F3E5F5',   // Light purple
+    gradientStart: '#F8FAFC', // Slate-50
+    gradientEnd: '#EEF2F6',   // Soft blue-gray fade
 
     // Text colors
-    textPrimary: '#2C3E50',   // Dark blue-gray
-    textSecondary: '#7F8C8D', // Medium gray
-    textLight: '#95A5A6',     // Light gray
+    textPrimary: '#0F172A',   // Slate-900: Soft black (reduces eye strain compared to pure black)
+    textSecondary: '#64748B', // Slate-500: Perfect legible gray for descriptions
+    textLight: '#94A3B8',     // Slate-400: Light hints and placeholders
 
     // Functional colors
-    success: '#A8D5BA',       // Soft green
-    warning: '#F5D5A8',       // Soft orange
-    error: '#F5A8A8',         // Soft red
-    info: '#A8C5E6',          // Soft blue
+    success: '#10B981',       
+    warning: '#F59E0B',       
+    error: '#EF4444',         
+    info: '#3B82F6',          
 
     // Borders & Shadows
-    border: '#E0E0E0',
-    shadow: 'rgba(0, 0, 0, 0.08)',
+    border: '#E2E8F0',        // Slate-200: Soft dividing borders
+    shadow: 'rgba(15, 23, 42, 0.06)', // Ultra-light elegant drop shadow
 };
