@@ -7,7 +7,7 @@ import {
     Alert,
     ActivityIndicator,
 } from 'react-native';
-import { useLocalSearchParams, Stack } from 'expo-router';
+import { useLocalSearchParams, Stack, useRouter } from 'expo-router';
 import GradientBackground from '../../components/GradientBackground';
 import NoteItem from '../../components/NoteItem';
 import { colors } from '../../constants/colors';
@@ -28,11 +28,33 @@ const COURSE_TITLES: Record<string, string> = {
 
 export default function NotesScreen() {
     const { id } = useLocalSearchParams<{ id: string }>();
+    const router = useRouter();
     const { notes, isLoading } = useNotes(id);
     const { addDownload } = useDownloads();
 
     const handleNotePress = (noteId: string) => {
-        Alert.alert('Note Viewer', 'PDF viewer — Note ID: ' + noteId);
+        const note = notes.find((n) => n.id === noteId);
+        
+        // Debug logs for troubleshooting
+        console.log('--- Note Navigation Debug ---');
+        console.log('Course ID:', id);
+        console.log('All Notes:', notes.length);
+        console.log('Clicked Note ID:', noteId);
+        console.log('Found Note Object:', note);
+
+        if (note?.pdfUrl) {
+            router.push({
+                pathname: `/note/${noteId}`,
+                params: { 
+                    id: noteId, 
+                    title: note.title, 
+                    pdfUrl: note.pdfUrl 
+                }
+            });
+        } else {
+            console.warn('PDF URL missing for note:', noteId);
+            Alert.alert('Error', 'PDF URL not found for this note.');
+        }
     };
 
     const handleDownload = async (noteId: string) => {
@@ -46,7 +68,7 @@ export default function NotesScreen() {
                 options={{
                     title: COURSE_TITLES[id] || 'Course Notes',
                     headerStyle: { backgroundColor: colors.primary },
-                    headerTintColor: colors.textPrimary,
+                    headerTintColor: colors.white,
                 }}
             />
             <GradientBackground>

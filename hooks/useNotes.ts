@@ -6,7 +6,7 @@ interface Note {
     title: string;
     subject: string;
     unit?: string;
-    fileUrl?: string | null;
+    pdfUrl?: string | null;
 }
 
 export function useNotes(courseId: string) {

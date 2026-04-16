@@ -16,6 +16,8 @@ export const colors = {
     textPrimary: '#0F172A',   // Slate-900: Soft black (reduces eye strain compared to pure black)
     textSecondary: '#64748B', // Slate-500: Perfect legible gray for descriptions
     textLight: '#94A3B8',     // Slate-400: Light hints and placeholders
+    textOnPrimary: '#FFFFFF', // High contrast text for primary backgrounds
+    white: '#FFFFFF',
 
     // Functional colors
     success: '#10B981',       
@@ -25,5 +27,5 @@ export const colors = {
 
     // Borders & Shadows
     border: '#E2E8F0',        // Slate-200: Soft dividing borders
-    shadow: 'rgba(15, 23, 42, 0.06)', // Ultra-light elegant drop shadow
+    shadow: 'rgba(15, 23, 42, 0.08)', // Slightly deeper shadow for better elevation
 };

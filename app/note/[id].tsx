@@ -1,161 +1,164 @@
-import React, { useState, useEffect } from 'react';
-import { View, TextInput, StyleSheet, TouchableOpacity, Text, SafeAreaView, KeyboardAvoidingView, Platform, Alert } from 'react-native';
-import { useLocalSearchParams, useRouter } from 'expo-router';
+import React, { useState } from 'react';
+import {
+    View,
+    Text,
+    StyleSheet,
+    ActivityIndicator,
+    TouchableOpacity,
+    Dimensions,
+    Alert,
+    Platform,
+} from 'react-native';
+import { useLocalSearchParams, Stack } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import { usePersonalNotes } from '../../hooks/usePersonalNotes';
+import Constants from 'expo-constants';
+import { WebView } from 'react-native-webview';
+
+// Only import native PDF if NOT in Expo Go to avoid crashes
+let Pdf: any = null;
+try {
+    if (Constants.appOwnership !== 'expo') {
+        Pdf = require('react-native-pdf').default;
+    }
+} catch (e) {
+    console.log('Native PDF module not found, falling back to WebView');
+}
+
 import { colors } from '../../constants/colors';
 import { spacing } from '../../constants/spacing';
 import { typography } from '../../constants/typography';
+import { useSaved } from '../../hooks/useSaved';
+import { useDownloads } from '../../hooks/useDownloads';
 
-export default function NoteEditorScreen() {
-    const { id } = useLocalSearchParams<{ id: string }>();
-    const router = useRouter();
-    const { notes, addNote, updateNote, deleteNote } = usePersonalNotes();
+export default function NoteViewer() {
+    const { id, title, pdfUrl } = useLocalSearchParams<{ 
+        id: string; 
+        title: string; 
+        pdfUrl: string 
+    }>();
     
-    const isNew = id === 'new';
-    const [title, setTitle] = useState('');
-    const [content, setContent] = useState('');
+    const [isLoading, setIsLoading] = useState(true);
+    const { savedNotes, saveNote, unsaveNote } = useSaved();
+    const { addDownload } = useDownloads();
 
-    useEffect(() => {
-        if (!isNew && notes.length > 0) {
-            const existingNote = notes.find((n) => n.id === id);
-            if (existingNote) {
-                setTitle(existingNote.title);
-                setContent(existingNote.content);
-            }
-        }
-    }, [id, isNew, notes]);
+    const isSaved = savedNotes.some((n) => n.id === id);
+    const isExpoGo = Constants.appOwnership === 'expo';
 
     const handleSave = async () => {
-        if (!title.trim()) {
-            Alert.alert('Validation Error', 'Note title cannot be empty.');
-            return;
-        }
-
-        if (isNew) {
-            await addNote(title, content);
+        if (isSaved) {
+            await unsaveNote(id);
+            Alert.alert('Bookmark Removed', 'Note removed from your saved list.');
         } else {
-            await updateNote(id, title, content);
+            await saveNote(id);
+            Alert.alert('Bookmark Added', 'Note saved to your bookmarks!');
         }
-        router.back();
     };
 
-    const handleDelete = () => {
-        Alert.alert(
-            'Delete Note',
-            'Are you sure you want to delete this note?',
-            [
-                { text: 'Cancel', style: 'cancel' },
-                { 
-                    text: 'Delete', 
-                    style: 'destructive',
-                    onPress: async () => {
-                        await deleteNote(id);
-                        router.back();
-                    }
-                }
-            ]
-        );
+    const handleDownload = async () => {
+        await addDownload(id);
+        Alert.alert('Download Started', 'The PDF is being saved to your downloads.');
     };
+
+    // Construct the WebView source. 
+    // On Android, we use Google Docs Viewer for better PDF rendering in WebView.
+    const webViewUrl = Platform.OS === 'android' 
+        ? `https://docs.google.com/viewer?url=${encodeURIComponent(pdfUrl || '')}&embedded=true`
+        : pdfUrl;
 
     return (
-        <SafeAreaView style={styles.safeArea}>
-            <KeyboardAvoidingView 
-                style={styles.container} 
-                behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-            >
-                {/* Custom Header */}
-                <View style={styles.header}>
-                    <TouchableOpacity onPress={() => router.back()} style={styles.headerBtn}>
-                        <Ionicons name="arrow-back" size={24} color={colors.textPrimary} />
-                    </TouchableOpacity>
-                    
-                    <View style={styles.headerRight}>
-                        {!isNew && (
-                            <TouchableOpacity onPress={handleDelete} style={[styles.headerBtn, { marginRight: spacing.sm }]}>
-                                <Ionicons name="trash-outline" size={24} color={colors.primary} />
+        <View style={styles.container}>
+            <Stack.Screen
+                options={{
+                    headerTitle: title || 'Note Viewer',
+                    headerRight: () => (
+                        <View style={styles.headerActions}>
+                            <TouchableOpacity onPress={handleSave} style={styles.headerButton}>
+                                <Ionicons 
+                                    name={isSaved ? "bookmark" : "bookmark-outline"} 
+                                    size={22} 
+                                    color={colors.primary} 
+                                />
                             </TouchableOpacity>
-                        )}
-                        <TouchableOpacity onPress={handleSave} style={styles.saveBtn}>
-                            <Text style={styles.saveBtnText}>Save</Text>
-                        </TouchableOpacity>
-                    </View>
-                </View>
+                            <TouchableOpacity onPress={handleDownload} style={styles.headerButton}>
+                                <Ionicons name="download-outline" size={24} color={colors.primary} />
+                            </TouchableOpacity>
+                        </View>
+                    ),
+                }}
+            />
 
-                {/* Editor Content */}
-                <View style={styles.editor}>
-                    <TextInput
-                        style={styles.titleInput}
-                        placeholder="Note Title"
-                        placeholderTextColor={colors.textSecondary}
-                        value={title}
-                        onChangeText={setTitle}
-                        maxLength={100}
+            <View style={styles.pdfContainer}>
+                {isLoading && (
+                    <View style={styles.loadingOverlay}>
+                        <ActivityIndicator size="large" color={colors.primary} />
+                        <Text style={styles.loadingText}>Loading PDF...</Text>
+                    </View>
+                )}
+                
+                {Pdf && !isExpoGo ? (
+                    <Pdf
+                        source={{ uri: pdfUrl, cache: true }}
+                        onLoadComplete={() => setIsLoading(false)}
+                        onError={(error: any) => {
+                            console.log(error);
+                            setIsLoading(false);
+                            Alert.alert('Error', 'Failed to load PDF in native viewer.');
+                        }}
+                        style={styles.pdf}
                     />
-                    <TextInput
-                        style={styles.contentInput}
-                        placeholder="Start typing your note here..."
-                        placeholderTextColor={colors.textLight || colors.textSecondary}
-                        value={content}
-                        onChangeText={setContent}
-                        multiline
-                        textAlignVertical="top"
+                ) : (
+                    <WebView
+                        source={{ uri: webViewUrl }}
+                        style={styles.pdf}
+                        onLoadEnd={() => setIsLoading(false)}
+                        onError={() => {
+                            setIsLoading(false);
+                            Alert.alert('Error', 'Failed to load PDF in browser viewer.');
+                        }}
                     />
-                </View>
-            </KeyboardAvoidingView>
-        </SafeAreaView>
+                )}
+            </View>
+        </View>
     );
 }
 
 const styles = StyleSheet.create({
-    safeArea: {
+    container: {
         flex: 1,
         backgroundColor: colors.background,
     },
-    container: {
-        flex: 1,
-    },
-    header: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        paddingHorizontal: spacing.lg,
-        paddingVertical: spacing.md,
-        borderBottomWidth: 1,
-        borderBottomColor: colors.border,
-    },
-    headerBtn: {
-        padding: spacing.xs,
-    },
-    headerRight: {
+    headerActions: {
         flexDirection: 'row',
         alignItems: 'center',
+        marginRight: spacing.sm,
     },
-    saveBtn: {
-        backgroundColor: colors.primary,
-        paddingHorizontal: spacing.md,
-        paddingVertical: spacing.sm,
-        borderRadius: 20,
+    headerButton: {
+        padding: spacing.sm,
+        marginLeft: spacing.xs,
     },
-    saveBtnText: {
-        color: '#fff',
-        fontWeight: typography.fontWeight.bold,
-        fontSize: typography.fontSize.sm,
-    },
-    editor: {
+    pdfContainer: {
         flex: 1,
-        padding: spacing.lg,
+        justifyContent: 'center',
+        alignItems: 'center',
     },
-    titleInput: {
-        fontSize: typography.fontSize.xl,
-        fontWeight: typography.fontWeight.bold,
-        color: colors.textPrimary,
-        marginBottom: spacing.md,
-    },
-    contentInput: {
+    pdf: {
         flex: 1,
+        width: Dimensions.get('window').width,
+        height: Dimensions.get('window').height,
+        backgroundColor: colors.background,
+    },
+    loadingOverlay: {
+        ...StyleSheet.absoluteFillObject,
+        backgroundColor: 'rgba(248, 250, 252, 0.8)',
+        justifyContent: 'center',
+        alignItems: 'center',
+        zIndex: 10,
+    },
+    loadingText: {
+        marginTop: spacing.md,
         fontSize: typography.fontSize.md,
-        color: colors.textPrimary,
-        lineHeight: 24,
+        color: colors.textSecondary,
+        fontWeight: typography.fontWeight.medium,
     },
 });
+

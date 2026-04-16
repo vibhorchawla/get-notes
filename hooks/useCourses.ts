@@ -29,9 +29,15 @@ export function useCourses() {
                     apiFetch<Course[]>('/courses/featured', { requiresAuth: false }),
                     apiFetch<string[]>('/courses/categories', { requiresAuth: false }),
                 ]);
+
                 if (coursesRes.success && coursesRes.data) setCourses(coursesRes.data);
                 if (featuredRes.success && featuredRes.data) setFeatured(featuredRes.data);
-                if (categoriesRes.success && categoriesRes.data) setCategories(categoriesRes.data);
+                
+                if (categoriesRes.success && categoriesRes.data) {
+                    // Ensure 'All' is at the start and no duplicates
+                    const uniqueCats = Array.from(new Set(['All', ...categoriesRes.data]));
+                    setCategories(uniqueCats);
+                }
             } catch (e) {
                 setError('Failed to load courses');
                 console.error('useCourses error:', e);

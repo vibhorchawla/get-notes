@@ -20,13 +20,23 @@ import { typography } from '../../constants/typography';
 import { useCourses } from '../../hooks/useCourses';
 
 const COURSE_IMAGES: Record<string, string> = {
-    'btech-cse': 'https://images.unsplash.com/photo-1542831371-32f555c86880?auto=format&fit=crop&w=400&q=80', // Code on screen
-    'btech-me': 'https://images.unsplash.com/photo-1581092335397-9583eb92d232?auto=format&fit=crop&w=400&q=80',  // Engineering/Gears
-    'btech-ee': 'https://images.unsplash.com/photo-1518770660439-4636190af475?auto=format&fit=crop&w=400&q=80',  // Circuit board
-    'bca': 'https://images.unsplash.com/photo-1516321318423-f06f85e504b3?auto=format&fit=crop&w=400&q=80',       // Books & laptop
-    'mca': 'https://images.unsplash.com/photo-1504384308090-c894fdcc538d?auto=format&fit=crop&w=400&q=80',       // Advanced tech setup
-    'diploma': 'https://images.unsplash.com/photo-1530893609608-32a9af3aa95c?auto=format&fit=crop&w=400&q=80',   // Hardware/tech
-    'bca-web': 'https://images.unsplash.com/photo-1498050108023-c5249f4df085?auto=format&fit=crop&w=400&q=80',   // Web design
+    'btech-cse': 'https://images.unsplash.com/photo-1542831371-32f555c86880?auto=format&fit=crop&w=400&q=80',
+    'btech-me': 'https://images.unsplash.com/photo-1581092335397-9583eb92d232?auto=format&fit=crop&w=400&q=80',
+    'btech-ee': 'https://images.unsplash.com/photo-1518770660439-4636190af475?auto=format&fit=crop&w=400&q=80',
+    'bca': 'https://images.unsplash.com/photo-1516321318423-f06f85e504b3?auto=format&fit=crop&w=400&q=80',
+    'mca': 'https://images.unsplash.com/photo-1504384308090-c894fdcc538d?auto=format&fit=crop&w=400&q=80',
+    'diploma': 'https://images.unsplash.com/photo-1530893609608-32a9af3aa95c?auto=format&fit=crop&w=400&q=80',
+    'bca-web': 'https://images.unsplash.com/photo-1498050108023-c5249f4df085?auto=format&fit=crop&w=400&q=80',
+};
+
+const CATEGORY_ICONS: Record<string, any> = {
+    'All': 'grid-outline',
+    'B.Tech': 'laptop-outline',
+    'BCA': 'code-slash-outline',
+    'MCA': 'server-outline',
+    'Diploma': 'settings-outline',
+    'Arts': 'brush-outline',
+    'Science': 'flask-outline',
 };
 
 export default function HomeScreen() {
@@ -68,13 +78,15 @@ export default function HomeScreen() {
                         style={styles.categoriesContainer}
                         contentContainerStyle={styles.categoriesContent}
                     >
-                        {categories.map((cat) => (
-                            <CategoryPill
-                                key={cat}
-                                label={cat}
-                                isActive={activeCategory === cat}
-                                onPress={() => setActiveCategory(cat)}
-                            />
+                        {categories.map((cat, index) => (
+                            <Animated.View key={cat} entering={FadeInRight.delay(200 + index * 50)}>
+                                <CategoryPill
+                                    label={cat}
+                                    icon={CATEGORY_ICONS[cat]}
+                                    isActive={activeCategory === cat}
+                                    onPress={() => setActiveCategory(cat)}
+                                />
+                            </Animated.View>
                         ))}
                     </ScrollView>
 
@@ -83,41 +95,46 @@ export default function HomeScreen() {
                     ) : (
                         <>
                             {/* Featured Section */}
-                            <View style={styles.section}>
-                                <View style={styles.sectionHeader}>
-                                    <Text style={styles.sectionTitle}>Featured Courses</Text>
-                                    <TouchableOpacity>
-                                        <Text style={styles.viewAll}>View All</Text>
-                                    </TouchableOpacity>
+                            {featured.length > 0 && (
+                                <View style={styles.section}>
+                                    <View style={styles.sectionHeader}>
+                                        <Text style={styles.sectionTitle}>Featured Courses</Text>
+                                        <TouchableOpacity style={styles.viewAllBtn}>
+                                            <Text style={styles.viewAll}>Top Picks</Text>
+                                        </TouchableOpacity>
+                                    </View>
+                                    <ScrollView
+                                        horizontal
+                                        showsHorizontalScrollIndicator={false}
+                                        contentContainerStyle={styles.featuredContent}
+                                    >
+                                        {featured.map((course, idx) => (
+                                            <Animated.View key={course.id} entering={FadeInRight.delay(300 + idx * 100)}>
+                                                <MarketplaceCard
+                                                    {...course}
+                                                    imageUrl={getCourseImage(course.id)}
+                                                    horizontal
+                                                    onPress={() => handleCoursePress(course.id)}
+                                                />
+                                            </Animated.View>
+                                        ))}
+                                    </ScrollView>
                                 </View>
-                                <ScrollView
-                                    horizontal
-                                    showsHorizontalScrollIndicator={false}
-                                    contentContainerStyle={styles.featuredContent}
-                                >
-                                    {featured.map((course) => (
-                                        <MarketplaceCard
-                                            key={course.id}
-                                            {...course}
-                                            imageUrl={getCourseImage(course.id)}
-                                            horizontal
-                                            onPress={() => handleCoursePress(course.id)}
-                                        />
-                                    ))}
-                                </ScrollView>
-                            </View>
+                            )}
 
                             {/* All Courses Section */}
                             <Animated.View entering={FadeInDown.delay(400).springify().damping(14)} style={styles.section}>
                                 <View style={styles.sectionHeader}>
                                     <View>
-                                        <Text style={styles.sectionTitle}>Explore Categories 🚀</Text>
-                                        <Text style={styles.sectionSubtitle}>Find your next passion</Text>
+                                        <Text style={styles.sectionTitle}>Explore Marketplace 🚀</Text>
+                                        <Text style={styles.sectionSubtitle}>
+                                            {activeCategory === 'All' ? 'Discover all engineering & degree notes' : `Showing results for ${activeCategory}`}
+                                        </Text>
                                     </View>
                                 </View>
                                 <View style={styles.grid}>
                                     {filteredCourses.map((course, idx) => (
-                                        <Animated.View key={course.id} entering={FadeInDown.delay(450 + (idx * 100)).springify().damping(12)}>
+                                        <Animated.View key={course.id} entering={FadeInDown.delay(450 + (idx * 50)).springify().damping(12)}>
                                             <MarketplaceCard
                                                 {...course}
                                                 imageUrl={getCourseImage(course.id)}
@@ -125,6 +142,9 @@ export default function HomeScreen() {
                                             />
                                         </Animated.View>
                                     ))}
+                                    {filteredCourses.length === 0 && (
+                                        <Text style={styles.emptyText}>No courses found in this category.</Text>
+                                    )}
                                 </View>
                             </Animated.View>
                         </>
@@ -186,5 +206,11 @@ const styles = StyleSheet.create({
     },
     grid: {
         gap: spacing.lg,
+    },
+    emptyText: {
+        textAlign: 'center',
+        marginTop: spacing.xl,
+        color: colors.textSecondary,
+        fontSize: typography.fontSize.md,
     },
 });
