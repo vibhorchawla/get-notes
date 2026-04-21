@@ -46,7 +46,6 @@ export default function NotesScreen() {
             router.push({
                 pathname: `/note/${noteId}`,
                 params: { 
-                    id: noteId, 
                     title: note.title, 
                     pdfUrl: note.pdfUrl 
                 }

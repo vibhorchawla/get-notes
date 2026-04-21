@@ -52,7 +52,7 @@ export default function SignupScreen() {
         setIsLoading(false);
 
         if (success) {
-            router.replace('/(drawer)');
+            router.replace('/');
         } else {
             Alert.alert('Error', 'Signup failed. Please try again.');
         }

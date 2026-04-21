@@ -42,42 +42,44 @@ const FEATURED_COURSES = [
     { id: 'bca-web', title: 'Full Stack Web Development 2026', category: 'BCA', rating: 4.6, students: '850', instructor: 'John Doe', icon: 'code-slash-outline', featured: true },
 ];
 
+const SAMPLE_PDF_URL = 'https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf';
+
 const NOTES = {
     'btech-cse': [
-        { id: 'n1', title: 'Data Structures - Arrays & Linked Lists', subject: 'Data Structures', unit: 'Unit 1', pdfUrl: 'http://www.africau.edu/images/default/sample.pdf' },
-        { id: 'n2', title: 'Algorithm Analysis & Complexity', subject: 'Algorithms', unit: 'Unit 1', pdfUrl: 'http://www.africau.edu/images/default/sample.pdf' },
-        { id: 'n3', title: 'Object Oriented Programming Concepts', subject: 'OOP', unit: 'Unit 2', pdfUrl: 'http://www.africau.edu/images/default/sample.pdf' },
-        { id: 'n4', title: 'Database Management Systems - ER Model', subject: 'DBMS', unit: 'Unit 1', pdfUrl: 'http://www.africau.edu/images/default/sample.pdf' },
-        { id: 'n5', title: 'Operating Systems - Process Management', subject: 'OS', unit: 'Unit 2', pdfUrl: 'http://www.africau.edu/images/default/sample.pdf' },
+        { id: 'n1', title: 'Data Structures - Arrays & Linked Lists', subject: 'Data Structures', unit: 'Unit 1', pdfUrl: SAMPLE_PDF_URL },
+        { id: 'n2', title: 'Algorithm Analysis & Complexity', subject: 'Algorithms', unit: 'Unit 1', pdfUrl: SAMPLE_PDF_URL },
+        { id: 'n3', title: 'Object Oriented Programming Concepts', subject: 'OOP', unit: 'Unit 2', pdfUrl: SAMPLE_PDF_URL },
+        { id: 'n4', title: 'Database Management Systems - ER Model', subject: 'DBMS', unit: 'Unit 1', pdfUrl: SAMPLE_PDF_URL },
+        { id: 'n5', title: 'Operating Systems - Process Management', subject: 'OS', unit: 'Unit 2', pdfUrl: SAMPLE_PDF_URL },
     ],
     'btech-me': [
-        { id: 'n6', title: 'Thermodynamics - First Law', subject: 'Thermodynamics', unit: 'Unit 1', pdfUrl: 'http://www.africau.edu/images/default/sample.pdf' },
-        { id: 'n7', title: 'Fluid Mechanics - Flow Properties', subject: 'Fluid Mechanics', unit: 'Unit 1', pdfUrl: 'http://www.africau.edu/images/default/sample.pdf' },
-        { id: 'n8', title: 'Machine Design - Stress Analysis', subject: 'Machine Design', unit: 'Unit 2', pdfUrl: 'http://www.africau.edu/images/default/sample.pdf' },
+        { id: 'n6', title: 'Thermodynamics - First Law', subject: 'Thermodynamics', unit: 'Unit 1', pdfUrl: SAMPLE_PDF_URL },
+        { id: 'n7', title: 'Fluid Mechanics - Flow Properties', subject: 'Fluid Mechanics', unit: 'Unit 1', pdfUrl: SAMPLE_PDF_URL },
+        { id: 'n8', title: 'Machine Design - Stress Analysis', subject: 'Machine Design', unit: 'Unit 2', pdfUrl: SAMPLE_PDF_URL },
     ],
     'btech-ee': [
-        { id: 'n9', title: 'Circuit Theory - Network Theorems', subject: 'Circuit Theory', unit: 'Unit 1', pdfUrl: 'http://www.africau.edu/images/default/sample.pdf' },
-        { id: 'n10', title: 'Electromagnetic Fields', subject: 'EMF', unit: 'Unit 1', pdfUrl: 'http://www.africau.edu/images/default/sample.pdf' },
-        { id: 'n11', title: 'Power Systems - Generation', subject: 'Power Systems', unit: 'Unit 2', pdfUrl: 'http://www.africau.edu/images/default/sample.pdf' },
+        { id: 'n9', title: 'Circuit Theory - Network Theorems', subject: 'Circuit Theory', unit: 'Unit 1', pdfUrl: SAMPLE_PDF_URL },
+        { id: 'n10', title: 'Electromagnetic Fields', subject: 'EMF', unit: 'Unit 1', pdfUrl: SAMPLE_PDF_URL },
+        { id: 'n11', title: 'Power Systems - Generation', subject: 'Power Systems', unit: 'Unit 2', pdfUrl: SAMPLE_PDF_URL },
     ],
     'bca': [
-        { id: 'n12', title: 'C Programming - Basics', subject: 'C Programming', unit: 'Unit 1', pdfUrl: 'http://www.africau.edu/images/default/sample.pdf' },
-        { id: 'n13', title: 'Web Development - HTML & CSS', subject: 'Web Dev', unit: 'Unit 1', pdfUrl: 'http://www.africau.edu/images/default/sample.pdf' },
-        { id: 'n14', title: 'Database Concepts', subject: 'Database', unit: 'Unit 2', pdfUrl: 'http://www.africau.edu/images/default/sample.pdf' },
+        { id: 'n12', title: 'C Programming - Basics', subject: 'C Programming', unit: 'Unit 1', pdfUrl: SAMPLE_PDF_URL },
+        { id: 'n13', title: 'Web Development - HTML & CSS', subject: 'Web Dev', unit: 'Unit 1', pdfUrl: SAMPLE_PDF_URL },
+        { id: 'n14', title: 'Database Concepts', subject: 'Database', unit: 'Unit 2', pdfUrl: SAMPLE_PDF_URL },
     ],
     'mca': [
-        { id: 'n15', title: 'Advanced Java - Servlets & JSP', subject: 'Advanced Java', unit: 'Unit 1', pdfUrl: 'http://www.africau.edu/images/default/sample.pdf' },
-        { id: 'n16', title: 'Software Engineering - SDLC', subject: 'Software Engg', unit: 'Unit 1', pdfUrl: 'http://www.africau.edu/images/default/sample.pdf' },
-        { id: 'n17', title: 'Data Mining Techniques', subject: 'Data Mining', unit: 'Unit 2', pdfUrl: 'http://www.africau.edu/images/default/sample.pdf' },
+        { id: 'n15', title: 'Advanced Java - Servlets & JSP', subject: 'Advanced Java', unit: 'Unit 1', pdfUrl: SAMPLE_PDF_URL },
+        { id: 'n16', title: 'Software Engineering - SDLC', subject: 'Software Engg', unit: 'Unit 1', pdfUrl: SAMPLE_PDF_URL },
+        { id: 'n17', title: 'Data Mining Techniques', subject: 'Data Mining', unit: 'Unit 2', pdfUrl: SAMPLE_PDF_URL },
     ],
     'diploma': [
-        { id: 'n18', title: 'Basic Electronics', subject: 'Electronics', unit: 'Unit 1', pdfUrl: 'http://www.africau.edu/images/default/sample.pdf' },
-        { id: 'n19', title: 'Engineering Drawing', subject: 'Drawing', unit: 'Unit 1', pdfUrl: 'http://www.africau.edu/images/default/sample.pdf' },
-        { id: 'n20', title: 'Workshop Practice', subject: 'Workshop', unit: 'Unit 2', pdfUrl: 'http://www.africau.edu/images/default/sample.pdf' },
+        { id: 'n18', title: 'Basic Electronics', subject: 'Electronics', unit: 'Unit 1', pdfUrl: SAMPLE_PDF_URL },
+        { id: 'n19', title: 'Engineering Drawing', subject: 'Drawing', unit: 'Unit 1', pdfUrl: SAMPLE_PDF_URL },
+        { id: 'n20', title: 'Workshop Practice', subject: 'Workshop', unit: 'Unit 2', pdfUrl: SAMPLE_PDF_URL },
     ],
     'bca-web': [
-        { id: 'n21', title: 'React Native - Components & Props', subject: 'React Native', unit: 'Unit 1', pdfUrl: 'http://www.africau.edu/images/default/sample.pdf' },
-        { id: 'n22', title: 'Node.js & Express REST APIs', subject: 'Backend Dev', unit: 'Unit 2', pdfUrl: 'http://www.africau.edu/images/default/sample.pdf' },
+        { id: 'n21', title: 'React Native - Components & Props', subject: 'React Native', unit: 'Unit 1', pdfUrl: SAMPLE_PDF_URL },
+        { id: 'n22', title: 'Node.js & Express REST APIs', subject: 'Backend Dev', unit: 'Unit 2', pdfUrl: SAMPLE_PDF_URL },
     ],
 };
 

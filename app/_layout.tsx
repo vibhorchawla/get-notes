@@ -1,4 +1,4 @@
-import { Slot, useRouter, useSegments } from 'expo-router';
+import { Stack, useRouter, useSegments } from 'expo-router';
 import { AuthProvider, useAuth } from '../context/AuthContext';
 import { useEffect } from 'react';
 import { View, ActivityIndicator, StyleSheet } from 'react-native';
@@ -15,13 +15,11 @@ function RootLayoutNav() {
         const inAuthGroup = segments[0] === '(auth)';
 
         if (!user && !inAuthGroup) {
-            // Redirect to login if not authenticated
-            router.replace('/(auth)/login');
+            router.replace('/login');
         } else if (user && inAuthGroup) {
-            // Redirect to home if authenticated
-            router.replace('/(drawer)');
+            router.replace('/');
         }
-    }, [user, segments, isLoading]);
+    }, [user, segments, isLoading, router]);
 
     if (isLoading) {
         return (
@@ -31,7 +29,16 @@ function RootLayoutNav() {
         );
     }
 
-    return <Slot />;
+    return (
+        <Stack screenOptions={{ headerShown: false }}>
+            <Stack.Screen name="(auth)" options={{ headerShown: false }} />
+            <Stack.Screen name="(drawer)" options={{ headerShown: false }} />
+            <Stack.Screen name="upload-note" options={{ headerShown: false }} />
+            <Stack.Screen name="personal-note/[id]" options={{ headerShown: false }} />
+            <Stack.Screen name="course/[id]" options={{ headerShown: false }} />
+            <Stack.Screen name="note/[id]" options={{ headerShown: false }} />
+        </Stack>
+    );
 }
 
 export default function RootLayout() {

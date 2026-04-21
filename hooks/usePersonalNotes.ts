@@ -1,9 +1,9 @@
 import { useState, useEffect, useCallback } from 'react';
-import * as FileSystem from 'expo-file-system';
+import * as FileSystem from 'expo-file-system/legacy';
 import * as Crypto from 'expo-crypto';
 import { Note } from '../types/note';
 
-const NOTES_FILE_URI = `${(FileSystem as any).documentDirectory}personal_notes_db.json`;
+const NOTES_FILE_URI = `${FileSystem.documentDirectory}personal_notes_db.json`;
 
 export const usePersonalNotes = () => {
     const [notes, setNotes] = useState<Note[]>([]);

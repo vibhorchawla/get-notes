@@ -50,7 +50,7 @@ export default function LoginScreen() {
         setIsLoading(false);
 
         if (success) {
-            router.replace('/(drawer)');
+            router.replace('/');
         } else {
             Alert.alert('Error', 'Login failed. Please try again.');
         }
@@ -112,7 +112,7 @@ export default function LoginScreen() {
 
                             <View style={styles.footer}>
                                 <Text style={styles.footerText}>Don't have an account? </Text>
-                                <TouchableOpacity onPress={() => router.push('/(auth)/signup')}>
+                                <TouchableOpacity onPress={() => router.push('/signup')}>
                                     <Text style={styles.link}>Sign Up</Text>
                                 </TouchableOpacity>
                             </View>
