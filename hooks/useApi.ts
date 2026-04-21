@@ -24,6 +24,7 @@ export async function apiFetch<T = any>(
     options: FetchOptions = {}
 ): Promise<{ success: boolean; data?: T; message?: string }> {
     const { requiresAuth = true, ...fetchOptions } = options;
+    const url = `${API_BASE_URL}${endpoint}`;
 
     const headers: Record<string, string> = {
         'Content-Type': 'application/json',
@@ -37,11 +38,21 @@ export async function apiFetch<T = any>(
         }
     }
 
-    const response = await fetch(`${API_BASE_URL}${endpoint}`, {
-        ...fetchOptions,
-        headers,
-    });
+    try {
+        const response = await fetch(url, {
+            ...fetchOptions,
+            headers,
+        });
 
-    const json = await response.json();
-    return json;
+        const json = await response.json();
+        return json;
+    } catch (error) {
+        console.error('[apiFetch] Request failed:', {
+            url,
+            method: fetchOptions.method || 'GET',
+            requiresAuth,
+            error,
+        });
+        throw error;
+    }
 }

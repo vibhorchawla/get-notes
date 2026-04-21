@@ -6,5 +6,13 @@
     "name": "Vibhor",
     "course": "Btech cse",
     "createdAt": "2026-04-08T18:17:30.333Z"
+  },
+  {
+    "id": "9044b5a8-c482-44c7-9d56-c4d523cdab27",
+    "email": "vibhoryashika@gmail.com",
+    "passwordHash": "$2a$10$5SwmDrpPUW4.cNebY.Z9GOqT70zxfBlE/E0poeHvRlH3ETIqwyx7S",
+    "name": "Vibhor",
+    "course": "Btech Cse",
+    "createdAt": "2026-04-21T17:34:08.019Z"
   }
 ]
