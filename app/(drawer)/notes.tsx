@@ -11,11 +11,6 @@ import { colors } from '../../constants/colors';
 import { spacing } from '../../constants/spacing';
 import { typography } from '../../constants/typography';
 
-function extractPdfUrl(content: string): string | null {
-    const match = content.match(/https?:\/\/\S+/i);
-    return match ? match[0] : null;
-}
-
 export default function NotesScreen() {
     const router = useRouter();
     const { notes, isLoading } = usePersonalNotes();
@@ -32,7 +27,7 @@ export default function NotesScreen() {
 
     const handleNotePress = (id: string) => {
         const note = notes.find((item) => item.id === id);
-        const pdfUrl = note ? extractPdfUrl(note.content) : null;
+        const pdfUrl = note?.pdfUrl;
 
         if (note && pdfUrl) {
             router.push({

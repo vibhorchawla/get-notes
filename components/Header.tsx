@@ -12,7 +12,7 @@ export default function Header() {
     const navigation = useNavigation<DrawerNavigationProp<any>>();
 
     return (
-        <View style={styles.outerContainer}>
+        <View style={styles.container}>
             <TouchableOpacity
                 onPress={() => navigation.openDrawer()}
                 style={styles.menuButton}
@@ -21,33 +21,32 @@ export default function Header() {
                 <Ionicons name="menu" size={24} color={colors.textPrimary} />
             </TouchableOpacity>
 
-            <Animated.View entering={FadeInDown.delay(40).springify().damping(14)} style={styles.container}>
-                <View style={styles.brandRow}>
-                    <View style={styles.logoMark}>
-                        <Ionicons name="library-outline" size={24} color={colors.textOnPrimary} />
+            <Animated.View entering={FadeInDown.delay(40).springify().damping(14)} style={styles.brandBlock}>
+                <View style={styles.logoRow}>
+                    <View style={styles.logoBadge}>
+                        <Ionicons name="library" size={24} color={colors.textOnPrimary} />
                     </View>
-                    <View>
-                        <Text style={styles.appName}>GetNotes</Text>
-                        <Text style={styles.tagline}>Smart academic discovery and note sharing</Text>
-                    </View>
+                    <Text style={styles.appName}>GetNotes</Text>
                 </View>
+                <Text style={styles.tagline}>Your Academic Companion</Text>
             </Animated.View>
         </View>
     );
 }
 
 const styles = StyleSheet.create({
-    outerContainer: {
+    container: {
         position: 'relative',
-        width: '100%',
         paddingTop: spacing.sm,
+        paddingHorizontal: spacing.screenPadding,
         marginBottom: spacing.md,
+        minHeight: 96,
     },
     menuButton: {
         position: 'absolute',
-        top: spacing.md,
         left: spacing.screenPadding,
-        zIndex: 10,
+        top: spacing.md,
+        zIndex: 2,
         width: 44,
         height: 44,
         borderRadius: 22,
@@ -57,44 +56,44 @@ const styles = StyleSheet.create({
         borderWidth: 1,
         borderColor: colors.border,
         shadowColor: colors.shadow,
-        shadowOffset: { width: 0, height: 4 },
+        shadowOffset: { width: 0, height: 3 },
         shadowOpacity: 0.08,
         shadowRadius: 10,
         elevation: 2,
     },
-    container: {
-        paddingTop: spacing.lg,
-        paddingBottom: spacing.md,
-        paddingHorizontal: spacing.screenPadding,
+    brandBlock: {
+        alignItems: 'center',
+        justifyContent: 'center',
+        paddingTop: spacing.sm,
     },
-    brandRow: {
+    logoRow: {
         flexDirection: 'row',
         alignItems: 'center',
-        alignSelf: 'center',
-        gap: spacing.md,
+        gap: spacing.sm,
     },
-    logoMark: {
-        width: 52,
-        height: 52,
-        borderRadius: 18,
+    logoBadge: {
+        width: 42,
+        height: 42,
+        borderRadius: 14,
         backgroundColor: colors.primary,
         justifyContent: 'center',
         alignItems: 'center',
         shadowColor: '#312E81',
-        shadowOffset: { width: 0, height: 10 },
+        shadowOffset: { width: 0, height: 8 },
         shadowOpacity: 0.16,
-        shadowRadius: 18,
+        shadowRadius: 14,
         elevation: 4,
     },
     appName: {
-        fontSize: typography.fontSize.xxl,
+        fontSize: 28,
         fontWeight: typography.fontWeight.bold,
         color: colors.textPrimary,
         letterSpacing: -0.8,
     },
     tagline: {
+        marginTop: 6,
         fontSize: typography.fontSize.sm,
         color: colors.textSecondary,
-        marginTop: 2,
+        fontStyle: 'italic',
     },
 });

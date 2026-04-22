@@ -160,6 +160,12 @@ export default function HomeScreen() {
 
                     <View style={styles.content}>
                         <Animated.View entering={FadeInDown.delay(60).springify().damping(14)} style={styles.heroCard}>
+                            <SearchBar
+                                value={searchQuery}
+                                onChangeText={setSearchQuery}
+                                placeholder="Search for notes, courses..."
+                            />
+
                             <View style={styles.heroBadge}>
                                 <Ionicons name="sparkles-outline" size={16} color={colors.primary} />
                                 <Text style={styles.heroBadgeText}>Built for students, polished for stakeholders</Text>
@@ -190,14 +196,6 @@ export default function HomeScreen() {
                             <StatCard label="Courses" value={String(courses.length)} icon="layers-outline" />
                             <StatCard label="Featured" value={String(featured.length)} icon="star-outline" />
                             <StatCard label="Categories" value={String(categories.filter((item) => item !== 'All').length)} icon="grid-outline" />
-                        </Animated.View>
-
-                        <Animated.View entering={FadeInDown.delay(180).springify().damping(14)}>
-                            <SearchBar
-                                value={searchQuery}
-                                onChangeText={setSearchQuery}
-                                placeholder="Search courses, branches, or faculty"
-                            />
                         </Animated.View>
 
                         <ScrollView

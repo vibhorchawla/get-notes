@@ -1,5 +1,6 @@
 import React from 'react';
 import { View, Text, StyleSheet, Pressable } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { Note } from '../types/note';
 import { colors } from '../constants/colors';
 import { spacing } from '../constants/spacing';
@@ -51,6 +52,20 @@ export default function PersonalNoteCard({ note, onPress, index = 0 }: PersonalN
             entering={FadeInDown.delay(index * 100).springify().damping(14)}
         >
             <Text style={styles.title} numberOfLines={1}>{note.title}</Text>
+            <View style={styles.tagRow}>
+                {note.pdfUrl && (
+                    <View style={styles.tag}>
+                        <Ionicons name="document-text-outline" size={12} color={colors.primary} />
+                        <Text style={styles.tagText}>PDF</Text>
+                    </View>
+                )}
+                {note.playlistUrl && (
+                    <View style={styles.tag}>
+                        <Ionicons name="play-circle-outline" size={12} color={colors.primary} />
+                        <Text style={styles.tagText}>Playlist</Text>
+                    </View>
+                )}
+            </View>
             <Text style={styles.content} numberOfLines={2}>{note.content || 'No content'}</Text>
             <Text style={styles.date}>{formattedDate}</Text>
         </AnimatedPressable>
@@ -75,6 +90,26 @@ const styles = StyleSheet.create({
         fontWeight: typography.fontWeight.bold,
         color: colors.textPrimary,
         marginBottom: spacing.xs,
+    },
+    tagRow: {
+        flexDirection: 'row',
+        gap: spacing.xs,
+        marginBottom: spacing.sm,
+        flexWrap: 'wrap',
+    },
+    tag: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 4,
+        backgroundColor: 'rgba(79, 70, 229, 0.08)',
+        borderRadius: 999,
+        paddingHorizontal: 8,
+        paddingVertical: 4,
+    },
+    tagText: {
+        fontSize: typography.fontSize.xs,
+        color: colors.primary,
+        fontWeight: typography.fontWeight.semibold,
     },
     content: {
         fontSize: typography.fontSize.sm,

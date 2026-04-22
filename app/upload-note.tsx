@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import {
     View,
     Text,
@@ -11,27 +11,98 @@ import {
     Platform,
 } from 'react-native';
 import { Stack, useRouter } from 'expo-router';
+import { Ionicons } from '@expo/vector-icons';
 import GradientBackground from '../components/GradientBackground';
 import { colors } from '../constants/colors';
 import { spacing } from '../constants/spacing';
 import { typography } from '../constants/typography';
 import { usePersonalNotes } from '../hooks/usePersonalNotes';
+import { Note } from '../types/note';
+
+type UploadMode = 'pdf' | 'playlist' | 'mixed';
+
+const MODE_OPTIONS: Array<{
+    mode: UploadMode;
+    title: string;
+    description: string;
+    icon: keyof typeof Ionicons.glyphMap;
+}> = [
+    {
+        mode: 'pdf',
+        title: 'PDF Notes',
+        description: 'Upload notes that open directly as PDF.',
+        icon: 'document-text-outline',
+    },
+    {
+        mode: 'playlist',
+        title: 'Playlist Notes',
+        description: 'Save notes supported by a playlist link.',
+        icon: 'play-circle-outline',
+    },
+    {
+        mode: 'mixed',
+        title: 'Both Together',
+        description: 'Keep PDF notes and playlist references in one entry.',
+        icon: 'albums-outline',
+    },
+];
+
+function buildNotePayload(params: {
+    title: string;
+    subject: string;
+    unit: string;
+    pdfUrl: string;
+    playlistUrl: string;
+    details: string;
+    uploadMode: UploadMode;
+}): Omit<Note, 'id' | 'createdAt' | 'updatedAt'> {
+    const { title, subject, unit, pdfUrl, playlistUrl, details, uploadMode } = params;
+
+    const sections = [
+        subject ? `Subject: ${subject}` : null,
+        unit ? `Unit: ${unit}` : null,
+        pdfUrl ? `PDF Link: ${pdfUrl}` : null,
+        playlistUrl ? `Playlist Link: ${playlistUrl}` : null,
+        details ? `Details:\n${details}` : null,
+    ].filter(Boolean);
+
+    return {
+        title,
+        content: sections.join('\n\n'),
+        subject: subject || undefined,
+        unit: unit || undefined,
+        pdfUrl: pdfUrl || undefined,
+        playlistUrl: playlistUrl || undefined,
+        noteType: uploadMode,
+    };
+}
 
 export default function UploadNoteScreen() {
     const router = useRouter();
     const { addNote } = usePersonalNotes();
+    const [uploadMode, setUploadMode] = useState<UploadMode>('pdf');
     const [title, setTitle] = useState('');
     const [subject, setSubject] = useState('');
     const [unit, setUnit] = useState('');
     const [pdfUrl, setPdfUrl] = useState('');
+    const [playlistUrl, setPlaylistUrl] = useState('');
     const [details, setDetails] = useState('');
     const [isSaving, setIsSaving] = useState(false);
+
+    const modeTitle = useMemo(
+        () => MODE_OPTIONS.find((option) => option.mode === uploadMode)?.title || 'Upload Notes',
+        [uploadMode]
+    );
+
+    const requiresPdf = uploadMode === 'pdf' || uploadMode === 'mixed';
+    const requiresPlaylist = uploadMode === 'playlist' || uploadMode === 'mixed';
 
     const handleSubmit = async () => {
         const trimmedTitle = title.trim();
         const trimmedSubject = subject.trim();
         const trimmedUnit = unit.trim();
         const trimmedPdfUrl = pdfUrl.trim();
+        const trimmedPlaylistUrl = playlistUrl.trim();
         const trimmedDetails = details.trim();
 
         if (!trimmedTitle) {
@@ -39,22 +110,35 @@ export default function UploadNoteScreen() {
             return;
         }
 
-        if (!trimmedSubject && !trimmedPdfUrl && !trimmedDetails) {
-            Alert.alert('Add Some Note Details', 'Please provide a subject, PDF link, or some note details.');
+        if (requiresPdf && !trimmedPdfUrl) {
+            Alert.alert('PDF Link Required', 'Please add the PDF link for this note.');
             return;
         }
 
-        const sections = [
-            trimmedSubject ? `Subject: ${trimmedSubject}` : null,
-            trimmedUnit ? `Unit: ${trimmedUnit}` : null,
-            trimmedPdfUrl ? `PDF Link: ${trimmedPdfUrl}` : null,
-            trimmedDetails ? `Details:\n${trimmedDetails}` : null,
-        ].filter(Boolean);
+        if (requiresPlaylist && !trimmedPlaylistUrl) {
+            Alert.alert('Playlist Link Required', 'Please add the playlist link for this note.');
+            return;
+        }
+
+        if (!trimmedSubject && !trimmedDetails && !trimmedPdfUrl && !trimmedPlaylistUrl) {
+            Alert.alert('Add Some Details', 'Please provide at least one useful detail for this note.');
+            return;
+        }
 
         try {
             setIsSaving(true);
-            await addNote(trimmedTitle, sections.join('\n\n'));
-            Alert.alert('Note Uploaded', 'Your note has been added to My Notes.', [
+            await addNote(
+                buildNotePayload({
+                    title: trimmedTitle,
+                    subject: trimmedSubject,
+                    unit: trimmedUnit,
+                    pdfUrl: trimmedPdfUrl,
+                    playlistUrl: trimmedPlaylistUrl,
+                    details: trimmedDetails,
+                    uploadMode,
+                })
+            );
+            Alert.alert('Note Uploaded', `${modeTitle} has been added to My Notes.`, [
                 {
                     text: 'Open My Notes',
                     onPress: () => router.replace('/notes'),
@@ -80,16 +164,38 @@ export default function UploadNoteScreen() {
                 }}
             />
 
-            <KeyboardAvoidingView
-                style={styles.flex}
-                behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-            >
+            <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
                 <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
                     <View style={styles.heroCard}>
-                        <Text style={styles.heroTitle}>Upload your notes</Text>
+                        <Text style={styles.heroTitle}>Upload notes with PDF or playlist support</Text>
                         <Text style={styles.heroSubtitle}>
-                            Add a title, optional PDF link, and any extra details so your notes are easy to find later.
+                            Use the plus icon to add regular notes, playlist-based notes, or both together in one place.
                         </Text>
+                    </View>
+
+                    <View style={styles.modeGrid}>
+                        {MODE_OPTIONS.map((option) => {
+                            const active = uploadMode === option.mode;
+                            return (
+                                <TouchableOpacity
+                                    key={option.mode}
+                                    style={[styles.modeCard, active && styles.modeCardActive]}
+                                    onPress={() => setUploadMode(option.mode)}
+                                >
+                                    <View style={[styles.modeIconWrap, active && styles.modeIconWrapActive]}>
+                                        <Ionicons
+                                            name={option.icon}
+                                            size={20}
+                                            color={active ? colors.textOnPrimary : colors.primary}
+                                        />
+                                    </View>
+                                    <Text style={[styles.modeTitle, active && styles.modeTitleActive]}>{option.title}</Text>
+                                    <Text style={[styles.modeDescription, active && styles.modeDescriptionActive]}>
+                                        {option.description}
+                                    </Text>
+                                </TouchableOpacity>
+                            );
+                        })}
                     </View>
 
                     <View style={styles.formCard}>
@@ -120,7 +226,9 @@ export default function UploadNoteScreen() {
                             style={styles.input}
                         />
 
-                        <Text style={styles.label}>PDF Link</Text>
+                        <Text style={styles.label}>
+                            PDF Link {requiresPdf ? '(Required)' : '(Optional)'}
+                        </Text>
                         <TextInput
                             value={pdfUrl}
                             onChangeText={setPdfUrl}
@@ -131,11 +239,24 @@ export default function UploadNoteScreen() {
                             style={styles.input}
                         />
 
+                        <Text style={styles.label}>
+                            Playlist Link {requiresPlaylist ? '(Required)' : '(Optional)'}
+                        </Text>
+                        <TextInput
+                            value={playlistUrl}
+                            onChangeText={setPlaylistUrl}
+                            placeholder="https://youtube.com/playlist?list=..."
+                            placeholderTextColor={colors.textLight}
+                            autoCapitalize="none"
+                            keyboardType="url"
+                            style={styles.input}
+                        />
+
                         <Text style={styles.label}>Extra Details</Text>
                         <TextInput
                             value={details}
                             onChangeText={setDetails}
-                            placeholder="Add a short summary, topics covered, or any helpful notes."
+                            placeholder="Add topics covered, revision tips, or a short summary."
                             placeholderTextColor={colors.textLight}
                             multiline
                             textAlignVertical="top"
@@ -147,9 +268,7 @@ export default function UploadNoteScreen() {
                             onPress={handleSubmit}
                             disabled={isSaving}
                         >
-                            <Text style={styles.submitButtonText}>
-                                {isSaving ? 'Saving...' : 'Upload Note'}
-                            </Text>
+                            <Text style={styles.submitButtonText}>{isSaving ? 'Saving...' : `Save ${modeTitle}`}</Text>
                         </TouchableOpacity>
                     </View>
                 </ScrollView>
@@ -173,11 +292,6 @@ const styles = StyleSheet.create({
         padding: spacing.lg,
         borderWidth: 1,
         borderColor: colors.border,
-        shadowColor: colors.shadow,
-        shadowOffset: { width: 0, height: 8 },
-        shadowOpacity: 0.12,
-        shadowRadius: 16,
-        elevation: 4,
     },
     heroTitle: {
         fontSize: typography.fontSize.xl,
@@ -189,6 +303,49 @@ const styles = StyleSheet.create({
         fontSize: typography.fontSize.sm,
         color: colors.textSecondary,
         lineHeight: 22,
+    },
+    modeGrid: {
+        gap: spacing.sm,
+    },
+    modeCard: {
+        backgroundColor: colors.cardBackground,
+        borderRadius: 20,
+        padding: spacing.md,
+        borderWidth: 1,
+        borderColor: colors.border,
+    },
+    modeCardActive: {
+        backgroundColor: colors.primary,
+        borderColor: colors.primary,
+    },
+    modeIconWrap: {
+        width: 40,
+        height: 40,
+        borderRadius: 20,
+        backgroundColor: 'rgba(79, 70, 229, 0.1)',
+        justifyContent: 'center',
+        alignItems: 'center',
+        marginBottom: spacing.sm,
+    },
+    modeIconWrapActive: {
+        backgroundColor: 'rgba(255,255,255,0.18)',
+    },
+    modeTitle: {
+        fontSize: typography.fontSize.md,
+        fontWeight: typography.fontWeight.bold,
+        color: colors.textPrimary,
+        marginBottom: 4,
+    },
+    modeTitleActive: {
+        color: colors.textOnPrimary,
+    },
+    modeDescription: {
+        fontSize: typography.fontSize.sm,
+        color: colors.textSecondary,
+        lineHeight: 20,
+    },
+    modeDescriptionActive: {
+        color: 'rgba(255,255,255,0.82)',
     },
     formCard: {
         backgroundColor: colors.cardBackground,
