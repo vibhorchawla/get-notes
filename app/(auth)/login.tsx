@@ -50,7 +50,7 @@ export default function LoginScreen() {
         setIsLoading(false);
 
         if (success) {
-            router.replace('/');
+            router.replace('/home');
         } else {
             Alert.alert('Error', 'Login failed. Please try again.');
         }

@@ -1,0 +1,10 @@
+
+> get-notes@1.0.0 start:clear
+> node scripts/start-expo.js --clear
+
+[start-expo] Using LAN IP: 192.168.1.5
+Starting project at D:\get-notes
+Starting Metro Bundler
+warning: Bundler cache is empty, rebuilding (this may take a minute)
+Waiting on http://localhost:8081
+Logs for your project will appear below.
