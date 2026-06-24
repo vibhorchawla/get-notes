@@ -2,6 +2,7 @@ import { View, Text, StyleSheet, ScrollView, SafeAreaView } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import GradientBackground from '../../components/GradientBackground';
 import TopHeader from '../../components/TopHeader';
+import ProfileAvatar from '../../components/ProfileAvatar';
 import { useAuth } from '../../context/AuthContext';
 import { useUserStats } from '../../hooks/useUserStats';
 import { colors } from '../../constants/colors';
@@ -20,9 +21,7 @@ export default function ProfileScreen() {
                     <View style={styles.content}>
                         {/* Profile Header */}
                         <View style={styles.profileHeader}>
-                            <View style={styles.avatar}>
-                                <Ionicons name="person" size={60} color={colors.primary} />
-                            </View>
+                            <ProfileAvatar size={120} editable />
                             <Text style={styles.name}>{user?.name || 'User Name'}</Text>
                             <Text style={styles.email}>{user?.email || 'user@example.com'}</Text>
                         </View>
@@ -102,26 +101,24 @@ const styles = StyleSheet.create({
     },
     profileHeader: {
         alignItems: 'center',
-        paddingVertical: spacing.xl,
-    },
-    avatar: {
-        width: 120,
-        height: 120,
-        borderRadius: 60,
+        paddingVertical: spacing.lg,
+        paddingHorizontal: spacing.md,
+        marginBottom: spacing.sm,
         backgroundColor: colors.cardBackground,
-        justifyContent: 'center',
-        alignItems: 'center',
-        marginBottom: spacing.md,
+        borderRadius: 24,
+        borderWidth: 1,
+        borderColor: colors.border,
         shadowColor: colors.shadow,
         shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.1,
-        shadowRadius: 8,
-        elevation: 4,
+        shadowOpacity: 0.08,
+        shadowRadius: 16,
+        elevation: 3,
     },
     name: {
         fontSize: typography.fontSize.xxl,
         fontWeight: typography.fontWeight.bold,
         color: colors.textPrimary,
+        marginTop: spacing.md,
         marginBottom: spacing.xs,
     },
     email: {

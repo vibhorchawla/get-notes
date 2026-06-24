@@ -8,9 +8,10 @@ export const colors = {
     background: '#F8FAFC',   // Slate-50: Crisp, clean off-white background
     cardBackground: '#FFFFFF', // Pure white for elevated cards to pop dynamically
 
-    // Gradients
-    gradientStart: '#F8FAFC', // Slate-50
-    gradientEnd: '#EEF2F6',   // Soft blue-gray fade
+    // Gradients (soft screen background — stays behind UI)
+    gradientStart: '#F8FAFC',
+    gradientMid: '#F1F5F9',
+    gradientEnd: '#EEF2FF',
 
     // Text colors
     textPrimary: '#0F172A',   // Slate-900: Soft black (reduces eye strain compared to pure black)

@@ -1,0 +1,154 @@
+import React from 'react';
+import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
+import { Note } from '../types/note';
+import { colors } from '../constants/colors';
+import { spacing } from '../constants/spacing';
+import { typography } from '../constants/typography';
+
+interface SearchNoteCardProps {
+    note: Note;
+    onPress: () => void;
+    onRemove?: () => void;
+}
+
+function getBadgeStyle(source?: Note['source']) {
+    if (source === 'upload') return { wrap: styles.badgeUpload, text: styles.badgeTextUpload, label: 'My Upload' };
+    if (source === 'community') return { wrap: styles.badgeCommunity, text: styles.badgeTextCommunity, label: 'Shared' };
+    return { wrap: styles.badgeCourse, text: styles.badgeTextCourse, label: 'Course' };
+}
+
+export default function SearchNoteCard({ note, onPress, onRemove }: SearchNoteCardProps) {
+    const badge = getBadgeStyle(note.source);
+
+    return (
+        <TouchableOpacity style={styles.card} onPress={onPress} activeOpacity={0.85}>
+            <View style={styles.iconWrap}>
+                <Ionicons
+                    name={note.pdfUrl ? 'document-text' : note.playlistUrl ? 'play-circle' : 'reader'}
+                    size={22}
+                    color={colors.primary}
+                />
+            </View>
+
+            <View style={styles.body}>
+                <Text style={styles.title} numberOfLines={1}>
+                    {note.title}
+                </Text>
+                <View style={styles.metaRow}>
+                    {note.subject ? <Text style={styles.meta}>{note.subject}</Text> : null}
+                    {note.unit ? (
+                        <>
+                            <Text style={styles.dot}>•</Text>
+                            <Text style={styles.meta}>{note.unit}</Text>
+                        </>
+                    ) : null}
+                </View>
+                {note.uploadedBy?.name ? (
+                    <Text style={styles.uploader}>by {note.uploadedBy.name}</Text>
+                ) : null}
+            </View>
+
+            <View style={styles.trailing}>
+                <View style={[styles.badge, badge.wrap]}>
+                    <Text style={[styles.badgeText, badge.text]}>{badge.label}</Text>
+                </View>
+                {onRemove ? (
+                    <TouchableOpacity style={styles.removeBtn} onPress={onRemove} hitSlop={8}>
+                        <Ionicons name="bookmark" size={18} color={colors.primary} />
+                    </TouchableOpacity>
+                ) : null}
+            </View>
+        </TouchableOpacity>
+    );
+}
+
+const styles = StyleSheet.create({
+    card: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: colors.cardBackground,
+        borderRadius: 16,
+        padding: spacing.md,
+        borderWidth: 1,
+        borderColor: colors.border,
+        marginBottom: spacing.sm,
+        shadowColor: colors.shadow,
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.06,
+        shadowRadius: 8,
+        elevation: 2,
+    },
+    iconWrap: {
+        width: 44,
+        height: 44,
+        borderRadius: 14,
+        backgroundColor: '#EEF2FF',
+        justifyContent: 'center',
+        alignItems: 'center',
+        marginRight: spacing.md,
+    },
+    body: {
+        flex: 1,
+        paddingRight: spacing.sm,
+    },
+    title: {
+        fontSize: typography.fontSize.md,
+        fontWeight: typography.fontWeight.semibold,
+        color: colors.textPrimary,
+        marginBottom: 4,
+    },
+    metaRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        flexWrap: 'wrap',
+    },
+    meta: {
+        fontSize: typography.fontSize.xs,
+        color: colors.textSecondary,
+    },
+    dot: {
+        marginHorizontal: 4,
+        color: colors.textLight,
+    },
+    uploader: {
+        marginTop: 4,
+        fontSize: typography.fontSize.xs,
+        color: colors.primary,
+        fontWeight: typography.fontWeight.medium,
+    },
+    trailing: {
+        alignItems: 'flex-end',
+        gap: spacing.xs,
+    },
+    badge: {
+        borderRadius: 999,
+        paddingHorizontal: 8,
+        paddingVertical: 4,
+    },
+    removeBtn: {
+        padding: 4,
+    },
+    badgeUpload: {
+        backgroundColor: 'rgba(245, 158, 11, 0.14)',
+    },
+    badgeCommunity: {
+        backgroundColor: 'rgba(16, 185, 129, 0.12)',
+    },
+    badgeCourse: {
+        backgroundColor: 'rgba(79, 70, 229, 0.1)',
+    },
+    badgeText: {
+        fontSize: 10,
+        fontWeight: typography.fontWeight.bold,
+    },
+    badgeTextUpload: {
+        color: colors.warning,
+    },
+    badgeTextCommunity: {
+        color: colors.accent,
+    },
+    badgeTextCourse: {
+        color: colors.primary,
+    },
+});

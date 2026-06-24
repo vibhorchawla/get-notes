@@ -9,6 +9,7 @@ import {
     Alert,
     KeyboardAvoidingView,
     Platform,
+    Linking,
 } from 'react-native';
 import { Stack, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -17,9 +18,12 @@ import { colors } from '../constants/colors';
 import { spacing } from '../constants/spacing';
 import { typography } from '../constants/typography';
 import { usePersonalNotes } from '../hooks/usePersonalNotes';
+import { useAuth } from '../context/AuthContext';
+import { publishCommunityNote } from '../hooks/useCommunityNotes';
 import { Note } from '../types/note';
+import { isGoogleDriveLink, toDriveShareUrl, toDriveViewUrl } from '../utils/driveLink';
 
-type UploadMode = 'pdf' | 'playlist' | 'mixed';
+type UploadMode = 'drive' | 'playlist' | 'mixed';
 
 const MODE_OPTIONS: Array<{
     mode: UploadMode;
@@ -28,10 +32,10 @@ const MODE_OPTIONS: Array<{
     icon: keyof typeof Ionicons.glyphMap;
 }> = [
     {
-        mode: 'pdf',
-        title: 'PDF Notes',
-        description: 'Upload notes that open directly as PDF.',
-        icon: 'document-text-outline',
+        mode: 'drive',
+        title: 'Drive Notes',
+        description: 'Add notes from your Google Drive.',
+        icon: 'logo-google',
     },
     {
         mode: 'playlist',
@@ -42,7 +46,7 @@ const MODE_OPTIONS: Array<{
     {
         mode: 'mixed',
         title: 'Both Together',
-        description: 'Keep PDF notes and playlist references in one entry.',
+        description: 'Keep Drive notes and playlist references in one entry.',
         icon: 'albums-outline',
     },
 ];
@@ -51,17 +55,19 @@ function buildNotePayload(params: {
     title: string;
     subject: string;
     unit: string;
-    pdfUrl: string;
+    driveUrl: string;
     playlistUrl: string;
     details: string;
     uploadMode: UploadMode;
 }): Omit<Note, 'id' | 'createdAt' | 'updatedAt'> {
-    const { title, subject, unit, pdfUrl, playlistUrl, details, uploadMode } = params;
+    const { title, subject, unit, driveUrl, playlistUrl, details, uploadMode } = params;
+    const shareUrl = driveUrl ? toDriveShareUrl(driveUrl) : '';
+    const viewUrl = driveUrl ? toDriveViewUrl(driveUrl) : '';
 
     const sections = [
         subject ? `Subject: ${subject}` : null,
         unit ? `Unit: ${unit}` : null,
-        pdfUrl ? `PDF Link: ${pdfUrl}` : null,
+        shareUrl ? `Drive Link: ${shareUrl}` : null,
         playlistUrl ? `Playlist Link: ${playlistUrl}` : null,
         details ? `Details:\n${details}` : null,
     ].filter(Boolean);
@@ -71,20 +77,21 @@ function buildNotePayload(params: {
         content: sections.join('\n\n'),
         subject: subject || undefined,
         unit: unit || undefined,
-        pdfUrl: pdfUrl || undefined,
+        pdfUrl: viewUrl || undefined,
         playlistUrl: playlistUrl || undefined,
-        noteType: uploadMode,
+        noteType: uploadMode === 'drive' ? 'drive' : uploadMode,
     };
 }
 
 export default function UploadNoteScreen() {
     const router = useRouter();
-    const { addNote } = usePersonalNotes();
-    const [uploadMode, setUploadMode] = useState<UploadMode>('pdf');
+    const { user } = useAuth();
+    const { addNote, markPublished } = usePersonalNotes();
+    const [uploadMode, setUploadMode] = useState<UploadMode>('drive');
     const [title, setTitle] = useState('');
     const [subject, setSubject] = useState('');
     const [unit, setUnit] = useState('');
-    const [pdfUrl, setPdfUrl] = useState('');
+    const [driveUrl, setDriveUrl] = useState('');
     const [playlistUrl, setPlaylistUrl] = useState('');
     const [details, setDetails] = useState('');
     const [isSaving, setIsSaving] = useState(false);
@@ -94,14 +101,28 @@ export default function UploadNoteScreen() {
         [uploadMode]
     );
 
-    const requiresPdf = uploadMode === 'pdf' || uploadMode === 'mixed';
+    const requiresDrive = uploadMode === 'drive' || uploadMode === 'mixed';
     const requiresPlaylist = uploadMode === 'playlist' || uploadMode === 'mixed';
+
+    const openGoogleDrive = async () => {
+        const url = 'https://drive.google.com/drive/my-drive';
+        const canOpen = await Linking.canOpenURL(url);
+        if (!canOpen) {
+            Alert.alert('Cannot Open Drive', 'Google Drive is not available on this device.');
+            return;
+        }
+        await Linking.openURL(url);
+        Alert.alert(
+            'Add from Drive',
+            'In Google Drive: open your file → Share → Copy link → paste it below.'
+        );
+    };
 
     const handleSubmit = async () => {
         const trimmedTitle = title.trim();
         const trimmedSubject = subject.trim();
         const trimmedUnit = unit.trim();
-        const trimmedPdfUrl = pdfUrl.trim();
+        const trimmedDriveUrl = driveUrl.trim();
         const trimmedPlaylistUrl = playlistUrl.trim();
         const trimmedDetails = details.trim();
 
@@ -110,8 +131,16 @@ export default function UploadNoteScreen() {
             return;
         }
 
-        if (requiresPdf && !trimmedPdfUrl) {
-            Alert.alert('PDF Link Required', 'Please add the PDF link for this note.');
+        if (requiresDrive && !trimmedDriveUrl) {
+            Alert.alert('Drive Link Required', 'Please paste your Google Drive share link.');
+            return;
+        }
+
+        if (requiresDrive && !isGoogleDriveLink(trimmedDriveUrl)) {
+            Alert.alert(
+                'Invalid Drive Link',
+                'Use a Google Drive link like:\nhttps://drive.google.com/file/d/.../view'
+            );
             return;
         }
 
@@ -127,7 +156,7 @@ export default function UploadNoteScreen() {
 
         try {
             setIsSaving(true);
-            await addNote(
+            const newNote = await addNote(
                 buildNotePayload({
                     title: trimmedTitle,
                     subject: trimmedSubject,
@@ -138,7 +167,26 @@ export default function UploadNoteScreen() {
                     uploadMode,
                 })
             );
-            Alert.alert('Note Uploaded', `${modeTitle} has been added to My Notes.`, [
+
+            if (!user) {
+                Alert.alert(
+                    'Note Saved Locally',
+                    'Sign in to share this note so other students can find it in search.',
+                    [{ text: 'OK', onPress: () => router.replace('/notes') }]
+                );
+                return;
+            }
+
+            const publishResult = await publishCommunityNote(newNote);
+            if (publishResult.ok) {
+                await markPublished(newNote.id);
+            }
+
+            const successMessage = publishResult.ok
+                ? `${modeTitle} is shared. Other students can find it on Home search.`
+                : `${modeTitle} is saved on this device only.\n\n${publishResult.message || 'Sharing failed.'}`;
+
+            Alert.alert('Note Uploaded', successMessage, [
                 {
                     text: 'Open My Notes',
                     onPress: () => router.replace('/notes'),

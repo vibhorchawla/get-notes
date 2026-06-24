@@ -4,6 +4,7 @@ const fs = require('fs');
 const path = require('path');
 
 const USERS_FILE = path.join(__dirname, 'users.json');
+const COMMUNITY_NOTES_FILE = path.join(__dirname, 'community_notes.json');
 
 // Load users from disk on startup
 function loadUsers() {
@@ -97,13 +98,95 @@ users.push = function (...args) {
 const savedNotes = {};       // { userId: Set<noteId> }
 const downloadedNotes = {};  // { userId: Set<noteId> }
 
-// Helper: get a note object by its id (search across all course notes)
+function loadCommunityNotes() {
+    try {
+        if (fs.existsSync(COMMUNITY_NOTES_FILE)) {
+            return JSON.parse(fs.readFileSync(COMMUNITY_NOTES_FILE, 'utf8'));
+        }
+    } catch (e) {
+        console.error('Failed to load community_notes.json:', e.message);
+    }
+    return [];
+}
+
+function saveCommunityNotesToDisk() {
+    try {
+        fs.writeFileSync(COMMUNITY_NOTES_FILE, JSON.stringify(communityNotes, null, 2));
+    } catch (e) {
+        console.error('Failed to save community_notes.json:', e.message);
+    }
+}
+
+let communityNotes = loadCommunityNotes();
+
+function noteSearchText(note) {
+    return [
+        note.title,
+        note.subject,
+        note.unit,
+        note.content,
+        note.uploadedBy?.name,
+        note.uploadedBy?.course,
+    ]
+        .filter(Boolean)
+        .join(' ')
+        .toLowerCase();
+}
+
+function getAllCatalogNotes() {
+    const catalog = [];
+    for (const [courseId, notes] of Object.entries(NOTES)) {
+        for (const note of notes) {
+            catalog.push({
+                ...note,
+                courseId,
+                source: 'course',
+            });
+        }
+    }
+    return catalog;
+}
+
+function getAllSearchableNotes() {
+    const community = communityNotes.map((note) => ({
+        ...note,
+        source: 'community',
+    }));
+    return [...getAllCatalogNotes(), ...community];
+}
+
+function searchNotes(query) {
+    const q = String(query || '').trim().toLowerCase();
+    if (!q) return [];
+
+    return getAllSearchableNotes().filter((note) => noteSearchText(note).includes(q));
+}
+
 function findNoteById(noteId) {
     for (const notes of Object.values(NOTES)) {
         const found = notes.find((n) => n.id === noteId);
-        if (found) return found;
+        if (found) return { ...found, source: 'course' };
     }
+
+    const community = communityNotes.find((n) => n.id === noteId);
+    if (community) return { ...community, source: 'community' };
+
     return null;
+}
+
+function addCommunityNote(note) {
+    const existingIndex = communityNotes.findIndex((n) => n.id === note.id);
+    if (existingIndex >= 0) {
+        communityNotes[existingIndex] = note;
+    } else {
+        communityNotes.unshift(note);
+    }
+    saveCommunityNotesToDisk();
+    return note;
+}
+
+function getCommunityNotesByUser(userId) {
+    return communityNotes.filter((n) => n.uploadedBy?.id === userId);
 }
 
 module.exports = {
@@ -114,5 +197,10 @@ module.exports = {
     users,
     savedNotes,
     downloadedNotes,
+    communityNotes,
     findNoteById,
+    searchNotes,
+    addCommunityNote,
+    getCommunityNotesByUser,
+    getAllSearchableNotes,
 };

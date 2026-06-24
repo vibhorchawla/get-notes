@@ -1,0 +1,61 @@
+[
+  {
+    "id": "19a331ee-d1be-4ceb-9b7e-263c2ad69bb9",
+    "title": "Ghkk",
+    "content": "Subject: Bjkki\n\nUnit: 1\n\nPDF Link: gjii\n\nDetails:\nFfkk",
+    "noteType": "text",
+    "uploadedBy": {
+      "id": "9e6da00e-c9bc-495d-aad5-1544d080f89c",
+      "name": "Agrim",
+      "course": "Btech Cse"
+    },
+    "createdAt": "2026-04-21T18:02:19.706Z",
+    "updatedAt": "2026-04-21T18:02:19.706Z"
+  },
+  {
+    "id": "883212ca-fef0-46e2-abdd-4ffc7e2119f8",
+    "title": "C",
+    "content": "Subject: C\n\nUnit: 2\n\nPDF Link: f\n\nPlaylist Link: c",
+    "subject": "C",
+    "unit": "2",
+    "pdfUrl": "f",
+    "playlistUrl": "c",
+    "noteType": "pdf",
+    "uploadedBy": {
+      "id": "9e6da00e-c9bc-495d-aad5-1544d080f89c",
+      "name": "Agrim",
+      "course": "Btech Cse"
+    },
+    "createdAt": "2026-05-29T11:59:18.841Z",
+    "updatedAt": "2026-05-29T11:59:18.841Z"
+  },
+  {
+    "id": "34e6f1a7-c0a7-416a-9f89-249f57727142",
+    "title": "C++",
+    "content": "Subject: C++\n\nUnit: Unit 3\n\nPDF Link: jsjd\n\nPlaylist Link: jsicog",
+    "subject": "C++",
+    "unit": "Unit 3",
+    "pdfUrl": "jsjd",
+    "playlistUrl": "jsicog",
+    "noteType": "pdf",
+    "uploadedBy": {
+      "id": "9e6da00e-c9bc-495d-aad5-1544d080f89c",
+      "name": "Agrim",
+      "course": "Btech Cse"
+    },
+    "createdAt": "2026-05-29T13:20:26.208Z",
+    "updatedAt": "2026-05-29T13:20:26.208Z"
+  },
+  {
+    "id": "test-1",
+    "title": "Thermodynamics Notes",
+    "content": "Unit 1",
+    "subject": "ME",
+    "uploadedBy": {
+      "id": "u1",
+      "name": "Test User"
+    },
+    "createdAt": "2026-05-30T10:17:50.034Z",
+    "updatedAt": "2026-05-30T10:17:50.038Z"
+  }
+]

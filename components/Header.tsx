@@ -1,5 +1,6 @@
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation } from 'expo-router';
 import { DrawerNavigationProp } from '@react-navigation/drawer';
 import { Ionicons } from '@expo/vector-icons';
@@ -10,12 +11,14 @@ import { typography } from '../constants/typography';
 
 export default function Header() {
     const navigation = useNavigation<DrawerNavigationProp<any>>();
+    const insets = useSafeAreaInsets();
+    const topOffset = insets.top + spacing.sm;
 
     return (
-        <View style={styles.container}>
+        <View style={[styles.container, { paddingTop: topOffset + spacing.xl }]}>
             <TouchableOpacity
                 onPress={() => navigation.openDrawer()}
-                style={styles.menuButton}
+                style={[styles.menuButton, { top: topOffset }]}
                 activeOpacity={0.8}
             >
                 <Ionicons name="menu" size={24} color={colors.textPrimary} />
@@ -37,7 +40,6 @@ export default function Header() {
 const styles = StyleSheet.create({
     container: {
         position: 'relative',
-        paddingTop: spacing.sm,
         paddingHorizontal: spacing.screenPadding,
         marginBottom: spacing.md,
         minHeight: 96,
@@ -45,7 +47,6 @@ const styles = StyleSheet.create({
     menuButton: {
         position: 'absolute',
         left: spacing.screenPadding,
-        top: spacing.md,
         zIndex: 2,
         width: 44,
         height: 44,

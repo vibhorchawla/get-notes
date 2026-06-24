@@ -30,7 +30,14 @@
     },
     "plugins": [
       "expo-router",
-      "expo-secure-store"
+      "expo-secure-store",
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Allow GetNotes to access your photos to set your profile picture.",
+          "cameraPermission": "Allow GetNotes to access your camera to take a profile picture."
+        }
+      ]
     ]
   }
 }

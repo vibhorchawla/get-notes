@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, StyleSheet, Pressable } from 'react-native';
+import { View, Text, StyleSheet, Pressable, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Note } from '../types/note';
 import { colors } from '../constants/colors';
@@ -15,12 +15,13 @@ import Animated, {
 interface PersonalNoteCardProps {
     note: Note;
     onPress: () => void;
+    onShare?: () => void;
     index?: number;
 }
 
 const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
 
-export default function PersonalNoteCard({ note, onPress, index = 0 }: PersonalNoteCardProps) {
+export default function PersonalNoteCard({ note, onPress, onShare, index = 0 }: PersonalNoteCardProps) {
     const formattedDate = new Date(note.updatedAt).toLocaleDateString(undefined, {
         year: 'numeric',
         month: 'short',
@@ -67,7 +68,20 @@ export default function PersonalNoteCard({ note, onPress, index = 0 }: PersonalN
                 )}
             </View>
             <Text style={styles.content} numberOfLines={2}>{note.content || 'No content'}</Text>
-            <Text style={styles.date}>{formattedDate}</Text>
+            <View style={styles.footer}>
+                <Text style={styles.date}>{formattedDate}</Text>
+                {note.isPublished ? (
+                    <View style={styles.sharedPill}>
+                        <Ionicons name="globe-outline" size={12} color={colors.accent} />
+                        <Text style={styles.sharedText}>Shared</Text>
+                    </View>
+                ) : onShare ? (
+                    <TouchableOpacity style={styles.shareButton} onPress={onShare}>
+                        <Ionicons name="cloud-upload-outline" size={14} color={colors.primary} />
+                        <Text style={styles.shareButtonText}>Share for search</Text>
+                    </TouchableOpacity>
+                ) : null}
+            </View>
         </AnimatedPressable>
     );
 }
@@ -117,9 +131,42 @@ const styles = StyleSheet.create({
         marginBottom: spacing.sm,
         lineHeight: 20,
     },
+    footer: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        gap: spacing.sm,
+    },
     date: {
         fontSize: typography.fontSize.xs,
         color: colors.textSecondary,
-        alignSelf: 'flex-end',
+    },
+    sharedPill: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 4,
+        backgroundColor: 'rgba(16, 185, 129, 0.12)',
+        borderRadius: 999,
+        paddingHorizontal: 8,
+        paddingVertical: 4,
+    },
+    sharedText: {
+        fontSize: typography.fontSize.xs,
+        color: colors.accent,
+        fontWeight: typography.fontWeight.semibold,
+    },
+    shareButton: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 4,
+        backgroundColor: 'rgba(79, 70, 229, 0.1)',
+        borderRadius: 999,
+        paddingHorizontal: 10,
+        paddingVertical: 5,
+    },
+    shareButtonText: {
+        fontSize: typography.fontSize.xs,
+        color: colors.primary,
+        fontWeight: typography.fontWeight.semibold,
     },
 });

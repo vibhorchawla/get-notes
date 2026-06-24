@@ -1,5 +1,6 @@
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from 'expo-router';
 import { DrawerNavigationProp } from '@react-navigation/drawer';
@@ -14,9 +15,10 @@ interface TopHeaderProps {
 
 export default function TopHeader({ title, showMenu = true }: TopHeaderProps) {
     const navigation = useNavigation<DrawerNavigationProp<any>>();
+    const insets = useSafeAreaInsets();
 
     return (
-        <View style={styles.header}>
+        <View style={[styles.header, { paddingTop: insets.top + spacing.sm }]}>
             {showMenu ? (
                 <TouchableOpacity 
                     onPress={() => navigation.openDrawer()} 
@@ -42,7 +44,6 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         justifyContent: 'space-between',
         paddingHorizontal: spacing.screenPadding,
-        paddingTop: spacing.md,
         paddingBottom: spacing.sm,
         backgroundColor: 'transparent',
     },

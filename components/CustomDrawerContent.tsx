@@ -4,13 +4,12 @@ import {
     Text,
     StyleSheet,
     TouchableOpacity,
-    Image,
-    ScrollView,
 } from 'react-native';
 import { DrawerContentScrollView, DrawerItemList } from '@react-navigation/drawer';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../context/AuthContext';
+import ProfileAvatar from './ProfileAvatar';
 import { colors } from '../constants/colors';
 import { spacing } from '../constants/spacing';
 import { typography } from '../constants/typography';
@@ -29,8 +28,8 @@ export default function CustomDrawerContent(props: any) {
             <DrawerContentScrollView {...props} contentContainerStyle={styles.scrollView}>
                 {/* Profile Section */}
                 <View style={styles.profileSection}>
-                    <View style={styles.avatar}>
-                        <Ionicons name="person" size={40} color={colors.primary} />
+                    <View style={styles.avatarWrap}>
+                        <ProfileAvatar size={80} editable={false} />
                     </View>
                     <Text style={styles.userName}>{user?.name || 'User'}</Text>
                     <Text style={styles.userEmail}>{user?.email || 'user@example.com'}</Text>
@@ -69,13 +68,7 @@ const styles = StyleSheet.create({
         paddingTop: spacing.xxl,
         paddingBottom: spacing.xl,
     },
-    avatar: {
-        width: 80,
-        height: 80,
-        borderRadius: 40,
-        backgroundColor: colors.cardBackground,
-        justifyContent: 'center',
-        alignItems: 'center',
+    avatarWrap: {
         marginBottom: spacing.md,
     },
     userName: {

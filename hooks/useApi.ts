@@ -33,9 +33,10 @@ export async function apiFetch<T = any>(
 
     if (requiresAuth) {
         const token = await getToken();
-        if (token) {
-            headers['Authorization'] = `Bearer ${token}`;
+        if (!token) {
+            return { success: false, message: 'Not signed in' };
         }
+        headers['Authorization'] = `Bearer ${token}`;
     }
 
     try {
@@ -44,7 +45,23 @@ export async function apiFetch<T = any>(
             headers,
         });
 
-        const json = await response.json();
+        let json: { success: boolean; data?: T; message?: string };
+        try {
+            json = await response.json();
+        } catch {
+            return {
+                success: false,
+                message: response.ok ? 'Invalid server response' : `Request failed (${response.status})`,
+            };
+        }
+
+        if (!response.ok && json.success !== true) {
+            return {
+                success: false,
+                message: json.message || `Request failed (${response.status})`,
+            };
+        }
+
         return json;
     } catch (error) {
         console.error('[apiFetch] Request failed:', {

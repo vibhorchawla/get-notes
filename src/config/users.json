@@ -14,5 +14,29 @@
     "name": "Vibhor",
     "course": "Btech Cse",
     "createdAt": "2026-04-21T17:34:08.019Z"
+  },
+  {
+    "id": "698ea441-825c-43fa-a5c0-c76a892ef6af",
+    "email": "domusama@gmail.com",
+    "passwordHash": "$2a$10$R0BLXVdDvQg2aMzcqT7PmOP18LMc1Z7/UBF4u1E1tQKzAL06iqn1C",
+    "name": "Yash",
+    "course": "Btech",
+    "createdAt": "2026-05-29T11:44:36.341Z"
+  },
+  {
+    "id": "088d3260-52a4-4aa2-a0d0-4b654d2152bf",
+    "email": "vibhoragrim@gmail.com",
+    "passwordHash": "$2a$10$9LfYnuKS7ebxIr9KnFUmNOH/EJErrWXVDX6Q38/mLwZVcTr65hTPe",
+    "name": "Vibhor ",
+    "course": "Btech Cse",
+    "createdAt": "2026-05-29T13:19:30.369Z"
+  },
+  {
+    "id": "9e6da00e-c9bc-495d-aad5-1544d080f89c",
+    "email": "domusmaa21@gmail.com",
+    "passwordHash": "$2a$10$KXGJfjZNBnnrcuuCAyfecusE5LK2JsKNXq1mU3/eZvXHtxgkzdZiG",
+    "name": "Agrim",
+    "course": "Btech Cse",
+    "createdAt": "2026-05-30T10:02:32.582Z"
   }
 ]

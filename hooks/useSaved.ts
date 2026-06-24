@@ -4,8 +4,12 @@ import { apiFetch } from './useApi';
 interface Note {
     id: string;
     title: string;
-    subject: string;
+    subject?: string;
     unit?: string;
+    content?: string;
+    pdfUrl?: string;
+    playlistUrl?: string;
+    source?: 'course' | 'community';
 }
 
 export function useSaved() {

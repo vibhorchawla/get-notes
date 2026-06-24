@@ -17,6 +17,9 @@ import CategoryPill from '../../components/CategoryPill';
 import MarketplaceCard from '../../components/MarketplaceCard';
 import FloatingActionButton from '../../components/FloatingActionButton';
 import { useCourses } from '../../hooks/useCourses';
+import { useNoteSearch } from '../../hooks/useNoteSearch';
+import SearchNoteCard from '../../components/SearchNoteCard';
+import { openNote } from '../../utils/openNote';
 import { colors } from '../../constants/colors';
 import { spacing } from '../../constants/spacing';
 import { typography } from '../../constants/typography';
@@ -46,6 +49,8 @@ export default function HomeScreen() {
     const [searchQuery, setSearchQuery] = useState('');
     const [activeCategory, setActiveCategory] = useState('All');
     const { courses, featured, categories, isLoading } = useCourses();
+    const { results: noteResults, isSearching: isSearchingNotes, error: searchError } =
+        useNoteSearch(searchQuery);
 
     const normalizedQuery = searchQuery.trim().toLowerCase();
 
@@ -109,6 +114,37 @@ export default function HomeScreen() {
                                 </Animated.View>
                             ))}
                         </ScrollView>
+
+                        {normalizedQuery.length > 0 && (
+                            <View style={styles.section}>
+                                <Text style={styles.sectionTitle}>Notes</Text>
+                                <Text style={styles.sectionSubtitle}>
+                                    Notes shared by students and course materials
+                                </Text>
+                                {isSearchingNotes ? (
+                                    <ActivityIndicator
+                                        size="small"
+                                        color={colors.primary}
+                                        style={styles.noteSearchLoader}
+                                    />
+                                ) : searchError ? (
+                                    <Text style={styles.searchErrorText}>{searchError}</Text>
+                                ) : noteResults.length > 0 ? (
+                                    noteResults.map((note) => (
+                                        <SearchNoteCard
+                                            key={note.id}
+                                            note={note}
+                                            onPress={() => openNote(router, note)}
+                                        />
+                                    ))
+                                ) : (
+                                    <View style={styles.emptyState}>
+                                        <Ionicons name="document-outline" size={24} color={colors.textLight} />
+                                        <Text style={styles.emptyText}>No notes found for this search.</Text>
+                                    </View>
+                                )}
+                            </View>
+                        )}
 
                         {isLoading ? (
                             <ActivityIndicator size="large" color={colors.primary} style={styles.loader} />
@@ -202,6 +238,14 @@ const styles = StyleSheet.create({
     },
     loader: {
         marginTop: spacing.xl,
+    },
+    noteSearchLoader: {
+        marginVertical: spacing.md,
+    },
+    searchErrorText: {
+        color: colors.error,
+        fontSize: typography.fontSize.sm,
+        marginBottom: spacing.md,
     },
     section: {
         marginBottom: spacing.xxl,
