@@ -12,7 +12,7 @@ export interface Note {
     unit?: string;
     pdfUrl?: string;
     playlistUrl?: string;
-    noteType?: 'pdf' | 'playlist' | 'mixed' | 'text';
+    noteType?: 'pdf' | 'drive' | 'playlist' | 'mixed' | 'text';
     createdAt: string;
     updatedAt: string;
     uploadedBy?: NoteUploader;

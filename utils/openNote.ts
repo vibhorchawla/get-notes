@@ -6,12 +6,14 @@ export function openNote(
     note: Pick<Note, 'id' | 'title' | 'pdfUrl' | 'source'>
 ) {
     if (note.pdfUrl) {
+        const params: Record<string, string> = { title: note.title };
+        // file:// URLs break in route params — personal notes resolve pdfUrl from storage
+        if (!note.pdfUrl.startsWith('file://') && !note.pdfUrl.startsWith('content://')) {
+            params.pdfUrl = note.pdfUrl;
+        }
         router.push({
             pathname: `/note/${note.id}`,
-            params: {
-                title: note.title,
-                pdfUrl: note.pdfUrl,
-            },
+            params,
         });
         return;
     }

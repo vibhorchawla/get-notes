@@ -11,6 +11,7 @@ const {
     getNoteById,
 } = require('./modules/notes/notes.controller');
 const { verifyToken } = require('./middleware/auth');
+const { handleUpload, uploadFile, serveFile } = require('./modules/files/files.routes');
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -29,6 +30,8 @@ app.get('/', (_req, res) => {
 app.get('/api/search', searchNotesHandler);
 app.post('/api/share-note', verifyToken, publishNote);
 app.get('/api/note/:noteId', getNoteById);
+app.post('/api/files/upload', verifyToken, handleUpload, uploadFile);
+app.get('/api/files/:filename', serveFile);
 
 app.use('/api/auth', authRoutes);
 app.use('/api/courses', coursesRoutes);
@@ -45,6 +48,7 @@ app.listen(PORT, '0.0.0.0', () => {
     console.log(`\n🚀 GetNotes API running on http://0.0.0.0:${PORT}`);
     console.log(`   Auth    → POST /api/auth/register  |  POST /api/auth/login`);
     console.log(`   Courses → GET  /api/courses         |  GET  /api/courses/featured`);
+    console.log(`   Files   → POST /api/files/upload   |  GET /api/files/:filename`);
     console.log(`   Search  → GET  /api/search?q=     |  POST /api/share-note`);
     console.log(`   Notes   → GET  /api/notes/search  |  POST /api/notes/publish`);
     console.log(`           GET  /api/notes/:courseId`);

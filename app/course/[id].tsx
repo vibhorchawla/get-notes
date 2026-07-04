@@ -14,7 +14,7 @@ import { colors } from '../../constants/colors';
 import { spacing } from '../../constants/spacing';
 import { typography } from '../../constants/typography';
 import { useNotes } from '../../hooks/useNotes';
-import { useDownloads } from '../../hooks/useDownloads';
+import { openNote } from '../../utils/openNote';
 
 const COURSE_TITLES: Record<string, string> = {
     'btech-cse': 'B.Tech CSE',

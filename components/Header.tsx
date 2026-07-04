@@ -15,23 +15,27 @@ export default function Header() {
     const topOffset = insets.top + spacing.sm;
 
     return (
-        <View style={[styles.container, { paddingTop: topOffset + spacing.xl }]}>
+        <View style={[styles.container, { paddingTop: topOffset + spacing.lg }]}>
             <TouchableOpacity
                 onPress={() => navigation.openDrawer()}
                 style={[styles.menuButton, { top: topOffset }]}
                 activeOpacity={0.8}
             >
-                <Ionicons name="menu" size={24} color={colors.textPrimary} />
+                <Ionicons name="menu" size={22} color={colors.textPrimary} />
             </TouchableOpacity>
 
-            <Animated.View entering={FadeInDown.delay(40).springify().damping(14)} style={styles.brandBlock}>
+            <Animated.View entering={FadeInDown.delay(40).springify().damping(14)} style={styles.brandCard}>
                 <View style={styles.logoRow}>
                     <View style={styles.logoBadge}>
-                        <Ionicons name="library" size={24} color={colors.textOnPrimary} />
+                        <Ionicons name="library" size={22} color={colors.textOnPrimary} />
                     </View>
-                    <Text style={styles.appName}>GetNotes</Text>
+                    <View>
+                        <Text style={styles.appName}>GetNotes</Text>
+                        <View style={styles.taglinePill}>
+                            <Text style={styles.tagline}>Your Academic Companion</Text>
+                        </View>
+                    </View>
                 </View>
-                <Text style={styles.tagline}>Your Academic Companion</Text>
             </Animated.View>
         </View>
     );
@@ -41,60 +45,67 @@ const styles = StyleSheet.create({
     container: {
         position: 'relative',
         paddingHorizontal: spacing.screenPadding,
-        marginBottom: spacing.md,
-        minHeight: 96,
+        marginBottom: spacing.sm,
     },
     menuButton: {
         position: 'absolute',
         left: spacing.screenPadding,
         zIndex: 2,
-        width: 44,
-        height: 44,
-        borderRadius: 22,
+        width: 42,
+        height: 42,
+        borderRadius: 14,
         backgroundColor: colors.cardBackground,
         justifyContent: 'center',
         alignItems: 'center',
         borderWidth: 1,
         borderColor: colors.border,
         shadowColor: colors.shadow,
-        shadowOffset: { width: 0, height: 3 },
-        shadowOpacity: 0.08,
-        shadowRadius: 10,
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.06,
+        shadowRadius: 8,
         elevation: 2,
     },
-    brandBlock: {
+    brandCard: {
         alignItems: 'center',
-        justifyContent: 'center',
-        paddingTop: spacing.sm,
+        paddingVertical: spacing.md,
+        paddingHorizontal: spacing.lg,
+        marginTop: spacing.xs,
     },
     logoRow: {
         flexDirection: 'row',
         alignItems: 'center',
-        gap: spacing.sm,
+        gap: spacing.md,
     },
     logoBadge: {
-        width: 42,
-        height: 42,
-        borderRadius: 14,
+        width: 48,
+        height: 48,
+        borderRadius: 16,
         backgroundColor: colors.primary,
         justifyContent: 'center',
         alignItems: 'center',
-        shadowColor: '#312E81',
-        shadowOffset: { width: 0, height: 8 },
-        shadowOpacity: 0.16,
-        shadowRadius: 14,
+        shadowColor: colors.primary,
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.25,
+        shadowRadius: 10,
         elevation: 4,
     },
     appName: {
-        fontSize: 28,
+        fontSize: 26,
         fontWeight: typography.fontWeight.bold,
         color: colors.textPrimary,
-        letterSpacing: -0.8,
+        letterSpacing: -0.6,
+    },
+    taglinePill: {
+        marginTop: 4,
+        alignSelf: 'flex-start',
+        backgroundColor: 'rgba(79, 70, 229, 0.08)',
+        borderRadius: 999,
+        paddingHorizontal: 10,
+        paddingVertical: 3,
     },
     tagline: {
-        marginTop: 6,
-        fontSize: typography.fontSize.sm,
-        color: colors.textSecondary,
-        fontStyle: 'italic',
+        fontSize: typography.fontSize.xs,
+        color: colors.primary,
+        fontWeight: typography.fontWeight.medium,
     },
 });

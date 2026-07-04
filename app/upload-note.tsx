@@ -9,10 +9,11 @@ import {
     Alert,
     KeyboardAvoidingView,
     Platform,
-    Linking,
+    ActivityIndicator,
 } from 'react-native';
 import { Stack, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
 import GradientBackground from '../components/GradientBackground';
 import { colors } from '../constants/colors';
 import { spacing } from '../constants/spacing';
@@ -21,33 +22,38 @@ import { usePersonalNotes } from '../hooks/usePersonalNotes';
 import { useAuth } from '../context/AuthContext';
 import { publishCommunityNote } from '../hooks/useCommunityNotes';
 import { Note } from '../types/note';
-import { isGoogleDriveLink, toDriveShareUrl, toDriveViewUrl } from '../utils/driveLink';
+import DriveFilePickerModal from '../components/DriveFilePickerModal';
+import { PickedDriveFile, persistPickedFile, uploadFileToServer } from '../hooks/useDriveFiles';
 
 type UploadMode = 'drive' | 'playlist' | 'mixed';
 
 const MODE_OPTIONS: Array<{
     mode: UploadMode;
     title: string;
-    description: string;
+    subtitle: string;
     icon: keyof typeof Ionicons.glyphMap;
+    accent: string;
 }> = [
     {
         mode: 'drive',
-        title: 'Drive Notes',
-        description: 'Add notes from your Google Drive.',
+        title: 'Drive',
+        subtitle: 'Google Drive file',
         icon: 'logo-google',
+        accent: '#4285F4',
     },
     {
         mode: 'playlist',
-        title: 'Playlist Notes',
-        description: 'Save notes supported by a playlist link.',
+        title: 'Playlist',
+        subtitle: 'YouTube playlist',
         icon: 'play-circle-outline',
+        accent: colors.secondary,
     },
     {
         mode: 'mixed',
-        title: 'Both Together',
-        description: 'Keep Drive notes and playlist references in one entry.',
-        icon: 'albums-outline',
+        title: 'Both',
+        subtitle: 'Drive + playlist',
+        icon: 'layers-outline',
+        accent: colors.primary,
     },
 ];
 
@@ -55,19 +61,21 @@ function buildNotePayload(params: {
     title: string;
     subject: string;
     unit: string;
-    driveUrl: string;
+    pickedFile: PickedDriveFile | null;
     playlistUrl: string;
     details: string;
     uploadMode: UploadMode;
 }): Omit<Note, 'id' | 'createdAt' | 'updatedAt'> {
-    const { title, subject, unit, driveUrl, playlistUrl, details, uploadMode } = params;
-    const shareUrl = driveUrl ? toDriveShareUrl(driveUrl) : '';
-    const viewUrl = driveUrl ? toDriveViewUrl(driveUrl) : '';
+    const { title, subject, unit, pickedFile, playlistUrl, details, uploadMode } = params;
+    const viewUrl =
+        pickedFile?.uploadedUrl || pickedFile?.viewUrl || pickedFile?.shareUrl || undefined;
+    const shareLabel = pickedFile?.shareUrl || pickedFile?.uploadedUrl;
 
     const sections = [
         subject ? `Subject: ${subject}` : null,
         unit ? `Unit: ${unit}` : null,
-        shareUrl ? `Drive Link: ${shareUrl}` : null,
+        pickedFile?.name ? `File: ${pickedFile.name}` : null,
+        shareLabel ? `Drive Link: ${shareLabel}` : null,
         playlistUrl ? `Playlist Link: ${playlistUrl}` : null,
         details ? `Details:\n${details}` : null,
     ].filter(Boolean);
@@ -77,11 +85,59 @@ function buildNotePayload(params: {
         content: sections.join('\n\n'),
         subject: subject || undefined,
         unit: unit || undefined,
-        pdfUrl: viewUrl || undefined,
+        pdfUrl: viewUrl,
         playlistUrl: playlistUrl || undefined,
         noteType: uploadMode === 'drive' ? 'drive' : uploadMode,
     };
 }
+
+function FieldLabel({
+    icon,
+    label,
+    required,
+}: {
+    icon: keyof typeof Ionicons.glyphMap;
+    label: string;
+    required?: boolean;
+}) {
+    return (
+        <View style={fieldStyles.labelRow}>
+            <View style={fieldStyles.labelIcon}>
+                <Ionicons name={icon} size={14} color={colors.primary} />
+            </View>
+            <Text style={fieldStyles.label}>
+                {label}
+                {required ? <Text style={fieldStyles.required}> *</Text> : null}
+            </Text>
+        </View>
+    );
+}
+
+const fieldStyles = StyleSheet.create({
+    labelRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: spacing.sm,
+        marginBottom: spacing.sm,
+        marginTop: spacing.md,
+    },
+    labelIcon: {
+        width: 28,
+        height: 28,
+        borderRadius: 8,
+        backgroundColor: 'rgba(79, 70, 229, 0.1)',
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    label: {
+        fontSize: typography.fontSize.sm,
+        fontWeight: typography.fontWeight.semibold,
+        color: colors.textPrimary,
+    },
+    required: {
+        color: colors.error,
+    },
+});
 
 export default function UploadNoteScreen() {
     const router = useRouter();
@@ -91,7 +147,9 @@ export default function UploadNoteScreen() {
     const [title, setTitle] = useState('');
     const [subject, setSubject] = useState('');
     const [unit, setUnit] = useState('');
-    const [driveUrl, setDriveUrl] = useState('');
+    const [pickedFile, setPickedFile] = useState<PickedDriveFile | null>(null);
+    const [pickerVisible, setPickerVisible] = useState(false);
+    const [isUploadingFile, setIsUploadingFile] = useState(false);
     const [playlistUrl, setPlaylistUrl] = useState('');
     const [details, setDetails] = useState('');
     const [isSaving, setIsSaving] = useState(false);
@@ -104,25 +162,18 @@ export default function UploadNoteScreen() {
     const requiresDrive = uploadMode === 'drive' || uploadMode === 'mixed';
     const requiresPlaylist = uploadMode === 'playlist' || uploadMode === 'mixed';
 
-    const openGoogleDrive = async () => {
-        const url = 'https://drive.google.com/drive/my-drive';
-        const canOpen = await Linking.canOpenURL(url);
-        if (!canOpen) {
-            Alert.alert('Cannot Open Drive', 'Google Drive is not available on this device.');
-            return;
+    const handleFileSelected = (file: PickedDriveFile) => {
+        setPickedFile(file);
+        if (!title.trim()) {
+            const baseName = file.name.replace(/\.[^.]+$/, '');
+            setTitle(baseName);
         }
-        await Linking.openURL(url);
-        Alert.alert(
-            'Add from Drive',
-            'In Google Drive: open your file → Share → Copy link → paste it below.'
-        );
     };
 
     const handleSubmit = async () => {
         const trimmedTitle = title.trim();
         const trimmedSubject = subject.trim();
         const trimmedUnit = unit.trim();
-        const trimmedDriveUrl = driveUrl.trim();
         const trimmedPlaylistUrl = playlistUrl.trim();
         const trimmedDetails = details.trim();
 
@@ -131,16 +182,8 @@ export default function UploadNoteScreen() {
             return;
         }
 
-        if (requiresDrive && !trimmedDriveUrl) {
-            Alert.alert('Drive Link Required', 'Please paste your Google Drive share link.');
-            return;
-        }
-
-        if (requiresDrive && !isGoogleDriveLink(trimmedDriveUrl)) {
-            Alert.alert(
-                'Invalid Drive Link',
-                'Use a Google Drive link like:\nhttps://drive.google.com/file/d/.../view'
-            );
+        if (requiresDrive && !pickedFile) {
+            Alert.alert('Select a File', 'Tap "Add from Google Drive" and choose a file.');
             return;
         }
 
@@ -149,19 +192,48 @@ export default function UploadNoteScreen() {
             return;
         }
 
-        if (!trimmedSubject && !trimmedDetails && !trimmedPdfUrl && !trimmedPlaylistUrl) {
+        if (!trimmedSubject && !trimmedDetails && !pickedFile && !trimmedPlaylistUrl) {
             Alert.alert('Add Some Details', 'Please provide at least one useful detail for this note.');
             return;
         }
 
         try {
             setIsSaving(true);
+            let fileForNote = pickedFile;
+            let uploadWarning: string | null = null;
+
+            if (fileForNote?.uri && !fileForNote.uploadedUrl && !fileForNote.viewUrl) {
+                const persistedUri = await persistPickedFile(fileForNote.uri, fileForNote.name);
+                fileForNote = {
+                    ...fileForNote,
+                    uri: persistedUri,
+                    viewUrl: persistedUri,
+                };
+
+                if (user) {
+                    setIsUploadingFile(true);
+                    const uploaded = await uploadFileToServer(persistedUri, fileForNote.name);
+                    setIsUploadingFile(false);
+
+                    if (uploaded.ok) {
+                        fileForNote = {
+                            ...fileForNote,
+                            uploadedUrl: uploaded.url,
+                            viewUrl: uploaded.url,
+                            shareUrl: uploaded.url,
+                        };
+                    } else {
+                        uploadWarning = uploaded.message;
+                    }
+                }
+            }
+
             const newNote = await addNote(
                 buildNotePayload({
                     title: trimmedTitle,
                     subject: trimmedSubject,
                     unit: trimmedUnit,
-                    pdfUrl: trimmedPdfUrl,
+                    pickedFile: fileForNote,
                     playlistUrl: trimmedPlaylistUrl,
                     details: trimmedDetails,
                     uploadMode,
@@ -171,7 +243,7 @@ export default function UploadNoteScreen() {
             if (!user) {
                 Alert.alert(
                     'Note Saved Locally',
-                    'Sign in to share this note so other students can find it in search.',
+                    'Your file is saved on this device. Sign in to share it with other students.',
                     [{ text: 'OK', onPress: () => router.replace('/notes') }]
                 );
                 return;
@@ -182,11 +254,15 @@ export default function UploadNoteScreen() {
                 await markPublished(newNote.id);
             }
 
-            const successMessage = publishResult.ok
+            let successMessage = publishResult.ok
                 ? `${modeTitle} is shared. Other students can find it on Home search.`
                 : `${modeTitle} is saved on this device only.\n\n${publishResult.message || 'Sharing failed.'}`;
 
-            Alert.alert('Note Uploaded', successMessage, [
+            if (uploadWarning) {
+                successMessage = `Note saved on this device.\n\n${uploadWarning}`;
+            }
+
+            Alert.alert(uploadWarning ? 'Saved Locally' : 'Note Uploaded', successMessage, [
                 {
                     text: 'Open My Notes',
                     onPress: () => router.replace('/notes'),
@@ -197,6 +273,7 @@ export default function UploadNoteScreen() {
             Alert.alert('Upload Failed', 'Something went wrong while saving your note.');
         } finally {
             setIsSaving(false);
+            setIsUploadingFile(false);
         }
     };
 
@@ -206,7 +283,7 @@ export default function UploadNoteScreen() {
                 options={{
                     title: 'Upload Notes',
                     headerShown: true,
-                    headerStyle: { backgroundColor: colors.background },
+                    headerStyle: { backgroundColor: colors.gradientStart },
                     headerShadowVisible: false,
                     headerTintColor: colors.textPrimary,
                 }}
@@ -214,32 +291,49 @@ export default function UploadNoteScreen() {
 
             <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
                 <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-                    <View style={styles.heroCard}>
-                        <Text style={styles.heroTitle}>Upload notes with PDF or playlist support</Text>
+                    <LinearGradient
+                        colors={['#4F46E5', '#6366F1']}
+                        start={{ x: 0, y: 0 }}
+                        end={{ x: 1, y: 1 }}
+                        style={styles.heroCard}
+                    >
+                        <View style={styles.heroIconWrap}>
+                            <Ionicons name="cloud-upload-outline" size={28} color={colors.textOnPrimary} />
+                        </View>
+                        <Text style={styles.heroTitle}>Share your notes</Text>
                         <Text style={styles.heroSubtitle}>
-                            Use the plus icon to add regular notes, playlist-based notes, or both together in one place.
+                            Add from Google Drive so classmates can search and open your notes.
                         </Text>
-                    </View>
+                    </LinearGradient>
 
-                    <View style={styles.modeGrid}>
+                    <Text style={styles.sectionHeading}>Choose type</Text>
+                    <View style={styles.modeRow}>
                         {MODE_OPTIONS.map((option) => {
                             const active = uploadMode === option.mode;
                             return (
                                 <TouchableOpacity
                                     key={option.mode}
-                                    style={[styles.modeCard, active && styles.modeCardActive]}
+                                    style={[styles.modeChip, active && styles.modeChipActive]}
                                     onPress={() => setUploadMode(option.mode)}
+                                    activeOpacity={0.85}
                                 >
-                                    <View style={[styles.modeIconWrap, active && styles.modeIconWrapActive]}>
+                                    <View
+                                        style={[
+                                            styles.modeChipIcon,
+                                            { backgroundColor: active ? 'rgba(255,255,255,0.2)' : `${option.accent}18` },
+                                        ]}
+                                    >
                                         <Ionicons
                                             name={option.icon}
                                             size={20}
-                                            color={active ? colors.textOnPrimary : colors.primary}
+                                            color={active ? colors.textOnPrimary : option.accent}
                                         />
                                     </View>
-                                    <Text style={[styles.modeTitle, active && styles.modeTitleActive]}>{option.title}</Text>
-                                    <Text style={[styles.modeDescription, active && styles.modeDescriptionActive]}>
-                                        {option.description}
+                                    <Text style={[styles.modeChipTitle, active && styles.modeChipTitleActive]}>
+                                        {option.title}
+                                    </Text>
+                                    <Text style={[styles.modeChipSub, active && styles.modeChipSubActive]}>
+                                        {option.subtitle}
                                     </Text>
                                 </TouchableOpacity>
                             );
@@ -247,7 +341,9 @@ export default function UploadNoteScreen() {
                     </View>
 
                     <View style={styles.formCard}>
-                        <Text style={styles.label}>Note Title</Text>
+                        <Text style={styles.formHeading}>Note details</Text>
+
+                        <FieldLabel icon="document-text-outline" label="Title" required />
                         <TextInput
                             value={title}
                             onChangeText={setTitle}
@@ -256,7 +352,7 @@ export default function UploadNoteScreen() {
                             style={styles.input}
                         />
 
-                        <Text style={styles.label}>Subject</Text>
+                        <FieldLabel icon="school-outline" label="Subject" />
                         <TextInput
                             value={subject}
                             onChangeText={setSubject}
@@ -265,7 +361,7 @@ export default function UploadNoteScreen() {
                             style={styles.input}
                         />
 
-                        <Text style={styles.label}>Unit or Module</Text>
+                        <FieldLabel icon="bookmark-outline" label="Unit or module" />
                         <TextInput
                             value={unit}
                             onChangeText={setUnit}
@@ -274,37 +370,70 @@ export default function UploadNoteScreen() {
                             style={styles.input}
                         />
 
-                        <Text style={styles.label}>
-                            PDF Link {requiresPdf ? '(Required)' : '(Optional)'}
-                        </Text>
-                        <TextInput
-                            value={pdfUrl}
-                            onChangeText={setPdfUrl}
-                            placeholder="https://example.com/your-note.pdf"
-                            placeholderTextColor={colors.textLight}
-                            autoCapitalize="none"
-                            keyboardType="url"
-                            style={styles.input}
-                        />
+                        {requiresDrive ? (
+                            <View style={styles.driveCard}>
+                                <FieldLabel icon="logo-google" label="Google Drive file" required />
 
-                        <Text style={styles.label}>
-                            Playlist Link {requiresPlaylist ? '(Required)' : '(Optional)'}
-                        </Text>
-                        <TextInput
-                            value={playlistUrl}
-                            onChangeText={setPlaylistUrl}
-                            placeholder="https://youtube.com/playlist?list=..."
-                            placeholderTextColor={colors.textLight}
-                            autoCapitalize="none"
-                            keyboardType="url"
-                            style={styles.input}
-                        />
+                                {pickedFile ? (
+                                    <View style={styles.selectedFileCard}>
+                                        <View style={styles.selectedFileIcon}>
+                                            <Ionicons name="document-text" size={22} color={colors.primary} />
+                                        </View>
+                                        <View style={styles.selectedFileInfo}>
+                                            <Text style={styles.selectedFileName} numberOfLines={2}>
+                                                {pickedFile.name}
+                                            </Text>
+                                            <Text style={styles.selectedFileMeta}>Ready to upload</Text>
+                                        </View>
+                                        <TouchableOpacity
+                                            onPress={() => setPickedFile(null)}
+                                            hitSlop={8}
+                                        >
+                                            <Ionicons name="close-circle" size={22} color={colors.textLight} />
+                                        </TouchableOpacity>
+                                    </View>
+                                ) : (
+                                    <TouchableOpacity
+                                        style={styles.driveButton}
+                                        onPress={() => setPickerVisible(true)}
+                                        activeOpacity={0.85}
+                                    >
+                                        <Ionicons name="logo-google" size={22} color={colors.primary} />
+                                        <Text style={styles.driveButtonText}>Add from Google Drive</Text>
+                                    </TouchableOpacity>
+                                )}
 
-                        <Text style={styles.label}>Extra Details</Text>
+                                {pickedFile ? (
+                                    <TouchableOpacity
+                                        style={styles.changeFileBtn}
+                                        onPress={() => setPickerVisible(true)}
+                                    >
+                                        <Text style={styles.changeFileText}>Choose a different file</Text>
+                                    </TouchableOpacity>
+                                ) : null}
+                            </View>
+                        ) : null}
+
+                        {requiresPlaylist ? (
+                            <>
+                                <FieldLabel icon="play-circle-outline" label="Playlist link" required />
+                                <TextInput
+                                    value={playlistUrl}
+                                    onChangeText={setPlaylistUrl}
+                                    placeholder="https://youtube.com/playlist?list=..."
+                                    placeholderTextColor={colors.textLight}
+                                    autoCapitalize="none"
+                                    keyboardType="url"
+                                    style={styles.input}
+                                />
+                            </>
+                        ) : null}
+
+                        <FieldLabel icon="create-outline" label="Extra details" />
                         <TextInput
                             value={details}
                             onChangeText={setDetails}
-                            placeholder="Add topics covered, revision tips, or a short summary."
+                            placeholder="Topics covered, revision tips, or a short summary..."
                             placeholderTextColor={colors.textLight}
                             multiline
                             textAlignVertical="top"
@@ -315,12 +444,26 @@ export default function UploadNoteScreen() {
                             style={[styles.submitButton, isSaving && styles.submitButtonDisabled]}
                             onPress={handleSubmit}
                             disabled={isSaving}
+                            activeOpacity={0.9}
                         >
-                            <Text style={styles.submitButtonText}>{isSaving ? 'Saving...' : `Save ${modeTitle}`}</Text>
+                            <Ionicons name="checkmark-circle-outline" size={22} color={colors.textOnPrimary} />
+                            <Text style={styles.submitButtonText}>
+                                {isSaving
+                                    ? isUploadingFile
+                                        ? 'Uploading file...'
+                                        : 'Saving...'
+                                    : `Save & share ${modeTitle}`}
+                            </Text>
                         </TouchableOpacity>
                     </View>
                 </ScrollView>
             </KeyboardAvoidingView>
+
+            <DriveFilePickerModal
+                visible={pickerVisible}
+                onClose={() => setPickerVisible(false)}
+                onSelect={handleFileSelected}
+            />
         </GradientBackground>
     );
 }
@@ -332,68 +475,90 @@ const styles = StyleSheet.create({
     content: {
         padding: spacing.screenPadding,
         paddingBottom: spacing.xxl,
-        gap: spacing.lg,
     },
     heroCard: {
-        backgroundColor: colors.cardBackground,
         borderRadius: 24,
         padding: spacing.lg,
-        borderWidth: 1,
-        borderColor: colors.border,
+        marginBottom: spacing.lg,
+        overflow: 'hidden',
+    },
+    heroIconWrap: {
+        width: 52,
+        height: 52,
+        borderRadius: 16,
+        backgroundColor: 'rgba(255,255,255,0.2)',
+        justifyContent: 'center',
+        alignItems: 'center',
+        marginBottom: spacing.md,
     },
     heroTitle: {
         fontSize: typography.fontSize.xl,
         fontWeight: typography.fontWeight.bold,
-        color: colors.textPrimary,
+        color: colors.textOnPrimary,
         marginBottom: spacing.xs,
+        letterSpacing: -0.5,
     },
     heroSubtitle: {
         fontSize: typography.fontSize.sm,
-        color: colors.textSecondary,
+        color: 'rgba(255,255,255,0.88)',
         lineHeight: 22,
     },
-    modeGrid: {
-        gap: spacing.sm,
-    },
-    modeCard: {
-        backgroundColor: colors.cardBackground,
-        borderRadius: 20,
-        padding: spacing.md,
-        borderWidth: 1,
-        borderColor: colors.border,
-    },
-    modeCardActive: {
-        backgroundColor: colors.primary,
-        borderColor: colors.primary,
-    },
-    modeIconWrap: {
-        width: 40,
-        height: 40,
-        borderRadius: 20,
-        backgroundColor: 'rgba(79, 70, 229, 0.1)',
-        justifyContent: 'center',
-        alignItems: 'center',
+    sectionHeading: {
+        fontSize: typography.fontSize.sm,
+        fontWeight: typography.fontWeight.bold,
+        color: colors.textSecondary,
+        textTransform: 'uppercase',
+        letterSpacing: 0.8,
         marginBottom: spacing.sm,
     },
-    modeIconWrapActive: {
-        backgroundColor: 'rgba(255,255,255,0.18)',
+    modeRow: {
+        flexDirection: 'row',
+        gap: spacing.sm,
+        marginBottom: spacing.lg,
     },
-    modeTitle: {
-        fontSize: typography.fontSize.md,
+    modeChip: {
+        flex: 1,
+        backgroundColor: colors.cardBackground,
+        borderRadius: 18,
+        padding: spacing.sm,
+        paddingVertical: spacing.md,
+        alignItems: 'center',
+        borderWidth: 1.5,
+        borderColor: colors.border,
+    },
+    modeChipActive: {
+        backgroundColor: colors.primary,
+        borderColor: colors.primary,
+        shadowColor: colors.primary,
+        shadowOffset: { width: 0, height: 6 },
+        shadowOpacity: 0.25,
+        shadowRadius: 12,
+        elevation: 4,
+    },
+    modeChipIcon: {
+        width: 40,
+        height: 40,
+        borderRadius: 12,
+        justifyContent: 'center',
+        alignItems: 'center',
+        marginBottom: spacing.xs,
+    },
+    modeChipTitle: {
+        fontSize: typography.fontSize.sm,
         fontWeight: typography.fontWeight.bold,
         color: colors.textPrimary,
-        marginBottom: 4,
     },
-    modeTitleActive: {
+    modeChipTitleActive: {
         color: colors.textOnPrimary,
     },
-    modeDescription: {
-        fontSize: typography.fontSize.sm,
+    modeChipSub: {
+        fontSize: 10,
         color: colors.textSecondary,
-        lineHeight: 20,
+        marginTop: 2,
+        textAlign: 'center',
     },
-    modeDescriptionActive: {
-        color: 'rgba(255,255,255,0.82)',
+    modeChipSubActive: {
+        color: 'rgba(255,255,255,0.75)',
     },
     formCard: {
         backgroundColor: colors.cardBackground,
@@ -401,17 +566,21 @@ const styles = StyleSheet.create({
         padding: spacing.lg,
         borderWidth: 1,
         borderColor: colors.border,
+        shadowColor: colors.shadow,
+        shadowOffset: { width: 0, height: 8 },
+        shadowOpacity: 0.06,
+        shadowRadius: 20,
+        elevation: 3,
     },
-    label: {
-        fontSize: typography.fontSize.sm,
-        fontWeight: typography.fontWeight.semibold,
+    formHeading: {
+        fontSize: typography.fontSize.lg,
+        fontWeight: typography.fontWeight.bold,
         color: colors.textPrimary,
-        marginBottom: spacing.sm,
-        marginTop: spacing.md,
+        marginBottom: spacing.xs,
     },
     input: {
         backgroundColor: colors.background,
-        borderRadius: 16,
+        borderRadius: 14,
         borderWidth: 1,
         borderColor: colors.border,
         paddingHorizontal: spacing.md,
@@ -419,15 +588,90 @@ const styles = StyleSheet.create({
         color: colors.textPrimary,
         fontSize: typography.fontSize.md,
     },
+    driveCard: {
+        marginTop: spacing.sm,
+        backgroundColor: '#F5F7FF',
+        borderRadius: 18,
+        padding: spacing.md,
+        borderWidth: 1,
+        borderColor: '#E0E7FF',
+    },
+    driveButton: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: spacing.sm,
+        backgroundColor: colors.cardBackground,
+        borderRadius: 14,
+        paddingVertical: 18,
+        borderWidth: 1.5,
+        borderColor: '#C7D2FE',
+        borderStyle: 'dashed',
+    },
+    driveButtonText: {
+        color: colors.primary,
+        fontSize: typography.fontSize.md,
+        fontWeight: typography.fontWeight.semibold,
+    },
+    selectedFileCard: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: spacing.md,
+        backgroundColor: colors.cardBackground,
+        borderRadius: 14,
+        padding: spacing.md,
+        borderWidth: 1,
+        borderColor: '#C7D2FE',
+    },
+    selectedFileIcon: {
+        width: 44,
+        height: 44,
+        borderRadius: 12,
+        backgroundColor: '#EEF2FF',
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    selectedFileInfo: {
+        flex: 1,
+    },
+    selectedFileName: {
+        fontSize: typography.fontSize.md,
+        fontWeight: typography.fontWeight.semibold,
+        color: colors.textPrimary,
+    },
+    selectedFileMeta: {
+        fontSize: typography.fontSize.xs,
+        color: colors.accent,
+        marginTop: 2,
+        fontWeight: typography.fontWeight.medium,
+    },
+    changeFileBtn: {
+        marginTop: spacing.sm,
+        alignItems: 'center',
+        paddingVertical: spacing.sm,
+    },
+    changeFileText: {
+        color: colors.primary,
+        fontSize: typography.fontSize.sm,
+        fontWeight: typography.fontWeight.medium,
+    },
     textArea: {
-        minHeight: 140,
+        minHeight: 120,
     },
     submitButton: {
         marginTop: spacing.xl,
         backgroundColor: colors.primary,
-        borderRadius: 18,
+        borderRadius: 16,
         paddingVertical: 16,
+        flexDirection: 'row',
         alignItems: 'center',
+        justifyContent: 'center',
+        gap: spacing.sm,
+        shadowColor: colors.primary,
+        shadowOffset: { width: 0, height: 6 },
+        shadowOpacity: 0.3,
+        shadowRadius: 12,
+        elevation: 4,
     },
     submitButtonDisabled: {
         opacity: 0.7,

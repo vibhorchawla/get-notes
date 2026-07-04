@@ -1,7 +1,7 @@
 import React from 'react';
 import { View, Text, StyleSheet, Pressable, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { Note } from '../types/note';
+import { isDriveStoredUrl } from '../utils/driveLink';
 import { colors } from '../constants/colors';
 import { spacing } from '../constants/spacing';
 import { typography } from '../constants/typography';
@@ -12,7 +12,7 @@ import Animated, {
     FadeInDown
 } from 'react-native-reanimated';
 
-interface PersonalNoteCardProps {
+import { Note } from '../types/note';
     note: Note;
     onPress: () => void;
     onShare?: () => void;
@@ -56,8 +56,14 @@ export default function PersonalNoteCard({ note, onPress, onShare, index = 0 }: 
             <View style={styles.tagRow}>
                 {note.pdfUrl && (
                     <View style={styles.tag}>
-                        <Ionicons name="document-text-outline" size={12} color={colors.primary} />
-                        <Text style={styles.tagText}>PDF</Text>
+                        <Ionicons
+                            name={note.noteType === 'drive' || isDriveStoredUrl(note.pdfUrl) ? 'logo-google' : 'document-text-outline'}
+                            size={12}
+                            color={colors.primary}
+                        />
+                        <Text style={styles.tagText}>
+                            {note.noteType === 'drive' || isDriveStoredUrl(note.pdfUrl) ? 'Drive' : 'PDF'}
+                        </Text>
                     </View>
                 )}
                 {note.playlistUrl && (

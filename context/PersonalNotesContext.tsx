@@ -8,25 +8,42 @@ import React, {
 import * as FileSystem from 'expo-file-system/legacy';
 import * as Crypto from 'expo-crypto';
 import { Note } from '../types/note';
+import { isGoogleDriveLink, toDriveViewUrl } from '../utils/driveLink';
 
 const NOTES_FILE_URI = `${FileSystem.documentDirectory}personal_notes_db.json`;
 
 function inferNoteType(note: Partial<Note>): Note['noteType'] {
     if (note.pdfUrl && note.playlistUrl) return 'mixed';
-    if (note.pdfUrl) return 'pdf';
+    if (note.pdfUrl) {
+        return isGoogleDriveLink(note.pdfUrl) || /drive\.google\.com/i.test(note.pdfUrl)
+            ? 'drive'
+            : 'pdf';
+    }
     if (note.playlistUrl) return 'playlist';
     return 'text';
 }
 
-function extractUrlAfterLabel(content: string, label: string): string | undefined {
-    const escapedLabel = label.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-    const match = content.match(new RegExp(`${escapedLabel}:\\s*(https?:\\/\\/\\S+)`, 'i'));
-    return match ? match[1] : undefined;
+function extractUrlAfterLabel(content: string, labels: string[]): string | undefined {
+    for (const label of labels) {
+        const escapedLabel = label.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        const match = content.match(new RegExp(`${escapedLabel}:\\s*(https?:\\/\\/\\S+)`, 'i'));
+        if (match?.[1]) return match[1];
+    }
+    return undefined;
 }
 
 function normalizeNote(note: Note): Note {
-    const pdfUrl = note.pdfUrl || extractUrlAfterLabel(note.content, 'PDF Link');
-    const playlistUrl = note.playlistUrl || extractUrlAfterLabel(note.content, 'Playlist Link');
+    const rawDriveOrPdf =
+        note.pdfUrl ||
+        extractUrlAfterLabel(note.content, ['Drive Link', 'Google Drive Link', 'PDF Link']);
+    const playlistUrl =
+        note.playlistUrl || extractUrlAfterLabel(note.content, ['Playlist Link']);
+
+    const pdfUrl = rawDriveOrPdf
+        ? isGoogleDriveLink(rawDriveOrPdf) || /drive\.google\.com/i.test(rawDriveOrPdf)
+            ? toDriveViewUrl(rawDriveOrPdf)
+            : rawDriveOrPdf
+        : undefined;
 
     return {
         ...note,
