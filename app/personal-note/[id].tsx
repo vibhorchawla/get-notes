@@ -16,9 +16,14 @@ export default function PersonalNoteDetailScreen() {
         if (!note) return;
 
         if (note.pdfUrl) {
+            const params: Record<string, string> = { title: note.title };
+            const isLocal = note.pdfUrl.startsWith('file://') || note.pdfUrl.startsWith('content://');
+            if (!isLocal) {
+                params.pdfUrl = note.pdfUrl;
+            }
             router.replace({
                 pathname: `/note/${note.id}`,
-                params: { title: note.title },
+                params,
             });
         }
     }, [note, router]);

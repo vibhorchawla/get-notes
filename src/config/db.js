@@ -1,31 +1,11 @@
-// Data store with file-backed user persistence
-// Users are saved to users.json so they survive server restarts
-const fs = require('fs');
-const path = require('path');
+const mongoose = require('mongoose');
 
-const USERS_FILE = path.join(__dirname, 'users.json');
-const COMMUNITY_NOTES_FILE = path.join(__dirname, 'community_notes.json');
-
-// Load users from disk on startup
-function loadUsers() {
-    try {
-        if (fs.existsSync(USERS_FILE)) {
-            return JSON.parse(fs.readFileSync(USERS_FILE, 'utf8'));
-        }
-    } catch (e) {
-        console.error('Failed to load users.json:', e.message);
-    }
-    return [];
+async function connectDB() {
+    const conn = await mongoose.connect(process.env.MONGODB_URI);
+    console.log(`[db] MongoDB connected: ${conn.connection.host}/${conn.connection.name}`);
 }
 
-// Save users to disk
-function saveUsers() {
-    try {
-        fs.writeFileSync(USERS_FILE, JSON.stringify(users, null, 2));
-    } catch (e) {
-        console.error('Failed to save users.json:', e.message);
-    }
-}
+// ── Hardcoded course catalog (not in DB) ─────────────────────────────────────
 
 const CATEGORIES = ['All', 'B.Tech', 'BCA', 'MCA', 'Diploma', 'Arts', 'Science'];
 
@@ -84,123 +64,32 @@ const NOTES = {
     ],
 };
 
-// Persistent users — loaded from disk, saved on every change
-const users = loadUsers();
-
-// Proxy push so every new user is auto-saved to disk
-const originalPush = Array.prototype.push;
-users.push = function (...args) {
-    const result = originalPush.apply(this, args);
-    saveUsers();
-    return result;
-};
-
-const savedNotes = {};       // { userId: Set<noteId> }
-const downloadedNotes = {};  // { userId: Set<noteId> }
-
-function loadCommunityNotes() {
-    try {
-        if (fs.existsSync(COMMUNITY_NOTES_FILE)) {
-            return JSON.parse(fs.readFileSync(COMMUNITY_NOTES_FILE, 'utf8'));
-        }
-    } catch (e) {
-        console.error('Failed to load community_notes.json:', e.message);
-    }
-    return [];
-}
-
-function saveCommunityNotesToDisk() {
-    try {
-        fs.writeFileSync(COMMUNITY_NOTES_FILE, JSON.stringify(communityNotes, null, 2));
-    } catch (e) {
-        console.error('Failed to save community_notes.json:', e.message);
-    }
-}
-
-let communityNotes = loadCommunityNotes();
-
-function noteSearchText(note) {
-    return [
-        note.title,
-        note.subject,
-        note.unit,
-        note.content,
-        note.uploadedBy?.name,
-        note.uploadedBy?.course,
-    ]
-        .filter(Boolean)
-        .join(' ')
-        .toLowerCase();
-}
+// ── Helpers for catalog notes (in-memory, not DB) ────────────────────────────
 
 function getAllCatalogNotes() {
     const catalog = [];
     for (const [courseId, notes] of Object.entries(NOTES)) {
         for (const note of notes) {
-            catalog.push({
-                ...note,
-                courseId,
-                source: 'course',
-            });
+            catalog.push({ ...note, courseId, source: 'course' });
         }
     }
     return catalog;
 }
 
-function getAllSearchableNotes() {
-    const community = communityNotes.map((note) => ({
-        ...note,
-        source: 'community',
-    }));
-    return [...getAllCatalogNotes(), ...community];
-}
-
-function searchNotes(query) {
-    const q = String(query || '').trim().toLowerCase();
-    if (!q) return [];
-
-    return getAllSearchableNotes().filter((note) => noteSearchText(note).includes(q));
-}
-
-function findNoteById(noteId) {
-    for (const notes of Object.values(NOTES)) {
+function findCatalogNoteById(noteId) {
+    for (const [courseId, notes] of Object.entries(NOTES)) {
         const found = notes.find((n) => n.id === noteId);
-        if (found) return { ...found, source: 'course' };
+        if (found) return { ...found, courseId, source: 'course' };
     }
-
-    const community = communityNotes.find((n) => n.id === noteId);
-    if (community) return { ...community, source: 'community' };
-
     return null;
 }
 
-function addCommunityNote(note) {
-    const existingIndex = communityNotes.findIndex((n) => n.id === note.id);
-    if (existingIndex >= 0) {
-        communityNotes[existingIndex] = note;
-    } else {
-        communityNotes.unshift(note);
-    }
-    saveCommunityNotesToDisk();
-    return note;
-}
-
-function getCommunityNotesByUser(userId) {
-    return communityNotes.filter((n) => n.uploadedBy?.id === userId);
-}
-
 module.exports = {
+    connectDB,
     CATEGORIES,
     COURSES,
     FEATURED_COURSES,
     NOTES,
-    users,
-    savedNotes,
-    downloadedNotes,
-    communityNotes,
-    findNoteById,
-    searchNotes,
-    addCommunityNote,
-    getCommunityNotesByUser,
-    getAllSearchableNotes,
+    getAllCatalogNotes,
+    findCatalogNoteById,
 };

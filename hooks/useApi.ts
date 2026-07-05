@@ -15,6 +15,28 @@ export async function removeToken(): Promise<void> {
     await SecureStore.deleteItemAsync(TOKEN_KEY);
 }
 
+export async function refreshToken(): Promise<string | null> {
+    const token = await getToken();
+    if (!token) return null;
+    try {
+        const response = await fetch(`${API_BASE_URL}/auth/refresh`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                Authorization: `Bearer ${token}`,
+            },
+        });
+        if (response.ok) {
+            const json = await response.json();
+            if (json.success && json.data?.token) {
+                await setToken(json.data.token);
+                return json.data.token;
+            }
+        }
+    } catch {}
+    return null;
+}
+
 interface FetchOptions extends RequestInit {
     requiresAuth?: boolean;
 }
@@ -44,6 +66,29 @@ export async function apiFetch<T = any>(
             ...fetchOptions,
             headers,
         });
+
+        if (response.status === 401 && requiresAuth) {
+            const refreshed = await refreshToken();
+            if (refreshed) {
+                headers['Authorization'] = `Bearer ${refreshed}`;
+                const retryResponse = await fetch(url, { ...fetchOptions, headers });
+                let retryJson: { success: boolean; data?: T; message?: string };
+                try {
+                    retryJson = await retryResponse.json();
+                } catch {
+                    return { success: false, message: 'Request failed after refresh' };
+                }
+                if (!retryResponse.ok && retryJson.success !== true) {
+                    return { success: false, message: retryJson.message || 'Request failed' };
+                }
+                return retryJson;
+            }
+            await removeToken();
+            return {
+                success: false,
+                message: 'Session expired. Please sign in again.',
+            };
+        }
 
         let json: { success: boolean; data?: T; message?: string };
         try {

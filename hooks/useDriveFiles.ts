@@ -1,6 +1,6 @@
 import * as DocumentPicker from 'expo-document-picker';
 import * as FileSystem from 'expo-file-system/legacy';
-import { getToken } from './useApi';
+import { getToken, removeToken, refreshToken } from './useApi';
 import { API_BASE_URL } from './config';
 
 export interface PickedDriveFile {
@@ -67,23 +67,34 @@ export async function uploadFileToServer(
     localUri: string,
     fileName: string
 ): Promise<UploadResult> {
-    const token = await getToken();
+    let token = await getToken();
     if (!token) {
         return { ok: false, message: 'Sign in to upload files to the server.' };
     }
 
     const uploadUrl = `${API_BASE_URL}/files/upload`;
+    const mimeType = guessMimeType(fileName);
 
-    try {
-        const response = await FileSystem.uploadAsync(uploadUrl, localUri, {
+    const doUpload = async (authToken: string) => {
+        return FileSystem.uploadAsync(uploadUrl, localUri, {
             httpMethod: 'POST',
             uploadType: FileSystem.FileSystemUploadType.MULTIPART,
             fieldName: 'file',
-            mimeType: guessMimeType(fileName),
-            headers: {
-                Authorization: `Bearer ${token}`,
-            },
+            mimeType,
+            headers: { Authorization: `Bearer ${authToken}` },
         });
+    };
+
+    try {
+        let response = await doUpload(token);
+
+        if (response.status === 401) {
+            const refreshed = await refreshToken();
+            if (refreshed) {
+                token = refreshed;
+                response = await doUpload(refreshed);
+            }
+        }
 
         let json: { success?: boolean; data?: { url?: string; name?: string }; message?: string };
         try {
@@ -106,15 +117,18 @@ export async function uploadFileToServer(
             };
         }
 
+        if (response.status === 401) {
+            await removeToken();
+            return { ok: false, message: 'Session expired. Please sign in again.' };
+        }
+
         return {
             ok: false,
             message:
                 json.message ||
                 (response.status === 404
                     ? 'Upload route not found. Restart the API (npm run server).'
-                    : response.status === 401
-                      ? 'Session expired. Sign in again.'
-                      : `Upload failed (${response.status}).`),
+                    : `Upload failed (${response.status}).`),
         };
     } catch (error) {
         console.error('uploadFileToServer error:', error);

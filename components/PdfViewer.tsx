@@ -1,17 +1,16 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
     View,
     Text,
     StyleSheet,
-    ActivityIndicator,
-    TouchableOpacity,
     Dimensions,
-    Alert,
     Platform,
-    Linking,
+    Animated,
+    Easing,
 } from 'react-native';
 import Constants from 'expo-constants';
-import { WebView } from 'react-native-webview';
+import { WebView, WebViewMessageEvent } from 'react-native-webview';
+import { Ionicons } from '@expo/vector-icons';
 
 let Pdf: any = null;
 try {
@@ -31,7 +30,6 @@ import {
     isLocalFileUrl,
     isRemoteUrl,
     normalizePdfUrl,
-    openLocalFile,
     LocalPdfWebSource,
 } from '../utils/localFile';
 
@@ -49,99 +47,174 @@ export default function PdfViewer({ pdfUrl, onLoaded, onError }: PdfViewerProps)
     const canUseNativePdf = Boolean(Pdf && normalizedUrl);
 
     const [isLoading, setIsLoading] = useState(true);
+    const isLoadingRef = useRef(true);
     const [localSource, setLocalSource] = useState<LocalPdfWebSource | null>(null);
-    const [useGoogleViewer, setUseGoogleViewer] = useState(false);
+    const [remoteSource, setRemoteSource] = useState<LocalPdfWebSource | null>(null);
     const [errorMessage, setErrorMessage] = useState<string | null>(null);
+    const [progress, setProgress] = useState({ loaded: 0, total: 0 });
+
+    const pulseAnim = useRef(new Animated.Value(1)).current;
+    const progressAnim = useRef(new Animated.Value(0)).current;
+
+    useEffect(() => {
+        isLoadingRef.current = isLoading;
+    }, [isLoading]);
+
+    useEffect(() => {
+        const pulse = Animated.loop(
+            Animated.sequence([
+                Animated.timing(pulseAnim, { toValue: 0.4, duration: 800, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
+                Animated.timing(pulseAnim, { toValue: 1, duration: 800, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
+            ])
+        );
+        pulse.start();
+        return () => pulse.stop();
+    }, [pulseAnim]);
+
+    useEffect(() => {
+        if (progress.total > 0) {
+            Animated.timing(progressAnim, {
+                toValue: progress.loaded / progress.total,
+                duration: 300,
+                easing: Easing.out(Easing.ease),
+                useNativeDriver: false,
+            }).start();
+        }
+    }, [progress, progressAnim]);
 
     useEffect(() => {
         let cancelled = false;
 
         if (!normalizedUrl) {
             setLocalSource(null);
+            setRemoteSource(null);
             setIsLoading(false);
             return;
         }
 
-        if (!isLocal) {
-            setLocalSource(null);
-            setUseGoogleViewer(isExpoGo);
+        if (isLocal) {
+            isLoadingRef.current = true;
             setIsLoading(true);
             setErrorMessage(null);
-            return;
+            setRemoteSource(null);
+            setProgress({ loaded: 0, total: 0 });
+
+            getLocalPdfWebSource(normalizedUrl)
+                .then((source) => {
+                    if (cancelled) return;
+                    if (!source) {
+                        const msg = 'Could not read this PDF from your device.';
+                        setErrorMessage(msg);
+                        isLoadingRef.current = false;
+                        setIsLoading(false);
+                        onError?.(msg);
+                        return;
+                    }
+                    setLocalSource(source);
+                })
+                .catch(() => {
+                    if (!cancelled) {
+                        const msg = 'Could not read this PDF from your device.';
+                        setErrorMessage(msg);
+                        isLoadingRef.current = false;
+                        setIsLoading(false);
+                        onError?.(msg);
+                    }
+                });
+        } else if (isRemote) {
+            setLocalSource(null);
+            isLoadingRef.current = true;
+            setIsLoading(true);
+            setErrorMessage(null);
+            setProgress({ loaded: 0, total: 0 });
+            setRemoteSource(getRemotePdfWebSource(normalizedUrl));
         }
-
-        setIsLoading(true);
-        setErrorMessage(null);
-        setUseGoogleViewer(false);
-
-        getLocalPdfWebSource(normalizedUrl)
-            .then((source) => {
-                if (cancelled) return;
-                if (!source) {
-                    const message = 'Could not read this PDF from your device.';
-                    setErrorMessage(message);
-                    setIsLoading(false);
-                    onError?.(message);
-                    return;
-                }
-                setLocalSource(source);
-            })
-            .catch(() => {
-                if (!cancelled) {
-                    const message = 'Could not read this PDF from your device.';
-                    setErrorMessage(message);
-                    setIsLoading(false);
-                    onError?.(message);
-                }
-            });
 
         return () => {
             cancelled = true;
         };
-    }, [normalizedUrl, isLocal, onError]);
+    }, [normalizedUrl, isLocal, isRemote, onError]);
 
-    const handleOpenExternally = async () => {
-        if (!normalizedUrl) return;
-
-        if (isLocal) {
-            const opened = await openLocalFile(normalizedUrl);
-            if (!opened) Alert.alert('Cannot Open PDF', 'No app is available to open this PDF.');
-            return;
+    const handleWebViewMessage = (event: WebViewMessageEvent) => {
+        try {
+            const msg = JSON.parse(event.nativeEvent.data);
+            if (msg.type === 'progress') {
+                setProgress({ loaded: msg.loaded || 0, total: msg.total || 0 });
+                if (msg.total > 0 && isLoadingRef.current) {
+                    isLoadingRef.current = false;
+                    setIsLoading(false);
+                    onLoaded?.();
+                }
+            } else if (msg.type === 'loaded') {
+                isLoadingRef.current = false;
+                setIsLoading(false);
+                setErrorMessage(null);
+                onLoaded?.();
+            } else if (msg.type === 'error') {
+                const message = 'Could not render this PDF.';
+                setErrorMessage(message);
+                isLoadingRef.current = false;
+                setIsLoading(false);
+                onError?.(message);
+            }
+        } catch {
+            if (event.nativeEvent.data === 'loaded') {
+                isLoadingRef.current = false;
+                setIsLoading(false);
+                setErrorMessage(null);
+                onLoaded?.();
+            } else if (event.nativeEvent.data === 'error') {
+                const message = 'Could not render this PDF.';
+                setErrorMessage(message);
+                isLoadingRef.current = false;
+                setIsLoading(false);
+                onError?.(message);
+            }
         }
-
-        const canOpen = await Linking.canOpenURL(normalizedUrl);
-        if (!canOpen) {
-            Alert.alert('Cannot Open PDF', 'No app is available to open this PDF link.');
-            return;
-        }
-        await Linking.openURL(normalizedUrl);
     };
 
-    const handleRemoteError = () => {
-        if (isLocal) {
-            const message = 'In-app preview failed. Tap Open PDF below.';
-            setErrorMessage(message);
-            setIsLoading(false);
-            onError?.(message);
-            return;
-        }
+    const renderLoadingUI = () => {
+        if (!isLoading) return null;
+        const pct = progress.total > 0 ? Math.round((progress.loaded / progress.total) * 100) : 0;
+        const showProgress = progress.total > 0;
 
-        if (!useGoogleViewer && isExpoGo) {
-            setUseGoogleViewer(true);
-            setIsLoading(true);
-            setErrorMessage(null);
-            return;
-        }
+        return (
+            <View style={styles.loadingOverlay}>
+                <View style={styles.loadingCard}>
+                    <Animated.View style={[styles.loadingIcon, { opacity: pulseAnim }]}>
+                        <Ionicons name="document-text-outline" size={40} color={colors.primary} />
+                    </Animated.View>
 
-        const message = 'Preview unavailable for this PDF.';
-        setErrorMessage(message);
-        setIsLoading(false);
-        onError?.(message);
+                    <Text style={styles.loadingTitle}>Opening PDF</Text>
+
+                    <Text style={styles.loadingSubtitle}>
+                        {showProgress
+                            ? `Preparing document... ${progress.loaded}/${progress.total} pages (${pct}%)`
+                            : 'Preparing document...'}
+                    </Text>
+
+                    <View style={styles.progressTrack}>
+                        <Animated.View
+                            style={[
+                                styles.progressFill,
+                                {
+                                    width: progressAnim.interpolate({
+                                        inputRange: [0, 1],
+                                        outputRange: ['0%', '100%'],
+                                    }),
+                                },
+                            ]}
+                        />
+                    </View>
+                </View>
+            </View>
+        );
     };
 
     if (!normalizedUrl) {
         return (
             <View style={styles.emptyState}>
+                <Ionicons name="document-text-outline" size={48} color={colors.border} />
                 <Text style={styles.emptyTitle}>No PDF attached</Text>
                 <Text style={styles.emptyText}>This note does not have a PDF file yet.</Text>
             </View>
@@ -151,11 +224,7 @@ export default function PdfViewer({ pdfUrl, onLoaded, onError }: PdfViewerProps)
     if (canUseNativePdf && !isExpoGo) {
         return (
             <View style={styles.container}>
-                {isLoading ? (
-                    <View style={styles.loadingOverlay}>
-                        <ActivityIndicator size="large" color={colors.primary} />
-                    </View>
-                ) : null}
+                {renderLoadingUI()}
                 <Pdf
                     source={{ uri: normalizedUrl, cache: true }}
                     style={styles.pdf}
@@ -165,7 +234,9 @@ export default function PdfViewer({ pdfUrl, onLoaded, onError }: PdfViewerProps)
                     }}
                     onError={() => {
                         setIsLoading(false);
-                        handleRemoteError();
+                        const message = 'Could not render this PDF.';
+                        setErrorMessage(message);
+                        onError?.(message);
                     }}
                     trustAllCerts
                 />
@@ -173,24 +244,15 @@ export default function PdfViewer({ pdfUrl, onLoaded, onError }: PdfViewerProps)
         );
     }
 
-    const webSource = isLocal
-        ? localSource
-        : isRemote
-          ? getRemotePdfWebSource(normalizedUrl, useGoogleViewer)
-          : null;
+    const webSource = isLocal ? localSource : remoteSource;
 
     return (
         <View style={styles.container}>
-            {isLoading ? (
-                <View style={styles.loadingOverlay}>
-                    <ActivityIndicator size="large" color={colors.primary} />
-                    <Text style={styles.loadingText}>Opening PDF...</Text>
-                </View>
-            ) : null}
+            {renderLoadingUI()}
 
             {webSource ? (
                 <WebView
-                    key={`${isLocal ? 'local' : useGoogleViewer ? 'google' : 'direct'}:${normalizedUrl}`}
+                    key={`pdf:${normalizedUrl}`}
                     source={webSource}
                     style={styles.pdf}
                     originWhitelist={['*']}
@@ -200,38 +262,35 @@ export default function PdfViewer({ pdfUrl, onLoaded, onError }: PdfViewerProps)
                     javaScriptEnabled
                     domStorageEnabled
                     mixedContentMode="always"
-                    onLoadEnd={() => {
-                        if (!isLocal) {
-                            setIsLoading(false);
-                            onLoaded?.();
-                        }
+                    onLoadEnd={() => {}}
+                    onMessage={handleWebViewMessage}
+                    onHttpError={() => {
+                        const msg = 'Could not load this PDF.';
+                        setErrorMessage(msg);
+                        setIsLoading(false);
+                        onError?.(msg);
                     }}
-                    onMessage={(event) => {
-                        if (event.nativeEvent.data === 'loaded') {
-                            setIsLoading(false);
-                            setErrorMessage(null);
-                            onLoaded?.();
-                        } else if (event.nativeEvent.data === 'error') {
-                            handleRemoteError();
-                        }
+                    onError={() => {
+                        const msg = 'Could not load this PDF.';
+                        setErrorMessage(msg);
+                        setIsLoading(false);
+                        onError?.(msg);
                     }}
-                    onHttpError={() => handleRemoteError()}
-                    onError={() => handleRemoteError()}
                 />
             ) : isLocal ? (
                 <View style={styles.emptyState}>
-                    <ActivityIndicator size="large" color={colors.primary} />
-                    <Text style={styles.emptyText}>Preparing PDF...</Text>
+                    <Animated.View style={{ opacity: pulseAnim }}>
+                        <Ionicons name="document-outline" size={48} color={colors.primary} />
+                    </Animated.View>
+                    <Text style={styles.loadingSubtitle}>Reading PDF file...</Text>
                 </View>
             ) : null}
 
             {errorMessage ? (
-                <View style={styles.errorCard}>
-                    <Text style={styles.emptyTitle}>Preview unavailable</Text>
-                    <Text style={styles.emptyText}>{errorMessage}</Text>
-                    <TouchableOpacity style={styles.openButton} onPress={handleOpenExternally}>
-                        <Text style={styles.openButtonText}>Open PDF</Text>
-                    </TouchableOpacity>
+                <View style={styles.errorOverlay}>
+                    <Ionicons name="alert-circle-outline" size={28} color={colors.error} />
+                    <Text style={styles.errorTitle}>Something went wrong</Text>
+                    <Text style={styles.errorText}>{errorMessage}</Text>
                 </View>
             ) : null}
         </View>
@@ -249,34 +308,74 @@ const styles = StyleSheet.create({
     },
     loadingOverlay: {
         ...StyleSheet.absoluteFillObject,
-        backgroundColor: 'rgba(248, 250, 252, 0.92)',
+        backgroundColor: 'rgba(248, 250, 252, 0.96)',
         justifyContent: 'center',
         alignItems: 'center',
         zIndex: 10,
     },
-    loadingText: {
-        marginTop: spacing.md,
-        fontSize: typography.fontSize.md,
+    loadingCard: {
+        backgroundColor: '#fff',
+        borderRadius: 20,
+        paddingHorizontal: 36,
+        paddingVertical: 32,
+        alignItems: 'center',
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.08,
+        shadowRadius: 16,
+        elevation: 6,
+        minWidth: 200,
+    },
+    loadingIcon: {
+        width: 64,
+        height: 64,
+        borderRadius: 32,
+        backgroundColor: '#EEF2FF',
+        justifyContent: 'center',
+        alignItems: 'center',
+        marginBottom: 16,
+    },
+    loadingTitle: {
+        fontSize: typography.fontSize.lg,
+        fontWeight: typography.fontWeight.bold,
+        color: colors.textPrimary,
+        marginBottom: 6,
+    },
+    loadingSubtitle: {
+        fontSize: typography.fontSize.sm,
         color: colors.textSecondary,
+        marginBottom: 16,
+    },
+    progressTrack: {
+        width: 160,
+        height: 4,
+        borderRadius: 2,
+        backgroundColor: '#E5E7EB',
+        overflow: 'hidden',
+    },
+    progressFill: {
+        height: '100%',
+        borderRadius: 2,
+        backgroundColor: colors.primary,
     },
     emptyState: {
         flex: 1,
         alignItems: 'center',
         justifyContent: 'center',
         paddingHorizontal: spacing.xl,
+        gap: 8,
     },
     emptyTitle: {
         fontSize: typography.fontSize.lg,
         fontWeight: typography.fontWeight.bold,
         color: colors.textPrimary,
-        marginBottom: spacing.sm,
     },
     emptyText: {
         fontSize: typography.fontSize.md,
         color: colors.textSecondary,
         textAlign: 'center',
     },
-    errorCard: {
+    errorOverlay: {
         position: 'absolute',
         left: spacing.lg,
         right: spacing.lg,
@@ -285,16 +384,17 @@ const styles = StyleSheet.create({
         borderRadius: 16,
         padding: spacing.lg,
         elevation: 4,
-    },
-    openButton: {
-        marginTop: spacing.md,
-        backgroundColor: colors.primary,
-        borderRadius: 12,
-        paddingVertical: spacing.md,
         alignItems: 'center',
+        gap: 4,
     },
-    openButtonText: {
-        color: colors.white,
+    errorTitle: {
+        fontSize: typography.fontSize.md,
         fontWeight: typography.fontWeight.bold,
+        color: colors.textPrimary,
+    },
+    errorText: {
+        fontSize: typography.fontSize.sm,
+        color: colors.textSecondary,
+        textAlign: 'center',
     },
 });

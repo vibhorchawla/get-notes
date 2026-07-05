@@ -38,5 +38,21 @@
     "name": "Agrim",
     "course": "Btech Cse",
     "createdAt": "2026-05-30T10:02:32.582Z"
+  },
+  {
+    "id": "9d395a49-9b05-45ea-9b99-d459abe47148",
+    "email": "yashtyagi@gmail.com",
+    "passwordHash": "$2a$10$fG24SF4KpB/cRw5XgkJTLO18UsTXmZgWVjW2nazyTvrwcBtZThAiO",
+    "name": "Yash",
+    "course": "Btech Cse",
+    "createdAt": "2026-07-05T10:16:18.250Z"
+  },
+  {
+    "id": "42c85625-6e40-4fa7-bdf8-dba5767bf8ec",
+    "email": "yashsharma@gmail.com",
+    "passwordHash": "$2a$10$qbL1NyrXrvLC5azN13Wg4.f2y5DzBtFzNBQZsOJmG4Bde3Ef9b2p6",
+    "name": "Yash",
+    "course": "Btech Cse",
+    "createdAt": "2026-07-05T11:20:57.877Z"
   }
 ]

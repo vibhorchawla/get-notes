@@ -1,75 +1,125 @@
-const { savedNotes, downloadedNotes, findNoteById } = require('../../config/db');
+const SavedNote = require('../../models/SavedNote');
+const Download = require('../../models/Download');
+const CommunityNote = require('../../models/CommunityNote');
+const { findCatalogNoteById } = require('../../config/db');
 
-function ensureUserCollections(userId) {
-    if (!savedNotes[userId]) savedNotes[userId] = new Set();
-    if (!downloadedNotes[userId]) downloadedNotes[userId] = new Set();
+async function resolveNote(noteId) {
+    const catalog = findCatalogNoteById(noteId);
+    if (catalog) return catalog;
+
+    const doc = await CommunityNote.findById(noteId).lean();
+    if (doc) return { ...doc, id: doc._id, source: 'community' };
+
+    return null;
 }
 
 // GET /api/user/saved
-function getSaved(req, res) {
-    const { id: userId } = req.user;
-    ensureUserCollections(userId);
-    const notes = Array.from(savedNotes[userId])
-        .map(findNoteById)
-        .filter(Boolean);
-    res.json({ success: true, data: notes });
+async function getSaved(req, res) {
+    try {
+        const { id: userId } = req.user;
+        const saved = await SavedNote.find({ userId }).lean();
+        const notes = (
+            await Promise.all(saved.map((s) => resolveNote(s.noteId)))
+        ).filter(Boolean);
+        res.json({ success: true, data: notes });
+    } catch (err) {
+        console.error('GetSaved error:', err);
+        res.status(500).json({ success: false, message: 'Server error' });
+    }
 }
 
 // POST /api/user/saved   body: { noteId }
-function saveNote(req, res) {
-    const { id: userId } = req.user;
-    const { noteId } = req.body;
-    if (!noteId) return res.status(400).json({ success: false, message: 'noteId is required' });
-    const note = findNoteById(noteId);
-    if (!note) return res.status(404).json({ success: false, message: 'Note not found' });
-    ensureUserCollections(userId);
-    savedNotes[userId].add(noteId);
-    res.json({ success: true, message: 'Note saved' });
+async function saveNote(req, res) {
+    try {
+        const { id: userId } = req.user;
+        const { noteId } = req.body;
+        if (!noteId) return res.status(400).json({ success: false, message: 'noteId is required' });
+
+        const note = await resolveNote(noteId);
+        if (!note) return res.status(404).json({ success: false, message: 'Note not found' });
+
+        await SavedNote.findOneAndUpdate(
+            { userId, noteId },
+            { userId, noteId },
+            { upsert: true, new: true }
+        );
+        res.json({ success: true, message: 'Note saved' });
+    } catch (err) {
+        console.error('SaveNote error:', err);
+        res.status(500).json({ success: false, message: 'Server error' });
+    }
 }
 
 // DELETE /api/user/saved/:noteId
-function unsaveNote(req, res) {
-    const { id: userId } = req.user;
-    const { noteId } = req.params;
-    ensureUserCollections(userId);
-    savedNotes[userId].delete(noteId);
-    res.json({ success: true, message: 'Note removed from saved' });
+async function unsaveNote(req, res) {
+    try {
+        const { id: userId } = req.user;
+        const { noteId } = req.params;
+        await SavedNote.deleteOne({ userId, noteId });
+        res.json({ success: true, message: 'Note removed from saved' });
+    } catch (err) {
+        console.error('UnsaveNote error:', err);
+        res.status(500).json({ success: false, message: 'Server error' });
+    }
 }
 
 // GET /api/user/downloads
-function getDownloads(req, res) {
-    const { id: userId } = req.user;
-    ensureUserCollections(userId);
-    const notes = Array.from(downloadedNotes[userId])
-        .map(findNoteById)
-        .filter(Boolean);
-    res.json({ success: true, data: notes });
+async function getDownloads(req, res) {
+    try {
+        const { id: userId } = req.user;
+        const downloads = await Download.find({ userId }).lean();
+        const notes = (
+            await Promise.all(downloads.map((d) => resolveNote(d.noteId)))
+        ).filter(Boolean);
+        res.json({ success: true, data: notes });
+    } catch (err) {
+        console.error('GetDownloads error:', err);
+        res.status(500).json({ success: false, message: 'Server error' });
+    }
 }
 
 // POST /api/user/downloads   body: { noteId }
-function addDownload(req, res) {
-    const { id: userId } = req.user;
-    const { noteId } = req.body;
-    if (!noteId) return res.status(400).json({ success: false, message: 'noteId is required' });
-    const note = findNoteById(noteId);
-    if (!note) return res.status(404).json({ success: false, message: 'Note not found' });
-    ensureUserCollections(userId);
-    downloadedNotes[userId].add(noteId);
-    res.json({ success: true, message: 'Download recorded' });
+async function addDownload(req, res) {
+    try {
+        const { id: userId } = req.user;
+        const { noteId } = req.body;
+        if (!noteId) return res.status(400).json({ success: false, message: 'noteId is required' });
+
+        const note = await resolveNote(noteId);
+        if (!note) return res.status(404).json({ success: false, message: 'Note not found' });
+
+        await Download.findOneAndUpdate(
+            { userId, noteId },
+            { userId, noteId },
+            { upsert: true, new: true }
+        );
+        res.json({ success: true, message: 'Download recorded' });
+    } catch (err) {
+        console.error('AddDownload error:', err);
+        res.status(500).json({ success: false, message: 'Server error' });
+    }
 }
 
 // GET /api/user/stats
-function getStats(req, res) {
-    const { id: userId } = req.user;
-    ensureUserCollections(userId);
-    res.json({
-        success: true,
-        data: {
-            saved: savedNotes[userId].size,
-            downloads: downloadedNotes[userId].size,
-            notesRead: savedNotes[userId].size + downloadedNotes[userId].size,
-        },
-    });
+async function getStats(req, res) {
+    try {
+        const { id: userId } = req.user;
+        const [saved, downloads] = await Promise.all([
+            SavedNote.countDocuments({ userId }),
+            Download.countDocuments({ userId }),
+        ]);
+        res.json({
+            success: true,
+            data: {
+                saved,
+                downloads,
+                notesRead: saved + downloads,
+            },
+        });
+    } catch (err) {
+        console.error('GetStats error:', err);
+        res.status(500).json({ success: false, message: 'Server error' });
+    }
 }
 
 module.exports = { getSaved, saveNote, unsaveNote, getDownloads, addDownload, getStats };

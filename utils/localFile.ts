@@ -19,7 +19,6 @@ export function normalizePdfUrl(pdfUrl?: string | string[] | null): string {
         return value;
     }
 
-    // Keep http for local dev servers (e.g. http://192.168.1.7:5000/api/files/...)
     if (value.startsWith('http://')) {
         const isLocalNetwork =
             /^http:\/\/(192\.168\.|10\.|127\.|localhost)/i.test(value) ||
@@ -54,49 +53,43 @@ export async function openLocalFile(fileUri: string): Promise<boolean> {
 
 export type LocalPdfWebSource = { html: string; baseUrl?: string };
 
+const FAST_DECODE_SCRIPT = `
+var b64='ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/';
+var lookup=new Uint8Array(128);for(var i=0;i<64;i++)lookup[b64.charCodeAt(i)]=i;
+function decode64(s){var len=s.length,bytes=new Uint8Array(len*3/4);var p=0;
+for(var i=0;i<len;i+=4){var c1=lookup[s.charCodeAt(i)],c2=lookup[s.charCodeAt(i+1)];
+var c3=lookup[s.charCodeAt(i+2)],c4=lookup[s.charCodeAt(i+3)];
+bytes[p++]=c1<<2|c2>>4;bytes[p++]=(c2&15)<<4|c3>>2;
+if(c3!==64)bytes[p++]=(c3&3)<<6|c4;if(c4!==64)bytes[p++]=c4;}
+return bytes.slice(0,p);}
+`;
+
 function buildPdfJsViewerHtml(base64: string): string {
-    return `<!DOCTYPE html>
-<html>
-<head>
-<meta charset="utf-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=4, user-scalable=yes" />
+    return `<!DOCTYPE html><html><head><meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=4,user-scalable=yes"/>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
-<style>
-  * { box-sizing: border-box; }
-  html, body { margin: 0; padding: 0; background: #f1f5f9; }
-  #status { padding: 24px 16px; text-align: center; color: #64748b; font-family: sans-serif; }
-  #pages { display: flex; flex-direction: column; align-items: center; gap: 16px; padding: 16px 12px 32px; }
-  canvas { width: 100% !important; height: auto !important; background: #fff; box-shadow: 0 4px 16px rgba(15,23,42,0.08); border-radius: 8px; }
-</style>
-</head>
-<body>
-<div id="status">Loading PDF...</div>
-<div id="pages"></div>
-<script>
-  pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
-  const raw = atob('${base64}');
-  const bytes = new Uint8Array(raw.length);
-  for (let i = 0; i < raw.length; i++) bytes[i] = raw.charCodeAt(i);
-  pdfjsLib.getDocument({ data: bytes }).promise.then(async function(pdf) {
-    document.getElementById('status').style.display = 'none';
-    const container = document.getElementById('pages');
-    for (let pageNum = 1; pageNum <= pdf.numPages; pageNum++) {
-      const page = await pdf.getPage(pageNum);
-      const viewport = page.getViewport({ scale: 1.35 });
-      const canvas = document.createElement('canvas');
-      canvas.width = viewport.width;
-      canvas.height = viewport.height;
-      container.appendChild(canvas);
-      await page.render({ canvasContext: canvas.getContext('2d'), viewport: viewport }).promise;
-    }
-    window.ReactNativeWebView && window.ReactNativeWebView.postMessage('loaded');
-  }).catch(function() {
-    document.getElementById('status').textContent = 'Could not render this PDF.';
-    window.ReactNativeWebView && window.ReactNativeWebView.postMessage('error');
-  });
-</script>
-</body>
-</html>`;
+<style>*{box-sizing:border-box}html,body{margin:0;padding:0;background:#f1f5f9}
+#p{display:flex;flex-direction:column;align-items:center;gap:8px;padding:8px}
+canvas{width:100%!important;height:auto!important;background:#fff;border-radius:4px}</style></head>
+<body><div id="p"></div><script>
+${FAST_DECODE_SCRIPT}
+function post(m){window.ReactNativeWebView&&window.ReactNativeWebView.postMessage(JSON.stringify(m))}
+pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+var bytes=decode64('${base64}');
+pdfjsLib.getDocument({data:bytes,rangeChunkSize:131072,disableAutoFetch:true,disableStream:true}).promise.then(function(pdf){
+post({type:'progress',total:pdf.numPages,loaded:0});
+var ct=document.getElementById('p'),done=0,batch=8;
+function renderBatch(s){var ps=[];
+for(var n=s;n<Math.min(s+batch,pdf.numPages+1);n++){(function(pn){
+ps.push(pdf.getPage(pn).then(function(pg){
+var v=pg.getViewport({scale:1}),c=document.createElement('canvas');
+c.width=v.width;c.height=v.height;ct.appendChild(c);
+return pg.render({canvasContext:c.getContext('2d'),viewport:v}).promise.then(function(){
+done++;post({type:'progress',total:pdf.numPages,loaded:done});});}));
+})(n);}Promise.all(ps).then(function(){s+batch<=pdf.numPages?renderBatch(s+batch):post({type:'loaded'})});}
+renderBatch(1);
+}).catch(function(e){post({type:'error',message:String(e)})});
+</script></body></html>`;
 }
 
 export async function getLocalPdfWebSource(fileUri: string): Promise<LocalPdfWebSource | null> {
@@ -118,11 +111,33 @@ export async function getLocalPdfWebSource(fileUri: string): Promise<LocalPdfWeb
     }
 }
 
-export function getRemotePdfWebSource(pdfUrl: string, useGoogleViewer: boolean) {
-    if (useGoogleViewer) {
-        return {
-            uri: `https://drive.google.com/viewerng/viewer?embedded=true&url=${encodeURIComponent(pdfUrl)}`,
-        };
-    }
-    return { uri: pdfUrl };
+function buildRemotePdfViewerHtml(pdfUrl: string): string {
+    const escapedUrl = pdfUrl.replace(/'/g, "\\'").replace(/\n/g, "\\n");
+    return `<!DOCTYPE html><html><head><meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=4,user-scalable=yes"/>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<style>*{box-sizing:border-box}html,body{margin:0;padding:0;background:#f1f5f9;overflow-x:hidden}
+#p{display:flex;flex-direction:column;align-items:center;gap:8px;padding:8px}
+canvas{width:100%!important;height:auto!important;background:#fff;border-radius:4px}</style></head>
+<body><div id="p"></div><script>
+function post(m){window.ReactNativeWebView&&window.ReactNativeWebView.postMessage(JSON.stringify(m))}
+pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+pdfjsLib.getDocument({url:'${escapedUrl}',withCredentials:false,rangeChunkSize:65536,disableAutoFetch:false,disableStream:false}).promise.then(function(pdf){
+post({type:'progress',total:pdf.numPages,loaded:0});
+var ct=document.getElementById('p'),done=0,batch=8;
+function renderBatch(s){var ps=[];
+for(var n=s;n<Math.min(s+batch,pdf.numPages+1);n++){(function(pn){
+ps.push(pdf.getPage(pn).then(function(pg){
+var v=pg.getViewport({scale:1}),c=document.createElement('canvas');
+c.width=v.width;c.height=v.height;ct.appendChild(c);
+return pg.render({canvasContext:c.getContext('2d'),viewport:v}).promise.then(function(){
+done++;post({type:'progress',total:pdf.numPages,loaded:done});});}));
+})(n);}Promise.all(ps).then(function(){s+batch<=pdf.numPages?renderBatch(s+batch):post({type:'loaded'})});}
+renderBatch(1);
+}).catch(function(e){post({type:'error',message:String(e)})});
+</script></body></html>`;
+}
+
+export function getRemotePdfWebSource(pdfUrl: string): LocalPdfWebSource {
+    return { html: buildRemotePdfViewerHtml(pdfUrl) };
 }

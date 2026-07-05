@@ -1,7 +1,6 @@
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
-const { v4: uuidv4 } = require('uuid');
-const { users } = require('../../config/db');
+const User = require('../../models/User');
 const { JWT_SECRET } = require('../../middleware/auth');
 
 // POST /api/auth/register
@@ -16,21 +15,18 @@ async function register(req, res) {
             return res.status(400).json({ success: false, message: 'Password must be at least 6 characters' });
         }
 
-        const existing = users.find((u) => u.email === email.toLowerCase());
+        const existing = await User.findOne({ email: email.toLowerCase() });
         if (existing) {
             return res.status(409).json({ success: false, message: 'Email already registered' });
         }
 
         const passwordHash = await bcrypt.hash(password, 10);
-        const user = {
-            id: uuidv4(),
+        const user = await User.create({
             email: email.toLowerCase(),
             passwordHash,
             name,
             course,
-            createdAt: new Date().toISOString(),
-        };
-        users.push(user);
+        });
 
         const token = jwt.sign(
             { id: user.id, email: user.email, name: user.name, course: user.course },
@@ -57,7 +53,7 @@ async function login(req, res) {
             return res.status(400).json({ success: false, message: 'Email and password are required' });
         }
 
-        const user = users.find((u) => u.email === email.toLowerCase());
+        const user = await User.findOne({ email: email.toLowerCase() });
         if (!user) {
             return res.status(401).json({ success: false, message: 'No account found with this email. Please sign up first.' });
         }
@@ -88,4 +84,19 @@ function me(req, res) {
     res.json({ success: true, user: req.user });
 }
 
-module.exports = { register, login, me };
+// POST /api/auth/refresh  (protected)
+function refresh(req, res) {
+    try {
+        const token = jwt.sign(
+            { id: req.user.id, email: req.user.email, name: req.user.name, course: req.user.course },
+            JWT_SECRET,
+            { expiresIn: '7d' }
+        );
+        res.json({ success: true, data: { token } });
+    } catch (err) {
+        console.error('Refresh error:', err);
+        res.status(500).json({ success: false, message: 'Server error' });
+    }
+}
+
+module.exports = { register, login, me, refresh };

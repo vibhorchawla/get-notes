@@ -13,6 +13,8 @@ import Animated, {
 } from 'react-native-reanimated';
 
 import { Note } from '../types/note';
+
+interface PersonalNoteCardProps {
     note: Note;
     onPress: () => void;
     onShare?: () => void;

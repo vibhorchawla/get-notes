@@ -23,7 +23,7 @@ import { useAuth } from '../context/AuthContext';
 import { publishCommunityNote } from '../hooks/useCommunityNotes';
 import { Note } from '../types/note';
 import DriveFilePickerModal from '../components/DriveFilePickerModal';
-import { PickedDriveFile, persistPickedFile, uploadFileToServer } from '../hooks/useDriveFiles';
+import { PickedDriveFile, uploadFileToServer } from '../hooks/useDriveFiles';
 
 type UploadMode = 'drive' | 'playlist' | 'mixed';
 
@@ -200,31 +200,23 @@ export default function UploadNoteScreen() {
         try {
             setIsSaving(true);
             let fileForNote = pickedFile;
+
             let uploadWarning: string | null = null;
 
-            if (fileForNote?.uri && !fileForNote.uploadedUrl && !fileForNote.viewUrl) {
-                const persistedUri = await persistPickedFile(fileForNote.uri, fileForNote.name);
-                fileForNote = {
-                    ...fileForNote,
-                    uri: persistedUri,
-                    viewUrl: persistedUri,
-                };
+            if (user && fileForNote?.uri && !fileForNote.uploadedUrl) {
+                setIsUploadingFile(true);
+                const uploaded = await uploadFileToServer(fileForNote.uri, fileForNote.name);
+                setIsUploadingFile(false);
 
-                if (user) {
-                    setIsUploadingFile(true);
-                    const uploaded = await uploadFileToServer(persistedUri, fileForNote.name);
-                    setIsUploadingFile(false);
-
-                    if (uploaded.ok) {
-                        fileForNote = {
-                            ...fileForNote,
-                            uploadedUrl: uploaded.url,
-                            viewUrl: uploaded.url,
-                            shareUrl: uploaded.url,
-                        };
-                    } else {
-                        uploadWarning = uploaded.message;
-                    }
+                if (uploaded.ok) {
+                    fileForNote = {
+                        ...fileForNote,
+                        uploadedUrl: uploaded.url,
+                        viewUrl: uploaded.url,
+                        shareUrl: uploaded.url,
+                    };
+                } else {
+                    uploadWarning = uploaded.message;
                 }
             }
 
@@ -240,6 +232,8 @@ export default function UploadNoteScreen() {
                 })
             );
 
+            setIsSaving(false);
+
             if (!user) {
                 Alert.alert(
                     'Note Saved Locally',
@@ -249,25 +243,25 @@ export default function UploadNoteScreen() {
                 return;
             }
 
+            if (uploadWarning) {
+                Alert.alert('Saved Locally', `Note saved, but file upload failed:\n\n${uploadWarning}`, [
+                    { text: 'OK', onPress: () => router.replace('/notes') },
+                ]);
+                return;
+            }
+
             const publishResult = await publishCommunityNote(newNote);
             if (publishResult.ok) {
                 await markPublished(newNote.id);
             }
 
-            let successMessage = publishResult.ok
-                ? `${modeTitle} is shared. Other students can find it on Home search.`
-                : `${modeTitle} is saved on this device only.\n\n${publishResult.message || 'Sharing failed.'}`;
-
-            if (uploadWarning) {
-                successMessage = `Note saved on this device.\n\n${uploadWarning}`;
-            }
-
-            Alert.alert(uploadWarning ? 'Saved Locally' : 'Note Uploaded', successMessage, [
-                {
-                    text: 'Open My Notes',
-                    onPress: () => router.replace('/notes'),
-                },
-            ]);
+            Alert.alert(
+                publishResult.ok ? 'Note Uploaded' : 'Saved Locally',
+                publishResult.ok
+                    ? `${modeTitle} is shared. Other students can find it on Home search.`
+                    : `${modeTitle} is saved on this device only.\n\n${publishResult.message || 'Sharing failed.'}`,
+                [{ text: 'Open My Notes', onPress: () => router.replace('/notes') }]
+            );
         } catch (error) {
             console.error('Upload note error:', error);
             Alert.alert('Upload Failed', 'Something went wrong while saving your note.');
