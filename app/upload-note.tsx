@@ -6,7 +6,6 @@ import {
     ScrollView,
     TextInput,
     TouchableOpacity,
-    Alert,
     KeyboardAvoidingView,
     Platform,
     ActivityIndicator,
@@ -20,6 +19,7 @@ import { spacing } from '../constants/spacing';
 import { typography } from '../constants/typography';
 import { usePersonalNotes } from '../hooks/usePersonalNotes';
 import { useAuth } from '../context/AuthContext';
+import { useToast } from '../context/ToastContext';
 import { publishCommunityNote } from '../hooks/useCommunityNotes';
 import { Note } from '../types/note';
 import DriveFilePickerModal from '../components/DriveFilePickerModal';
@@ -141,6 +141,7 @@ const fieldStyles = StyleSheet.create({
 
 export default function UploadNoteScreen() {
     const router = useRouter();
+    const { showToast } = useToast();
     const { user } = useAuth();
     const { addNote, markPublished } = usePersonalNotes();
     const [uploadMode, setUploadMode] = useState<UploadMode>('drive');
@@ -153,6 +154,7 @@ export default function UploadNoteScreen() {
     const [playlistUrl, setPlaylistUrl] = useState('');
     const [details, setDetails] = useState('');
     const [isSaving, setIsSaving] = useState(false);
+    const [validationErrors, setValidationErrors] = useState<Record<string, string>>({});
 
     const modeTitle = useMemo(
         () => MODE_OPTIONS.find((option) => option.mode === uploadMode)?.title || 'Upload Notes',
@@ -177,25 +179,17 @@ export default function UploadNoteScreen() {
         const trimmedPlaylistUrl = playlistUrl.trim();
         const trimmedDetails = details.trim();
 
-        if (!trimmedTitle) {
-            Alert.alert('Title Required', 'Please enter a note title before uploading.');
-            return;
-        }
+        const errors: Record<string, string> = {};
+        if (!trimmedTitle) errors.title = 'Please enter a note title.';
+        if (requiresDrive && !pickedFile) errors.file = 'Please select a file from Google Drive.';
+        if (requiresPlaylist && !trimmedPlaylistUrl) errors.playlist = 'Please add the playlist link.';
 
-        if (requiresDrive && !pickedFile) {
-            Alert.alert('Select a File', 'Tap "Add from Google Drive" and choose a file.');
+        if (Object.keys(errors).length > 0) {
+            setValidationErrors(errors);
+            showToast(Object.values(errors)[0], 'error');
             return;
         }
-
-        if (requiresPlaylist && !trimmedPlaylistUrl) {
-            Alert.alert('Playlist Link Required', 'Please add the playlist link for this note.');
-            return;
-        }
-
-        if (!trimmedSubject && !trimmedDetails && !pickedFile && !trimmedPlaylistUrl) {
-            Alert.alert('Add Some Details', 'Please provide at least one useful detail for this note.');
-            return;
-        }
+        setValidationErrors({});
 
         try {
             setIsSaving(true);
@@ -235,36 +229,28 @@ export default function UploadNoteScreen() {
             setIsSaving(false);
 
             if (!user) {
-                Alert.alert(
-                    'Note Saved Locally',
-                    'Your file is saved on this device. Sign in to share it with other students.',
-                    [{ text: 'OK', onPress: () => router.replace('/notes') }]
-                );
+                showToast('Note saved on this device.', 'success');
+                router.replace('/notes');
                 return;
             }
 
             if (uploadWarning) {
-                Alert.alert('Saved Locally', `Note saved, but file upload failed:\n\n${uploadWarning}`, [
-                    { text: 'OK', onPress: () => router.replace('/notes') },
-                ]);
+                showToast('Note saved, but file upload failed.', 'error');
+                router.replace('/notes');
                 return;
             }
 
             const publishResult = await publishCommunityNote(newNote);
             if (publishResult.ok) {
                 await markPublished(newNote.id);
+                showToast('Note shared with other students!', 'success');
+            } else {
+                showToast('Saved locally. Sharing failed.', 'info');
             }
-
-            Alert.alert(
-                publishResult.ok ? 'Note Uploaded' : 'Saved Locally',
-                publishResult.ok
-                    ? `${modeTitle} is shared. Other students can find it on Home search.`
-                    : `${modeTitle} is saved on this device only.\n\n${publishResult.message || 'Sharing failed.'}`,
-                [{ text: 'Open My Notes', onPress: () => router.replace('/notes') }]
-            );
+            router.replace('/notes');
         } catch (error) {
             console.error('Upload note error:', error);
-            Alert.alert('Upload Failed', 'Something went wrong while saving your note.');
+            showToast('Upload failed. Please try again.', 'error');
         } finally {
             setIsSaving(false);
             setIsUploadingFile(false);
@@ -434,17 +420,34 @@ export default function UploadNoteScreen() {
                             style={[styles.input, styles.textArea]}
                         />
 
+                        {isSaving && (
+                            <View style={styles.progressContainer}>
+                                <View style={styles.progressBar}>
+                                    <View style={[styles.progressFill, { width: isUploadingFile ? '60%' : '90%' }]} />
+                                </View>
+                                <Text style={styles.progressText}>
+                                    {isUploadingFile ? 'Uploading file to server...' : 'Saving your note...'}
+                                </Text>
+                            </View>
+                        )}
+
                         <TouchableOpacity
                             style={[styles.submitButton, isSaving && styles.submitButtonDisabled]}
                             onPress={handleSubmit}
                             disabled={isSaving}
                             activeOpacity={0.9}
+                            accessibilityRole="button"
+                            accessibilityLabel={isSaving ? 'Saving note' : 'Save and share note'}
                         >
-                            <Ionicons name="checkmark-circle-outline" size={22} color={colors.textOnPrimary} />
+                            {isSaving ? (
+                                <ActivityIndicator size="small" color={colors.textOnPrimary} />
+                            ) : (
+                                <Ionicons name="checkmark-circle-outline" size={22} color={colors.textOnPrimary} />
+                            )}
                             <Text style={styles.submitButtonText}>
                                 {isSaving
                                     ? isUploadingFile
-                                        ? 'Uploading file...'
+                                        ? 'Uploading...'
                                         : 'Saving...'
                                     : `Save & share ${modeTitle}`}
                             </Text>
@@ -653,7 +656,7 @@ const styles = StyleSheet.create({
         minHeight: 120,
     },
     submitButton: {
-        marginTop: spacing.xl,
+        marginTop: spacing.lg,
         backgroundColor: colors.primary,
         borderRadius: 16,
         paddingVertical: 16,
@@ -666,6 +669,7 @@ const styles = StyleSheet.create({
         shadowOpacity: 0.3,
         shadowRadius: 12,
         elevation: 4,
+        minHeight: 56,
     },
     submitButtonDisabled: {
         opacity: 0.7,
@@ -674,5 +678,28 @@ const styles = StyleSheet.create({
         color: colors.textOnPrimary,
         fontSize: typography.fontSize.md,
         fontWeight: typography.fontWeight.bold,
+    },
+    progressContainer: {
+        marginTop: spacing.lg,
+        backgroundColor: 'rgba(79, 70, 229, 0.08)',
+        borderRadius: 14,
+        padding: spacing.md,
+    },
+    progressBar: {
+        height: 6,
+        borderRadius: 3,
+        backgroundColor: colors.background,
+        overflow: 'hidden',
+    },
+    progressFill: {
+        height: '100%',
+        borderRadius: 3,
+        backgroundColor: colors.primary,
+    },
+    progressText: {
+        fontSize: typography.fontSize.xs,
+        color: colors.primary,
+        marginTop: spacing.sm,
+        fontWeight: typography.fontWeight.medium,
     },
 });

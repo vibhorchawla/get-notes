@@ -11,6 +11,7 @@ interface User {
     premiumPlan?: 'monthly' | 'quarterly' | 'yearly' | null;
     premiumStartDate?: string | null;
     premiumEndDate?: string | null;
+    createdAt?: string;
 }
 
 interface AuthContextType {
@@ -44,8 +45,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                     setUser(JSON.parse(userData));
                 }
             }
-        } catch (error) {
-            console.error('Error loading user:', error);
+        } catch {
         } finally {
             setIsLoading(false);
         }
@@ -53,14 +53,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     const login = async (email: string, password: string): Promise<boolean> => {
         try {
-            console.log('[Auth] Attempting login for:', email);
             const res = await apiFetch<{ token: string; user: User }>('/auth/login', {
                 method: 'POST',
                 body: JSON.stringify({ email, password }),
                 requiresAuth: false,
             });
-
-            console.log('[Auth] Login response:', JSON.stringify(res));
 
             if (res.success && res.data) {
                 await setToken(res.data.token);
@@ -68,10 +65,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                 setUser(res.data.user);
                 return true;
             }
-            console.warn('[Auth] Login failed — server said:', res.message || 'no message');
             return false;
         } catch (error) {
-            console.error('[Auth] Login network/parse error:', error);
             return false;
         }
     };
@@ -83,14 +78,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         course: string
     ): Promise<boolean> => {
         try {
-            console.log('[Auth] Attempting signup for:', email);
             const res = await apiFetch<{ token: string; user: User }>('/auth/register', {
                 method: 'POST',
                 body: JSON.stringify({ email, password, name, course }),
                 requiresAuth: false,
             });
-
-            console.log('[Auth] Signup response:', JSON.stringify(res));
 
             if (res.success && res.data) {
                 await setToken(res.data.token);
@@ -99,10 +91,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                 return true;
             }
             const msg = res.message || 'Signup failed. Please try again.';
-            console.warn('[Auth] Signup failed — server said:', msg);
             throw new Error(msg);
         } catch (error) {
-            console.error('[Auth] Signup network/parse error:', error);
             throw error;
         }
     };
@@ -112,8 +102,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             await removeToken();
             await SecureStore.deleteItemAsync(USER_KEY);
             setUser(null);
-        } catch (error) {
-            console.error('Logout error:', error);
+        } catch {
         }
     };
 
@@ -128,12 +117,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             const token = await getToken();
             if (!token) return;
             const res = await apiFetch<{ user: User }>('/auth/me');
-            if (res.success && (res as any).user) {
-                await SecureStore.setItemAsync(USER_KEY, JSON.stringify((res as any).user));
-                setUser((res as any).user);
+            if (res.success && res.data?.user) {
+                await SecureStore.setItemAsync(USER_KEY, JSON.stringify(res.data.user));
+                setUser(res.data.user);
             }
-        } catch (error) {
-            console.error('[Auth] Refresh user error:', error);
+        } catch {
         }
     };
 

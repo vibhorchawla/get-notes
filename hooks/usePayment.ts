@@ -43,7 +43,7 @@ export function usePayment() {
 
             const options = {
                 description: 'GetNotes Premium Subscription',
-                image: 'https://getnotes.app/icon.png',
+                image: '',
                 currency,
                 key: key_id,
                 amount,

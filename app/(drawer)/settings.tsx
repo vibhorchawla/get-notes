@@ -4,23 +4,29 @@ import {
     Text,
     StyleSheet,
     ScrollView,
-    TouchableOpacity,
-    Switch,
     SafeAreaView,
+    Linking,
+    Platform,
 } from 'react-native';
 import { useRouter } from 'expo-router';
-import { Ionicons } from '@expo/vector-icons';
 import GradientBackground from '../../components/GradientBackground';
 import TopHeader from '../../components/TopHeader';
+import SettingsRow from '../../components/SettingsRow';
+import { useToast } from '../../context/ToastContext';
 import { colors } from '../../constants/colors';
 import { spacing } from '../../constants/spacing';
 import { typography } from '../../constants/typography';
 
 export default function SettingsScreen() {
     const router = useRouter();
-    const [notificationsEnabled, setNotificationsEnabled] = React.useState(true);
-    const [darkModeEnabled, setDarkModeEnabled] = React.useState(false);
+    const { showToast } = useToast();
+    const [notificationsEnabled, setNotificationsEnabled] = React.useState(false);
     const [autoDownload, setAutoDownload] = React.useState(false);
+
+    const handleToggle = (label: string, value: boolean, setter: (v: boolean) => void) => {
+        setter(!value);
+        showToast(`${label} ${!value ? 'enabled' : 'disabled'}`, 'info');
+    };
 
     return (
         <GradientBackground>
@@ -28,153 +34,124 @@ export default function SettingsScreen() {
                 <TopHeader title="Settings" />
                 <ScrollView showsVerticalScrollIndicator={false}>
                     <View style={styles.content}>
-                        {/* Subscription Section */}
+                        {/* Subscription */}
                         <View style={styles.section}>
                             <Text style={styles.sectionTitle}>Subscription</Text>
-
                             <View style={styles.settingsCard}>
-                                <TouchableOpacity
-                                    style={styles.settingRow}
+                                <SettingsRow
+                                    icon="diamond-outline"
+                                    label="Upgrade Plan"
+                                    description="First 2 months free on Pro & Team"
                                     onPress={() => router.push('/(drawer)/subscription')}
-                                >
-                                    <View style={styles.settingInfo}>
-                                        <View style={styles.subscriptionIconWrap}>
-                                            <Ionicons name="diamond-outline" size={24} color={colors.primary} />
-                                        </View>
-                                        <View style={styles.settingText}>
-                                            <Text style={styles.settingLabel}>Upgrade Plan</Text>
-                                            <Text style={styles.settingDescription}>
-                                                First 2 months free on Pro & Team
-                                            </Text>
-                                        </View>
-                                    </View>
-                                    <Ionicons name="chevron-forward" size={20} color={colors.textLight} />
-                                </TouchableOpacity>
-                            </View>
-                        </View>
-
-                        {/* Preferences Section */}
-                    <View style={styles.section}>
-                        <Text style={styles.sectionTitle}>Preferences</Text>
-
-                        <View style={styles.settingsCard}>
-                            <View style={styles.settingRow}>
-                                <View style={styles.settingInfo}>
-                                    <Ionicons name="notifications-outline" size={24} color={colors.primary} />
-                                    <View style={styles.settingText}>
-                                        <Text style={styles.settingLabel}>Notifications</Text>
-                                        <Text style={styles.settingDescription}>
-                                            Get notified about new notes
-                                        </Text>
-                                    </View>
-                                </View>
-                                <Switch
-                                    value={notificationsEnabled}
-                                    onValueChange={setNotificationsEnabled}
-                                    trackColor={{ false: colors.border, true: colors.primary }}
-                                />
-                            </View>
-
-                            <View style={styles.divider} />
-
-                            <View style={styles.settingRow}>
-                                <View style={styles.settingInfo}>
-                                    <Ionicons name="moon-outline" size={24} color={colors.primary} />
-                                    <View style={styles.settingText}>
-                                        <Text style={styles.settingLabel}>Dark Mode</Text>
-                                        <Text style={styles.settingDescription}>
-                                            Enable dark theme
-                                        </Text>
-                                    </View>
-                                </View>
-                                <Switch
-                                    value={darkModeEnabled}
-                                    onValueChange={setDarkModeEnabled}
-                                    trackColor={{ false: colors.border, true: colors.primary }}
-                                />
-                            </View>
-
-                            <View style={styles.divider} />
-
-                            <View style={styles.settingRow}>
-                                <View style={styles.settingInfo}>
-                                    <Ionicons name="download-outline" size={24} color={colors.primary} />
-                                    <View style={styles.settingText}>
-                                        <Text style={styles.settingLabel}>Auto Download</Text>
-                                        <Text style={styles.settingDescription}>
-                                            Download notes automatically
-                                        </Text>
-                                    </View>
-                                </View>
-                                <Switch
-                                    value={autoDownload}
-                                    onValueChange={setAutoDownload}
-                                    trackColor={{ false: colors.border, true: colors.primary }}
                                 />
                             </View>
                         </View>
-                    </View>
 
-                    {/* About Section */}
-                    <View style={styles.section}>
-                        <Text style={styles.sectionTitle}>About</Text>
+                        {/* Preferences */}
+                        <View style={styles.section}>
+                            <Text style={styles.sectionTitle}>Preferences</Text>
+                            <View style={styles.settingsCard}>
+                                <SettingsRow
+                                    icon="notifications-outline"
+                                    label="Notifications"
+                                    description="Get notified about new notes"
+                                    toggle={{ value: notificationsEnabled, onValueChange: (v) => handleToggle('Notifications', v, setNotificationsEnabled) }}
+                                    showChevron={false}
+                                />
+                                <View style={styles.divider} />
+                                <SettingsRow
+                                    icon="download-outline"
+                                    label="Auto Download"
+                                    description="Download notes automatically"
+                                    toggle={{ value: autoDownload, onValueChange: (v) => handleToggle('Auto Download', v, setAutoDownload) }}
+                                    showChevron={false}
+                                />
+                            </View>
+                        </View>
 
-                        <View style={styles.settingsCard}>
-                            <TouchableOpacity style={styles.settingRow}>
-                                <View style={styles.settingInfo}>
-                                    <Ionicons name="information-circle-outline" size={24} color={colors.primary} />
-                                    <View style={styles.settingText}>
-                                        <Text style={styles.settingLabel}>App Version</Text>
-                                        <Text style={styles.settingDescription}>1.0.0</Text>
-                                    </View>
-                                </View>
-                                <Ionicons name="chevron-forward" size={20} color={colors.textLight} />
-                            </TouchableOpacity>
+                        {/* Support */}
+                        <View style={styles.section}>
+                            <Text style={styles.sectionTitle}>Support</Text>
+                            <View style={styles.settingsCard}>
+                                <SettingsRow
+                                    icon="help-circle-outline"
+                                    label="FAQ"
+                                    description="Frequently asked questions"
+                                    onPress={() => router.push('/settings/faq')}
+                                />
+                                <View style={styles.divider} />
+                                <SettingsRow
+                                    icon="chatbubble-ellipses-outline"
+                                    label="Send Feedback"
+                                    description="Help us improve GetNotes"
+                                    onPress={() => router.push('/settings/feedback')}
+                                />
+                                <View style={styles.divider} />
+                                <SettingsRow
+                                    icon="mail-outline"
+                                    label="Contact Us"
+                                    description="Get in touch with our team"
+                                    onPress={() => router.push('/settings/contact')}
+                                />
+                            </View>
+                        </View>
 
-                            <View style={styles.divider} />
-
-                            <TouchableOpacity style={styles.settingRow}>
-                                <View style={styles.settingInfo}>
-                                    <Ionicons name="help-circle-outline" size={24} color={colors.primary} />
-                                    <View style={styles.settingText}>
-                                        <Text style={styles.settingLabel}>Help & Support</Text>
-                                        <Text style={styles.settingDescription}>Get help with the app</Text>
-                                    </View>
-                                </View>
-                                <Ionicons name="chevron-forward" size={20} color={colors.textLight} />
-                            </TouchableOpacity>
-
-                            <View style={styles.divider} />
-
-                            <TouchableOpacity style={styles.settingRow}>
-                                <View style={styles.settingInfo}>
-                                    <Ionicons name="shield-checkmark-outline" size={24} color={colors.primary} />
-                                    <View style={styles.settingText}>
-                                        <Text style={styles.settingLabel}>Privacy Policy</Text>
-                                        <Text style={styles.settingDescription}>Read our privacy policy</Text>
-                                    </View>
-                                </View>
-                                <Ionicons name="chevron-forward" size={20} color={colors.textLight} />
-                            </TouchableOpacity>
+                        {/* About */}
+                        <View style={styles.section}>
+                            <Text style={styles.sectionTitle}>About</Text>
+                            <View style={styles.settingsCard}>
+                                <SettingsRow
+                                    icon="information-circle-outline"
+                                    label="About GetNotes"
+                                    description="Learn more about the app"
+                                    onPress={() => router.push('/settings/about')}
+                                />
+                                <View style={styles.divider} />
+                                <SettingsRow
+                                    icon="shield-checkmark-outline"
+                                    label="Privacy Policy"
+                                    description="Read our privacy policy"
+                                    onPress={() => router.push('/settings/privacy')}
+                                />
+                                <View style={styles.divider} />
+                                <SettingsRow
+                                    icon="document-text-outline"
+                                    label="Terms & Conditions"
+                                    description="Terms of service"
+                                    onPress={() => router.push('/settings/terms')}
+                                />
+                                <View style={styles.divider} />
+                                <SettingsRow
+                                    icon="star-outline"
+                                    label="Rate the App"
+                                    description="Love GetNotes? Leave a review!"
+                                    onPress={() => {
+                                        const url = Platform.OS === 'ios'
+                                            ? 'https://apps.apple.com/app/getnotes/id0000000000'
+                                            : 'https://play.google.com/store/apps/details?id=com.getnotes.app';
+                                        Linking.openURL(url).catch(() => showToast('Store not available', 'error'));
+                                    }}
+                                />
+                                <View style={styles.divider} />
+                                <SettingsRow
+                                    icon="information-circle-outline"
+                                    label="App Version"
+                                    rightContent={<Text style={styles.versionText}>1.0.0</Text>}
+                                    showChevron={false}
+                                />
+                            </View>
                         </View>
                     </View>
-                </View>
-            </ScrollView>
+                </ScrollView>
             </SafeAreaView>
         </GradientBackground>
     );
 }
 
 const styles = StyleSheet.create({
-    container: {
-        flex: 1,
-    },
-    content: {
-        padding: spacing.screenPadding,
-    },
-    section: {
-        marginBottom: spacing.xl,
-    },
+    container: { flex: 1 },
+    content: { padding: spacing.screenPadding, paddingBottom: spacing.xxl },
+    section: { marginBottom: spacing.xl },
     sectionTitle: {
         fontSize: typography.fontSize.lg,
         fontWeight: typography.fontWeight.semibold,
@@ -184,49 +161,20 @@ const styles = StyleSheet.create({
     settingsCard: {
         backgroundColor: colors.cardBackground,
         borderRadius: 16,
-        padding: spacing.md,
+        paddingHorizontal: spacing.md,
         shadowColor: colors.shadow,
         shadowOffset: { width: 0, height: 2 },
         shadowOpacity: 0.1,
         shadowRadius: 8,
         elevation: 3,
     },
-    settingRow: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        paddingVertical: spacing.sm,
-    },
-    settingInfo: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        flex: 1,
-    },
-    settingText: {
-        marginLeft: spacing.md,
-        flex: 1,
-    },
-    settingLabel: {
-        fontSize: typography.fontSize.md,
-        fontWeight: typography.fontWeight.medium,
-        color: colors.textPrimary,
-        marginBottom: spacing.xs,
-    },
-    settingDescription: {
-        fontSize: typography.fontSize.sm,
-        color: colors.textSecondary,
-    },
     divider: {
         height: 1,
         backgroundColor: colors.border,
-        marginVertical: spacing.sm,
     },
-    subscriptionIconWrap: {
-        width: 40,
-        height: 40,
-        borderRadius: 10,
-        backgroundColor: 'rgba(79, 70, 229, 0.1)',
-        alignItems: 'center',
-        justifyContent: 'center',
+    versionText: {
+        fontSize: typography.fontSize.md,
+        color: colors.textSecondary,
+        fontWeight: typography.fontWeight.medium,
     },
 });

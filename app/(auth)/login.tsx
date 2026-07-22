@@ -14,7 +14,6 @@ import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../../context/AuthContext';
 import { useGoogleAuth, useFacebookAuth } from '../../hooks/useSocialAuth';
-import { colors } from '../../constants/colors';
 import { spacing } from '../../constants/spacing';
 import { typography } from '../../constants/typography';
 
@@ -125,7 +124,7 @@ export default function LoginScreen() {
                                 </View>
                                 <Text style={styles.rememberText}>Remember me</Text>
                             </TouchableOpacity>
-                            <TouchableOpacity activeOpacity={0.7}>
+                            <TouchableOpacity onPress={() => router.push('/coming-soon')} activeOpacity={0.7}>
                                 <Text style={styles.forgotText}>Forget password</Text>
                             </TouchableOpacity>
                         </View>

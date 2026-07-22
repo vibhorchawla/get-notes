@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { apiFetch } from './useApi';
 
 interface Course {
@@ -8,7 +8,7 @@ interface Course {
     rating: number;
     students: string;
     instructor: string;
-    icon: keyof typeof import('@expo/vector-icons').Ionicons.glyphMap;
+    icon: string;
     featured: boolean;
 }
 
@@ -35,46 +35,47 @@ export function useCourses() {
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
 
-    useEffect(() => {
-        async function fetchAll() {
-            setIsLoading(true);
-            setError(null);
-            try {
-                const [coursesRes, featuredRes, categoriesRes] = await Promise.all([
-                    apiFetch<Course[]>('/courses', { requiresAuth: false }),
-                    apiFetch<Course[]>('/courses/featured', { requiresAuth: false }),
-                    apiFetch<string[]>('/courses/categories', { requiresAuth: false }),
-                ]);
+    const fetchAll = useCallback(async () => {
+        setIsLoading(true);
+        setError(null);
+        try {
+            const [coursesRes, featuredRes, categoriesRes] = await Promise.all([
+                apiFetch<Course[]>('/courses', { requiresAuth: false }),
+                apiFetch<Course[]>('/courses/featured', { requiresAuth: false }),
+                apiFetch<string[]>('/courses/categories', { requiresAuth: false }),
+            ]);
 
-                if (coursesRes.success && coursesRes.data && coursesRes.data.length > 0) {
-                    setCourses(coursesRes.data);
-                } else {
-                    setCourses(FALLBACK_COURSES);
-                }
-
-                if (featuredRes.success && featuredRes.data && featuredRes.data.length > 0) {
-                    setFeatured(featuredRes.data);
-                } else {
-                    setFeatured(FALLBACK_FEATURED);
-                }
-                
-                if (categoriesRes.success && categoriesRes.data && categoriesRes.data.length > 0) {
-                    const uniqueCats = Array.from(new Set(['All', ...categoriesRes.data]));
-                    setCategories(uniqueCats);
-                } else {
-                    setCategories(FALLBACK_CATEGORIES);
-                }
-            } catch (e) {
-                console.warn('useCourses: API unavailable, using fallback data');
+            if (coursesRes.success && coursesRes.data && coursesRes.data.length > 0) {
+                setCourses(coursesRes.data);
+            } else {
                 setCourses(FALLBACK_COURSES);
-                setFeatured(FALLBACK_FEATURED);
-                setCategories(FALLBACK_CATEGORIES);
-            } finally {
-                setIsLoading(false);
             }
+
+            if (featuredRes.success && featuredRes.data && featuredRes.data.length > 0) {
+                setFeatured(featuredRes.data);
+            } else {
+                setFeatured(FALLBACK_FEATURED);
+            }
+            
+            if (categoriesRes.success && categoriesRes.data && categoriesRes.data.length > 0) {
+                const uniqueCats = Array.from(new Set(['All', ...categoriesRes.data]));
+                setCategories(uniqueCats);
+            } else {
+                setCategories(FALLBACK_CATEGORIES);
+            }
+        } catch (e) {
+            console.warn('useCourses: API unavailable, using fallback data');
+            setCourses(FALLBACK_COURSES);
+            setFeatured(FALLBACK_FEATURED);
+            setCategories(FALLBACK_CATEGORIES);
+        } finally {
+            setIsLoading(false);
         }
-        fetchAll();
     }, []);
 
-    return { courses, featured, categories, isLoading, error };
+    useEffect(() => {
+        fetchAll();
+    }, [fetchAll]);
+
+    return { courses, featured, categories, isLoading, error, refetch: fetchAll };
 }

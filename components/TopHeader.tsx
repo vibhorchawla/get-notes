@@ -24,8 +24,10 @@ export default function TopHeader({ title, showMenu = true }: TopHeaderProps) {
                     onPress={() => navigation.openDrawer()} 
                     style={styles.btn}
                     activeOpacity={0.7}
+                    accessibilityRole="button"
+                    accessibilityLabel="Open navigation menu"
                 >
-                    <Ionicons name="menu" size={28} color={colors.textPrimary} />
+                    <Ionicons name="menu" size={24} color={colors.textPrimary} />
                 </TouchableOpacity>
             ) : (
                 <View style={styles.placeholder} />
@@ -48,16 +50,18 @@ const styles = StyleSheet.create({
         backgroundColor: 'transparent',
     },
     btn: {
-        width: 40,
-        height: 40,
-        borderRadius: 20,
+        width: 44,
+        height: 44,
+        borderRadius: 14,
         backgroundColor: colors.cardBackground,
         justifyContent: 'center',
         alignItems: 'center',
+        borderWidth: 1,
+        borderColor: colors.border,
         shadowColor: colors.shadow,
         shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.05,
-        shadowRadius: 5,
+        shadowOpacity: 0.06,
+        shadowRadius: 6,
         elevation: 2,
     },
     title: {

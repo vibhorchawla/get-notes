@@ -1,6 +1,7 @@
 import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, Pressable } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import Animated, { useSharedValue, useAnimatedStyle, withSpring, FadeInDown } from 'react-native-reanimated';
 import { Note } from '../types/note';
 import { colors } from '../constants/colors';
 import { spacing } from '../constants/spacing';
@@ -10,6 +11,7 @@ interface SearchNoteCardProps {
     note: Note;
     onPress: () => void;
     onRemove?: () => void;
+    index?: number;
 }
 
 function getBadgeStyle(source?: Note['source']) {
@@ -18,14 +20,32 @@ function getBadgeStyle(source?: Note['source']) {
     return { wrap: styles.badgeCourse, text: styles.badgeTextCourse, label: 'Course' };
 }
 
-export default function SearchNoteCard({ note, onPress, onRemove }: SearchNoteCardProps) {
+const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
+
+export default function SearchNoteCard({ note, onPress, onRemove, index = 0 }: SearchNoteCardProps) {
     const badge = getBadgeStyle(note.source);
+    const scale = useSharedValue(1);
+
+    const handlePressIn = () => { scale.value = withSpring(0.97, { damping: 15, stiffness: 300 }); };
+    const handlePressOut = () => { scale.value = withSpring(1, { damping: 15, stiffness: 300 }); };
+
+    const animatedStyle = useAnimatedStyle(() => ({
+        transform: [{ scale: scale.value }],
+    }));
 
     return (
-        <TouchableOpacity style={styles.card} onPress={onPress} activeOpacity={0.85}>
+        <AnimatedPressable
+            style={[styles.card, animatedStyle]}
+            onPress={onPress}
+            onPressIn={handlePressIn}
+            onPressOut={handlePressOut}
+            entering={FadeInDown.delay(index * 60).springify().damping(14)}
+            accessibilityRole="button"
+            accessibilityLabel={`${note.title}${note.subject ? `, ${note.subject}` : ''}${badge.label ? `, ${badge.label}` : ''}`}
+        >
             <View style={styles.iconWrap}>
                 <Ionicons
-                    name={note.isPremium ? 'lock-closed' : note.pdfUrl ? 'document-text' : note.playlistUrl ? 'play-circle' : 'reader'}
+                    name={note.isPremium ? 'lock-closed' : note.pdfUrl ? 'document-text' : note.playlistUrl ? 'play-circle' : 'document-outline'}
                     size={22}
                     color={note.isPremium ? '#F59E0B' : colors.primary}
                 />
@@ -60,12 +80,12 @@ export default function SearchNoteCard({ note, onPress, onRemove }: SearchNoteCa
                     <Text style={[styles.badgeText, badge.text]}>{badge.label}</Text>
                 </View>
                 {onRemove ? (
-                    <TouchableOpacity style={styles.removeBtn} onPress={onRemove} hitSlop={8}>
+                    <Pressable style={styles.removeBtn} onPress={onRemove} hitSlop={8} accessibilityRole="button" accessibilityLabel="Remove bookmark">
                         <Ionicons name="bookmark" size={18} color={colors.primary} />
-                    </TouchableOpacity>
+                    </Pressable>
                 ) : null}
             </View>
-        </TouchableOpacity>
+        </AnimatedPressable>
     );
 }
 

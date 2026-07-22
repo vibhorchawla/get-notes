@@ -7,7 +7,7 @@ import { typography } from '../constants/typography';
 
 interface CategoryPillProps {
     label: string;
-    icon?: keyof typeof Ionicons.glyphMap;
+    icon?: string;
     isActive: boolean;
     onPress: () => void;
 }
@@ -18,11 +18,14 @@ export default function CategoryPill({ label, icon, isActive, onPress }: Categor
             style={[styles.container, isActive && styles.activeContainer]}
             onPress={onPress}
             activeOpacity={0.7}
+            accessibilityRole="button"
+            accessibilityLabel={`${label}${isActive ? ', selected' : ''}`}
+            accessibilityState={{ selected: isActive }}
         >
             <View style={styles.content}>
                 {icon && (
                     <Ionicons 
-                        name={icon} 
+                        name={icon as any} 
                         size={16} 
                         color={isActive ? colors.textOnPrimary : colors.primary} 
                         style={styles.icon}

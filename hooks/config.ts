@@ -26,23 +26,18 @@ function getExpoHost(): string | null {
 
 function getApiBaseUrl(): string {
     if (EXPLICIT_API_BASE_URL) {
-        console.log('[config] Using EXPO_PUBLIC_API_BASE_URL:', EXPLICIT_API_BASE_URL);
         return EXPLICIT_API_BASE_URL;
     }
 
     const expoHost = getExpoHost();
     if (expoHost) {
-        const host = expoHost;
-        console.log('[config] Resolved API host:', host);
-        return `http://${host}:5000/api`;
+        return `http://${expoHost}:5000/api`;
     }
 
     if (Platform.OS === 'android') {
-        console.log('[config] Falling back to Android emulator host: 10.0.2.2');
         return 'http://10.0.2.2:5000/api';
     }
 
-    console.log('[config] Using fallback API host: 127.0.0.1');
     return 'http://127.0.0.1:5000/api';
 }
 

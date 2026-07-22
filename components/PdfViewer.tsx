@@ -30,8 +30,8 @@ import {
     isLocalFileUrl,
     isRemoteUrl,
     normalizePdfUrl,
-    LocalPdfWebSource,
 } from '../utils/localFile';
+import type { LocalPdfWebSource } from '../utils/localFile';
 
 interface PdfViewerProps {
     pdfUrl: string;

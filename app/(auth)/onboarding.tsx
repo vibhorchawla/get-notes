@@ -175,7 +175,8 @@ const styles = StyleSheet.create({
         borderWidth: 2,
         borderColor: 'rgba(139, 92, 246, 0.35)',
         borderLeftWidth: 0,
-        borderRadius: '0 8 8 0',
+        borderTopRightRadius: 8,
+        borderBottomRightRadius: 8,
     },
     steam1: {
         position: 'absolute',

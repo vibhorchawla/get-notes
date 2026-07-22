@@ -1,6 +1,7 @@
 import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, Pressable } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import Animated, { useSharedValue, useAnimatedStyle, withSpring } from 'react-native-reanimated';
 import { colors } from '../constants/colors';
 import { spacing } from '../constants/spacing';
 import { typography } from '../constants/typography';
@@ -14,6 +15,8 @@ interface NoteItemProps {
     onDownload?: () => void;
 }
 
+const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
+
 export default function NoteItem({
     title,
     subject,
@@ -22,8 +25,24 @@ export default function NoteItem({
     onPress,
     onDownload,
 }: NoteItemProps) {
+    const scale = useSharedValue(1);
+
+    const handlePressIn = () => { scale.value = withSpring(0.97, { damping: 15, stiffness: 300 }); };
+    const handlePressOut = () => { scale.value = withSpring(1, { damping: 15, stiffness: 300 }); };
+
+    const animatedStyle = useAnimatedStyle(() => ({
+        transform: [{ scale: scale.value }],
+    }));
+
     return (
-        <TouchableOpacity style={styles.container} onPress={onPress}>
+        <AnimatedPressable
+            style={[styles.container, animatedStyle]}
+            onPress={onPress}
+            onPressIn={handlePressIn}
+            onPressOut={handlePressOut}
+            accessibilityRole="button"
+            accessibilityLabel={`${title}, ${subject}${unit ? `, ${unit}` : ''}${isPremium ? ', Premium' : ''}`}
+        >
             <View style={styles.iconContainer}>
                 {isPremium ? (
                     <Ionicons name="lock-closed" size={20} color="#F59E0B" />
@@ -56,17 +75,20 @@ export default function NoteItem({
             </View>
 
             {!isPremium && (
-                <TouchableOpacity
+                <Pressable
                     style={styles.downloadButton}
                     onPress={(e) => {
                         e.stopPropagation();
                         onDownload?.();
                     }}
+                    hitSlop={8}
+                    accessibilityRole="button"
+                    accessibilityLabel="Download"
                 >
                     <Ionicons name="download-outline" size={20} color={colors.primary} />
-                </TouchableOpacity>
+                </Pressable>
             )}
-        </TouchableOpacity>
+        </AnimatedPressable>
     );
 }
 
@@ -75,19 +97,21 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         alignItems: 'center',
         backgroundColor: colors.cardBackground,
-        borderRadius: 12,
+        borderRadius: 16,
         padding: spacing.md,
         marginBottom: spacing.sm,
+        borderWidth: 1,
+        borderColor: colors.border,
         shadowColor: colors.shadow,
-        shadowOffset: { width: 0, height: 1 },
+        shadowOffset: { width: 0, height: 4 },
         shadowOpacity: 0.1,
-        shadowRadius: 4,
-        elevation: 2,
+        shadowRadius: 12,
+        elevation: 3,
     },
     iconContainer: {
-        width: 40,
-        height: 40,
-        borderRadius: 20,
+        width: 44,
+        height: 44,
+        borderRadius: 14,
         backgroundColor: colors.background,
         justifyContent: 'center',
         alignItems: 'center',
@@ -104,7 +128,7 @@ const styles = StyleSheet.create({
     },
     title: {
         fontSize: typography.fontSize.md,
-        fontWeight: typography.fontWeight.medium,
+        fontWeight: typography.fontWeight.semibold,
         color: colors.textPrimary,
         flexShrink: 1,
     },

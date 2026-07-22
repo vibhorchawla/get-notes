@@ -7,11 +7,13 @@ import {
     TouchableOpacity,
     Linking,
     Alert,
-    ActivityIndicator,
 } from 'react-native';
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import GradientBackground from '../../components/GradientBackground';
+import LoadingSkeleton from '../../components/LoadingSkeleton';
+import ErrorState from '../../components/ErrorState';
+import Button from '../../components/Button';
 import { apiFetch } from '../../hooks/useApi';
 import { Note } from '../../types/note';
 import { colors } from '../../constants/colors';
@@ -60,7 +62,7 @@ export default function SharedNoteScreen() {
             <GradientBackground>
                 <Stack.Screen options={{ title: 'Note', headerShown: true }} />
                 <View style={styles.centered}>
-                    <ActivityIndicator size="large" color={colors.primary} />
+                    <LoadingSkeleton.ProfileHeader />
                 </View>
             </GradientBackground>
         );
@@ -70,9 +72,10 @@ export default function SharedNoteScreen() {
         return (
             <GradientBackground>
                 <Stack.Screen options={{ title: 'Note', headerShown: true }} />
-                <View style={styles.centered}>
-                    <Text style={styles.emptyTitle}>Note not found</Text>
-                </View>
+                <ErrorState
+                    title="Note not found"
+                    message="This shared note could not be loaded. It may have been removed or the link is invalid."
+                />
             </GradientBackground>
         );
     }
@@ -113,22 +116,21 @@ export default function SharedNoteScreen() {
 
                     <View style={styles.actionGroup}>
                         {note.pdfUrl ? (
-                            <TouchableOpacity
-                                style={styles.primaryButton}
+                            <Button
+                                title="Open PDF"
                                 onPress={() => openNote(router, note)}
-                            >
-                                <Ionicons name="document-text-outline" size={18} color={colors.textOnPrimary} />
-                                <Text style={styles.primaryButtonText}>Open PDF</Text>
-                            </TouchableOpacity>
+                                icon="document-text-outline"
+                                fullWidth
+                            />
                         ) : null}
                         {note.playlistUrl ? (
-                            <TouchableOpacity
-                                style={styles.secondaryButton}
+                            <Button
+                                title="Open Playlist"
                                 onPress={() => openLink(note.playlistUrl, 'playlist')}
-                            >
-                                <Ionicons name="play-circle-outline" size={18} color={colors.primary} />
-                                <Text style={styles.secondaryButtonText}>Open Playlist</Text>
-                            </TouchableOpacity>
+                                variant="secondary"
+                                icon="play-circle-outline"
+                                fullWidth
+                            />
                         ) : null}
                     </View>
                 </View>
@@ -191,40 +193,5 @@ const styles = StyleSheet.create({
     actionGroup: {
         marginTop: spacing.xl,
         gap: spacing.sm,
-    },
-    primaryButton: {
-        backgroundColor: colors.primary,
-        borderRadius: 16,
-        paddingVertical: 14,
-        alignItems: 'center',
-        justifyContent: 'center',
-        flexDirection: 'row',
-        gap: spacing.xs,
-    },
-    primaryButtonText: {
-        color: colors.textOnPrimary,
-        fontSize: typography.fontSize.md,
-        fontWeight: typography.fontWeight.bold,
-    },
-    secondaryButton: {
-        borderRadius: 16,
-        paddingVertical: 14,
-        alignItems: 'center',
-        justifyContent: 'center',
-        flexDirection: 'row',
-        gap: spacing.xs,
-        borderWidth: 1,
-        borderColor: colors.border,
-        backgroundColor: colors.background,
-    },
-    secondaryButtonText: {
-        color: colors.primary,
-        fontSize: typography.fontSize.md,
-        fontWeight: typography.fontWeight.bold,
-    },
-    emptyTitle: {
-        fontSize: typography.fontSize.lg,
-        fontWeight: typography.fontWeight.bold,
-        color: colors.textPrimary,
     },
 });

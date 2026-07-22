@@ -33,7 +33,7 @@ export default function PersonalNoteCard({ note, onPress, onShare, index = 0 }: 
     const scale = useSharedValue(1);
 
     const handlePressIn = () => {
-        scale.value = withSpring(0.96, { damping: 15, stiffness: 300 });
+        scale.value = withSpring(0.97, { damping: 15, stiffness: 300 });
     };
 
     const handlePressOut = () => {
@@ -53,6 +53,8 @@ export default function PersonalNoteCard({ note, onPress, onShare, index = 0 }: 
             onPressIn={handlePressIn}
             onPressOut={handlePressOut}
             entering={FadeInDown.delay(index * 100).springify().damping(14)}
+            accessibilityRole="button"
+            accessibilityLabel={`${note.title}${note.subject ? `, ${note.subject}` : ''}`}
         >
             <View style={styles.titleRow}>
                 <Text style={styles.title} numberOfLines={1}>{note.title}</Text>
@@ -105,13 +107,13 @@ export default function PersonalNoteCard({ note, onPress, onShare, index = 0 }: 
 const styles = StyleSheet.create({
     card: {
         backgroundColor: colors.cardBackground,
-        borderRadius: 16,
+        borderRadius: 20,
         padding: spacing.md,
         borderWidth: 1,
         borderColor: colors.border,
-        shadowColor: colors.primary,
+        shadowColor: colors.shadow,
         shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.08,
+        shadowOpacity: 0.1,
         shadowRadius: 12,
         elevation: 3,
     },

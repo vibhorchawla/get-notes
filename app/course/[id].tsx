@@ -16,6 +16,7 @@ import { typography } from '../../constants/typography';
 import { useNotes } from '../../hooks/useNotes';
 import { useDownloads } from '../../hooks/useDownloads';
 import { useAuth } from '../../context/AuthContext';
+import { useToast } from '../../context/ToastContext';
 import { openNote } from '../../utils/openNote';
 
 const COURSE_TITLES: Record<string, string> = {
@@ -31,6 +32,7 @@ const COURSE_TITLES: Record<string, string> = {
 export default function NotesScreen() {
     const { id } = useLocalSearchParams<{ id: string }>();
     const router = useRouter();
+    const { showToast } = useToast();
     const { user } = useAuth();
     const { notes, isLoading } = useNotes(id);
     const { addDownload } = useDownloads();
@@ -63,7 +65,6 @@ export default function NotesScreen() {
                 },
             });
         } else {
-            console.warn('PDF URL missing for note:', noteId);
             Alert.alert('Error', 'PDF URL not found for this note.');
         }
     };
@@ -81,8 +82,12 @@ export default function NotesScreen() {
             );
             return;
         }
-        await addDownload(noteId);
-        Alert.alert('Downloaded', 'Note saved to your downloads!');
+        const success = await addDownload(noteId);
+        if (success) {
+            showToast('Note saved to downloads!', 'success');
+        } else {
+            showToast('Download failed. Please try again.', 'error');
+        }
     };
 
     return (

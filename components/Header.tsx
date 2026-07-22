@@ -1,7 +1,7 @@
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useNavigation } from 'expo-router';
+import { useNavigation, useRouter } from 'expo-router';
 import { DrawerNavigationProp } from '@react-navigation/drawer';
 import { Ionicons } from '@expo/vector-icons';
 import Animated, { FadeInDown } from 'react-native-reanimated';
@@ -11,6 +11,7 @@ import { typography } from '../constants/typography';
 
 export default function Header() {
     const navigation = useNavigation<DrawerNavigationProp<any>>();
+    const router = useRouter();
     const insets = useSafeAreaInsets();
     const topOffset = insets.top + spacing.sm;
 
@@ -20,17 +21,20 @@ export default function Header() {
                 onPress={() => navigation.openDrawer()}
                 style={[styles.menuButton, { top: topOffset }]}
                 activeOpacity={0.8}
+                accessibilityRole="button"
+                accessibilityLabel="Open navigation menu"
             >
                 <Ionicons name="menu" size={22} color={colors.textPrimary} />
             </TouchableOpacity>
 
             <TouchableOpacity
                 style={[styles.notificationButton, { top: topOffset }]}
-                onPress={() => {}}
+                onPress={() => router.push('/coming-soon')}
                 activeOpacity={0.8}
+                accessibilityRole="button"
+                accessibilityLabel="Notifications"
             >
                 <Ionicons name="notifications-outline" size={22} color="#FFFFFF" />
-                <View style={styles.notificationBadge} />
             </TouchableOpacity>
 
             <Animated.View entering={FadeInDown.delay(40).springify().damping(14)} style={styles.brandCard}>

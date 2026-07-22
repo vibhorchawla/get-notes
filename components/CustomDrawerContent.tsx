@@ -6,6 +6,7 @@ import {
     TouchableOpacity,
 } from 'react-native';
 import { DrawerContentScrollView, DrawerItemList } from '@react-navigation/drawer';
+import type { DrawerContentComponentProps } from '@react-navigation/drawer';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../context/AuthContext';
@@ -14,7 +15,7 @@ import { colors } from '../constants/colors';
 import { spacing } from '../constants/spacing';
 import { typography } from '../constants/typography';
 
-export default function CustomDrawerContent(props: any) {
+export default function CustomDrawerContent(props: DrawerContentComponentProps) {
     const { user, logout } = useAuth();
     const router = useRouter();
 
@@ -32,7 +33,7 @@ export default function CustomDrawerContent(props: any) {
                         <ProfileAvatar size={80} editable={false} />
                     </View>
                     <Text style={styles.userName}>{user?.name || 'User'}</Text>
-                    <Text style={styles.userEmail}>{user?.email || 'user@example.com'}</Text>
+                    <Text style={styles.userEmail}>{user?.email || ''}</Text>
                     <Text style={styles.userCourse}>{user?.course || 'Course'}</Text>
                 </View>
 
@@ -74,17 +75,17 @@ const styles = StyleSheet.create({
     userName: {
         fontSize: typography.fontSize.lg,
         fontWeight: typography.fontWeight.bold,
-        color: colors.textPrimary,
+        color: '#FFFFFF',
         marginBottom: spacing.xs,
     },
     userEmail: {
         fontSize: typography.fontSize.sm,
-        color: colors.textSecondary,
+        color: 'rgba(255, 255, 255, 0.75)',
         marginBottom: spacing.xs,
     },
     userCourse: {
         fontSize: typography.fontSize.sm,
-        color: colors.textSecondary,
+        color: 'rgba(255, 255, 255, 0.6)',
         fontWeight: typography.fontWeight.medium,
     },
     drawerItems: {

@@ -30,16 +30,20 @@ export default function SearchBar({
                     onChangeText={onChangeText}
                     autoCapitalize="none"
                     autoCorrect={false}
+                    accessibilityRole="search"
+                    accessibilityLabel={placeholder}
                 />
                 {value.length > 0 && (
-                    <TouchableOpacity onPress={onClear ? onClear : () => onChangeText('')}>
+                    <TouchableOpacity
+                        onPress={onClear ? onClear : () => onChangeText('')}
+                        hitSlop={8}
+                        accessibilityRole="button"
+                        accessibilityLabel="Clear search"
+                    >
                         <Ionicons name="close-circle" size={18} color={colors.textLight} />
                     </TouchableOpacity>
                 )}
             </View>
-            <TouchableOpacity style={styles.filterButton}>
-                <Ionicons name="options-outline" size={22} color={colors.primary} />
-            </TouchableOpacity>
         </View>
     );
 }
@@ -48,7 +52,6 @@ const styles = StyleSheet.create({
     container: {
         flexDirection: 'row',
         alignItems: 'center',
-        gap: spacing.sm,
         marginBottom: spacing.md,
     },
     searchBar: {
@@ -56,11 +59,16 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         alignItems: 'center',
         backgroundColor: colors.cardBackground,
-        borderRadius: 12,
+        borderRadius: 14,
         borderWidth: 1,
         borderColor: colors.border,
         paddingHorizontal: spacing.md,
         height: 50,
+        shadowColor: colors.shadow,
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.06,
+        shadowRadius: 6,
+        elevation: 2,
     },
     icon: {
         marginRight: spacing.sm,
@@ -69,15 +77,5 @@ const styles = StyleSheet.create({
         flex: 1,
         fontSize: typography.fontSize.md,
         color: colors.textPrimary,
-    },
-    filterButton: {
-        height: 50,
-        width: 50,
-        backgroundColor: colors.cardBackground,
-        borderRadius: 12,
-        borderWidth: 1,
-        borderColor: colors.border,
-        justifyContent: 'center',
-        alignItems: 'center',
     },
 });

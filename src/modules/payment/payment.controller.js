@@ -27,7 +27,7 @@ async function verifyPayment(req, res) {
         const user = await paymentService.verifyPayment(req.user.id, { orderId, paymentId, signature });
 
         const token = jwt.sign(
-            { id: user.id, email: user.email, name: user.name, course: user.course, isPremium: user.isPremium, premiumPlan: user.premiumPlan, premiumStartDate: user.premiumStartDate, premiumEndDate: user.premiumEndDate },
+            { id: user.id, email: user.email, name: user.name, course: user.course, isPremium: user.isPremium, premiumPlan: user.premiumPlan, premiumStartDate: user.premiumStartDate, premiumEndDate: user.premiumEndDate, createdAt: user.createdAt },
             JWT_SECRET,
             { expiresIn: '7d' }
         );

@@ -7,6 +7,7 @@ import { usePersonalNotes } from '../../hooks/usePersonalNotes';
 import { useSaved } from '../../hooks/useSaved';
 import { useDownloads } from '../../hooks/useDownloads';
 import { useAuth } from '../../context/AuthContext';
+import { useToast } from '../../context/ToastContext';
 import { normalizePdfUrl } from '../../utils/localFile';
 import { colors } from '../../constants/colors';
 import { spacing } from '../../constants/spacing';
@@ -20,6 +21,7 @@ export default function NoteViewer() {
     }>();
 
     const router = useRouter();
+    const { showToast } = useToast();
     const { user } = useAuth();
     const { getNote } = usePersonalNotes();
     const { savedNotes, saveNote, unsaveNote } = useSaved();
@@ -43,10 +45,10 @@ export default function NoteViewer() {
     const handleSave = async () => {
         if (isSaved) {
             await unsaveNote(id);
-            Alert.alert('Bookmark Removed', 'Note removed from your saved list.');
+            showToast('Bookmark removed.', 'info');
         } else {
             await saveNote(id);
-            Alert.alert('Bookmark Added', 'Note saved to your bookmarks!');
+            showToast('Note saved to bookmarks!', 'success');
         }
     };
 
@@ -63,7 +65,7 @@ export default function NoteViewer() {
             return;
         }
         await addDownload(id);
-        Alert.alert('Download Started', 'The PDF is being saved to your downloads.');
+        showToast('Download started!', 'success');
     };
 
     return (

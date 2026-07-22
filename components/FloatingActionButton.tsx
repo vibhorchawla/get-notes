@@ -11,7 +11,13 @@ interface FloatingActionButtonProps {
 
 export default function FloatingActionButton({ onPress, iconName = 'add' }: FloatingActionButtonProps) {
     return (
-        <TouchableOpacity style={styles.fab} onPress={onPress}>
+        <TouchableOpacity
+            style={styles.fab}
+            onPress={onPress}
+            accessibilityRole="button"
+            accessibilityLabel="Add new note"
+            activeOpacity={0.8}
+        >
             <Ionicons name={iconName} size={28} color={colors.textPrimary} />
         </TouchableOpacity>
     );

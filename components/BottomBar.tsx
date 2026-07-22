@@ -12,7 +12,7 @@ interface BottomBarProps {
     onAddPress: () => void;
 }
 
-const TABS = [
+const TABS: { key: string; label: string; icon: string; activeIcon: string }[] = [
     { key: 'home', label: 'Home', icon: 'home-outline', activeIcon: 'home' },
     { key: 'save', label: 'Save', icon: 'bookmark-outline', activeIcon: 'bookmark' },
     { key: 'add', label: '', icon: 'add', activeIcon: 'add' },
@@ -53,7 +53,7 @@ export default function BottomBar({ activeTab, onTabPress, onAddPress }: BottomB
                             activeOpacity={0.7}
                         >
                             <Ionicons
-                                name={isActive ? (tab.activeIcon as any) : (tab.icon as any)}
+                                name={isActive ? tab.activeIcon as any : tab.icon as any}
                                 size={24}
                                 color={isActive ? '#7C3AED' : 'rgba(255, 255, 255, 0.55)'}
                             />
@@ -107,7 +107,7 @@ const styles = StyleSheet.create({
     },
     tabLabelActive: {
         color: '#7C3AED',
-        fontWeight: typography.fontWeight.heavy,
+        fontWeight: typography.fontWeight.bold,
     },
     addWrapper: {
         flex: 1,

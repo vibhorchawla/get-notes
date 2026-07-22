@@ -1,11 +1,11 @@
-import React, { useMemo, useState } from 'react';
+import React, { useCallback, useMemo, useState } from 'react';
 import {
     View,
     Text,
     StyleSheet,
     ScrollView,
-    ActivityIndicator,
     TouchableOpacity,
+    RefreshControl,
 } from 'react-native'; 
 import { useRouter, useNavigation } from 'expo-router';
 import { DrawerNavigationProp } from '@react-navigation/drawer';
@@ -17,6 +17,8 @@ import SearchBar from '../../components/SearchBar';
 import CategoryPill from '../../components/CategoryPill';
 import MarketplaceCard from '../../components/MarketplaceCard';
 import BottomBar from '../../components/BottomBar';
+import LoadingSkeleton from '../../components/LoadingSkeleton';
+import EmptyState from '../../components/EmptyState';
 import { useCourses } from '../../hooks/useCourses';
 import { useNoteSearch } from '../../hooks/useNoteSearch';
 import SearchNoteCard from '../../components/SearchNoteCard';
@@ -50,11 +52,33 @@ export default function HomeScreen() {
     const navigation = useNavigation<DrawerNavigationProp<any>>();
     const [searchQuery, setSearchQuery] = useState('');
     const [activeCategory, setActiveCategory] = useState('All');
-    const { courses, featured, categories, isLoading } = useCourses();
+    const [refreshing, setRefreshing] = useState(false);
+    const [recentSearches, setRecentSearches] = useState<string[]>([]);
+    const { courses, featured, categories, isLoading, refetch: refetchCourses } = useCourses();
     const { results: noteResults, isSearching: isSearchingNotes, error: searchError } =
         useNoteSearch(searchQuery);
 
+    const onRefresh = useCallback(async () => {
+        setRefreshing(true);
+        await refetchCourses();
+        setRefreshing(false);
+    }, [refetchCourses]);
+
     const normalizedQuery = searchQuery.trim().toLowerCase();
+
+    const handleSearch = useCallback((text: string) => {
+        setSearchQuery(text);
+        if (text.trim().length >= 2) {
+            setRecentSearches(prev => {
+                const filtered = prev.filter(s => s !== text.trim());
+                return [text.trim(), ...filtered].slice(0, 5);
+            });
+        }
+    }, []);
+
+    const clearRecentSearches = useCallback(() => {
+        setRecentSearches([]);
+    }, []);
 
     const filteredCourses = useMemo(() => {
         const byCategory =
@@ -87,17 +111,45 @@ export default function HomeScreen() {
     return (
         <GradientBackground>
             <View style={styles.screen}>
-                <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
+                <ScrollView
+                    style={styles.container}
+                    showsVerticalScrollIndicator={false}
+                    refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} />}
+                >
                     <Header />
 
                     <View style={styles.content}>
                         <Animated.View entering={FadeInDown.delay(80).springify().damping(14)} style={styles.searchWrap}>
                             <SearchBar
                                 value={searchQuery}
-                                onChangeText={setSearchQuery}
+                                onChangeText={handleSearch}
                                 placeholder="Search for notes, courses..."
                             />
                         </Animated.View>
+
+                        {!normalizedQuery && recentSearches.length > 0 && (
+                            <Animated.View entering={FadeInDown.delay(120).springify().damping(14)} style={styles.recentSearchCard}>
+                                <View style={styles.recentSearchHeader}>
+                                    <Text style={styles.recentSearchTitle}>Recent Searches</Text>
+                                    <TouchableOpacity onPress={clearRecentSearches} hitSlop={8}>
+                                        <Text style={styles.clearRecentText}>Clear</Text>
+                                    </TouchableOpacity>
+                                </View>
+                                <View style={styles.recentSearchList}>
+                                    {recentSearches.map((term, i) => (
+                                        <TouchableOpacity
+                                            key={i}
+                                            style={styles.recentSearchItem}
+                                            onPress={() => setSearchQuery(term)}
+                                            activeOpacity={0.7}
+                                        >
+                                            <Ionicons name="time-outline" size={16} color={colors.textLight} />
+                                            <Text style={styles.recentSearchTerm}>{term}</Text>
+                                        </TouchableOpacity>
+                                    ))}
+                                </View>
+                            </Animated.View>
+                        )}
 
                         <ScrollView
                             horizontal
@@ -124,32 +176,43 @@ export default function HomeScreen() {
                                     Notes shared by students and course materials
                                 </Text>
                                 {isSearchingNotes ? (
-                                    <ActivityIndicator
-                                        size="small"
-                                        color={colors.primary}
-                                        style={styles.noteSearchLoader}
-                                    />
+                                    <View style={styles.skeletonWrap}>
+                                        <LoadingSkeleton.Card lines={2} />
+                                        <LoadingSkeleton.Card lines={2} />
+                                    </View>
                                 ) : searchError ? (
-                                    <Text style={styles.searchErrorText}>{searchError}</Text>
+                                    <EmptyState
+                                        icon="alert-circle-outline"
+                                        title="Search failed"
+                                        message={searchError}
+                                        secondaryActionLabel="Try Again"
+                                        onSecondaryAction={() => {}}
+                                    />
                                 ) : noteResults.length > 0 ? (
-                                    noteResults.map((note) => (
+                                    noteResults.map((note, idx) => (
                                         <SearchNoteCard
                                             key={note.id}
                                             note={note}
+                                            index={idx}
                                             onPress={() => openNote(router, note)}
                                         />
                                     ))
                                 ) : (
-                                    <View style={styles.emptyState}>
-                                        <Ionicons name="document-outline" size={24} color={colors.textLight} />
-                                        <Text style={styles.emptyText}>No notes found for this search.</Text>
-                                    </View>
+                                    <EmptyState
+                                        icon="document-outline"
+                                        title="No notes found"
+                                        message="No notes match your search. Try a different query."
+                                    />
                                 )}
                             </View>
                         )}
 
                         {isLoading ? (
-                            <ActivityIndicator size="large" color={colors.primary} style={styles.loader} />
+                            <View style={styles.skeletonWrap}>
+                                <LoadingSkeleton.CourseCard />
+                                <LoadingSkeleton.CourseCard />
+                                <LoadingSkeleton.CourseCard />
+                            </View>
                         ) : (
                             <>
                                 {filteredFeatured.length > 0 && (
@@ -200,10 +263,11 @@ export default function HomeScreen() {
                                         ))}
 
                                         {filteredCourses.length === 0 && (
-                                            <View style={styles.emptyState}>
-                                                <Ionicons name="search-outline" size={26} color={colors.textLight} />
-                                                <Text style={styles.emptyText}>No courses found for this search.</Text>
-                                            </View>
+                                            <EmptyState
+                                                icon="search-outline"
+                                                title="No courses found"
+                                                message="No courses match your current search or filter."
+                                            />
                                         )}
                                     </View>
                                 </View>
@@ -246,16 +310,45 @@ const styles = StyleSheet.create({
     categoriesContent: {
         paddingRight: spacing.screenPadding,
     },
-    loader: {
-        marginTop: spacing.xl,
+    skeletonWrap: {
+        marginTop: spacing.md,
     },
-    noteSearchLoader: {
-        marginVertical: spacing.md,
-    },
-    searchErrorText: {
-        color: colors.error,
-        fontSize: typography.fontSize.sm,
+    recentSearchCard: {
+        backgroundColor: colors.cardBackground,
+        borderRadius: 16,
+        padding: spacing.md,
         marginBottom: spacing.md,
+        borderWidth: 1,
+        borderColor: colors.border,
+    },
+    recentSearchHeader: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        marginBottom: spacing.sm,
+    },
+    recentSearchTitle: {
+        fontSize: typography.fontSize.sm,
+        fontWeight: typography.fontWeight.semibold,
+        color: colors.textSecondary,
+    },
+    clearRecentText: {
+        fontSize: typography.fontSize.xs,
+        color: colors.primary,
+        fontWeight: typography.fontWeight.semibold,
+    },
+    recentSearchList: {
+        gap: spacing.xs,
+    },
+    recentSearchItem: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: spacing.sm,
+        paddingVertical: spacing.xs + 2,
+    },
+    recentSearchTerm: {
+        fontSize: typography.fontSize.sm,
+        color: colors.textPrimary,
     },
     section: {
         marginBottom: spacing.xxl,
@@ -295,19 +388,5 @@ const styles = StyleSheet.create({
     grid: {
         gap: spacing.md,
     },
-    emptyState: {
-        alignItems: 'center',
-        justifyContent: 'center',
-        backgroundColor: colors.cardBackground,
-        borderRadius: 20,
-        padding: spacing.xl,
-        borderWidth: 1,
-        borderColor: colors.border,
-    },
-    emptyText: {
-        marginTop: spacing.sm,
-        color: colors.textSecondary,
-        fontSize: typography.fontSize.sm,
-        textAlign: 'center',
-    },
+
 });

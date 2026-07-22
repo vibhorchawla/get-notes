@@ -1,5 +1,6 @@
-import React, { useMemo, useState } from 'react';
-import { View, StyleSheet, FlatList, Text, SafeAreaView, TouchableOpacity, Alert } from 'react-native';
+import React, { useCallback, useMemo, useState } from 'react';
+import { View, StyleSheet, FlatList, Text, SafeAreaView, TouchableOpacity, RefreshControl } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import GradientBackground from '../../components/GradientBackground';
 import PersonalNoteCard from '../../components/PersonalNoteCard';
@@ -7,43 +8,73 @@ import SearchNoteCard from '../../components/SearchNoteCard';
 import FloatingActionButton from '../../components/FloatingActionButton';
 import SearchBar from '../../components/SearchBar';
 import TopHeader from '../../components/TopHeader';
+import LoadingSkeleton from '../../components/LoadingSkeleton';
+import EmptyState from '../../components/EmptyState';
 import { usePersonalNotes } from '../../hooks/usePersonalNotes';
 import { publishCommunityNote } from '../../hooks/useCommunityNotes';
 import { useSaved } from '../../hooks/useSaved';
 import { noteMatchesSearch, Note } from '../../types/note';
 import { openNote } from '../../utils/openNote';
+import { useToast } from '../../context/ToastContext';
 import { colors } from '../../constants/colors';
 import { spacing } from '../../constants/spacing';
 import { typography } from '../../constants/typography';
 
 type NotesTab = 'all' | 'uploads' | 'saved';
+type SortOption = 'newest' | 'oldest' | 'title';
 
 export default function NotesScreen() {
     const router = useRouter();
-    const { notes, isLoading, markPublished } = usePersonalNotes();
-    const { savedNotes, isLoading: isSavedLoading } = useSaved();
+    const { showToast } = useToast();
+    const { notes, isLoading, markPublished, loadNotes } = usePersonalNotes();
+    const { savedNotes, isLoading: isSavedLoading, refetch: refetchSaved } = useSaved();
     const [searchQuery, setSearchQuery] = useState('');
     const [activeTab, setActiveTab] = useState<NotesTab>('all');
+    const [sortBy, setSortBy] = useState<SortOption>('newest');
+    const [showSortPicker, setShowSortPicker] = useState(false);
+    const [refreshing, setRefreshing] = useState(false);
+
+    const onRefresh = useCallback(async () => {
+        setRefreshing(true);
+        await Promise.all([loadNotes(), refetchSaved()]);
+        setRefreshing(false);
+    }, [loadNotes, refetchSaved]);
+
+    const sortNotes = useCallback(<T extends { title: string; updatedAt?: string; createdAt?: string }>(notesList: T[]): T[] => {
+        const sorted = [...notesList];
+        switch (sortBy) {
+            case 'newest':
+                return sorted.sort((a, b) => new Date(b.updatedAt || b.createdAt || '').getTime() - new Date(a.updatedAt || a.createdAt || '').getTime());
+            case 'oldest':
+                return sorted.sort((a, b) => new Date(a.updatedAt || a.createdAt || '').getTime() - new Date(b.updatedAt || b.createdAt || '').getTime());
+            case 'title':
+                return sorted.sort((a, b) => a.title.localeCompare(b.title));
+            default:
+                return sorted;
+        }
+    }, [sortBy]);
 
     const filteredUploads = useMemo(
-        () => notes.filter((note) => noteMatchesSearch(note, searchQuery)),
-        [notes, searchQuery]
+        () => sortNotes(notes.filter((note) => noteMatchesSearch(note, searchQuery))),
+        [notes, searchQuery, sortNotes]
     );
 
     const filteredSaved = useMemo(
         () =>
-            savedNotes.filter((note) =>
-                noteMatchesSearch(
-                    {
-                        ...note,
-                        content: note.content || '',
-                        createdAt: '',
-                        updatedAt: '',
-                    } as Note,
-                    searchQuery
+            sortNotes(
+                savedNotes.filter((note) =>
+                    noteMatchesSearch(
+                        {
+                            ...note,
+                            content: note.content || '',
+                            createdAt: '',
+                            updatedAt: '',
+                        } as Note,
+                        searchQuery
+                    )
                 )
             ),
-        [savedNotes, searchQuery]
+        [savedNotes, searchQuery, sortNotes]
     );
 
     const showUploads = activeTab === 'all' || activeTab === 'uploads';
@@ -61,11 +92,13 @@ export default function NotesScreen() {
         const result = await publishCommunityNote(note);
         if (result.ok) {
             await markPublished(note.id);
-            Alert.alert('Shared', 'Other students can now find this note in Home search.');
+            showToast('Note shared! Other students can find it in search.', 'success');
         } else {
-            Alert.alert('Could not share', result.message || 'Try again after starting the server.');
+            showToast(result.message || 'Could not share note.', 'error');
         }
     };
+
+    const sortLabels: Record<SortOption, string> = { newest: 'Newest First', oldest: 'Oldest First', title: 'By Title' };
 
     const renderHeader = () => (
         <View>
@@ -92,6 +125,42 @@ export default function NotesScreen() {
                     );
                 })}
             </View>
+
+            <View style={styles.sortRow}>
+                <TouchableOpacity
+                    style={styles.sortButton}
+                    onPress={() => setShowSortPicker(!showSortPicker)}
+                    activeOpacity={0.7}
+                    accessibilityRole="button"
+                    accessibilityLabel={`Sort by ${sortLabels[sortBy]}`}
+                >
+                    <Ionicons name="funnel-outline" size={16} color={colors.primary} />
+                    <Text style={styles.sortButtonText}>{sortLabels[sortBy]}</Text>
+                    <Ionicons name={showSortPicker ? 'chevron-up' : 'chevron-down'} size={14} color={colors.textLight} />
+                </TouchableOpacity>
+            </View>
+
+            {showSortPicker && (
+                <View style={styles.sortPicker}>
+                    {(['newest', 'oldest', 'title'] as SortOption[]).map((opt) => (
+                        <TouchableOpacity
+                            key={opt}
+                            style={[styles.sortOption, sortBy === opt && styles.sortOptionActive]}
+                            onPress={() => { setSortBy(opt); setShowSortPicker(false); }}
+                            activeOpacity={0.7}
+                        >
+                            <Ionicons
+                                name={sortBy === opt ? 'radio-button-on' : 'radio-button-off'}
+                                size={18}
+                                color={sortBy === opt ? colors.primary : colors.textLight}
+                            />
+                            <Text style={[styles.sortOptionText, sortBy === opt && styles.sortOptionTextActive]}>
+                                {sortLabels[opt]}
+                            </Text>
+                        </TouchableOpacity>
+                    ))}
+                </View>
+            )}
 
             {activeTab === 'all' && showUploads && filteredUploads.length > 0 ? (
                 <Text style={styles.sectionLabel}>
@@ -141,15 +210,25 @@ export default function NotesScreen() {
                     data={listData}
                     keyExtractor={(item) => item.key}
                     ListHeaderComponent={renderHeader}
+                    refreshing={refreshing}
+                    onRefresh={onRefresh}
                     ListEmptyComponent={
-                        isLoading || isSavedLoading ? null : (
-                            <View style={styles.emptyContainer}>
-                                <Text style={styles.emptyText}>
-                                    {searchQuery.trim()
-                                        ? 'No uploaded or saved notes match your search.'
-                                        : 'No notes yet. Upload with + or save notes from courses.'}
-                                </Text>
+                        isLoading || isSavedLoading ? (
+                            <View style={styles.skeletonWrap}>
+                                <LoadingSkeleton.Card lines={3} />
+                                <LoadingSkeleton.Card lines={3} />
+                                <LoadingSkeleton.Card lines={2} />
                             </View>
+                        ) : (
+                            <EmptyState
+                                icon="document-outline"
+                                title={searchQuery.trim() ? 'No matching notes' : 'No notes yet'}
+                                message={searchQuery.trim()
+                                    ? 'No uploaded or saved notes match your search.'
+                                    : 'Upload your first note with the + button or save notes from courses.'}
+                                actionLabel="Upload Note"
+                                onAction={() => router.push('/upload-note')}
+                            />
                         )
                     }
                     renderItem={({ item, index }) => {
@@ -164,6 +243,7 @@ export default function NotesScreen() {
                                 <View style={styles.cardContainer}>
                                     <SearchNoteCard
                                         note={{ ...item.note, source: item.note.source || 'course' }}
+                                        index={index}
                                         onPress={() => handleNotePress(item.note!)}
                                     />
                                 </View>
@@ -247,14 +327,56 @@ const styles = StyleSheet.create({
         paddingHorizontal: spacing.screenPadding,
         marginBottom: spacing.md,
     },
-    emptyContainer: {
-        marginTop: spacing.xxl,
-        alignItems: 'center',
-        paddingHorizontal: spacing.xl,
+    skeletonWrap: {
+        paddingHorizontal: spacing.screenPadding,
+        paddingTop: spacing.md,
     },
-    emptyText: {
-        fontSize: typography.fontSize.md,
+    sortRow: {
+        flexDirection: 'row',
+        paddingHorizontal: spacing.screenPadding,
+        marginBottom: spacing.sm,
+    },
+    sortButton: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: spacing.xs,
+        paddingHorizontal: spacing.md,
+        paddingVertical: spacing.sm,
+        borderRadius: 999,
+        backgroundColor: 'rgba(79, 70, 229, 0.08)',
+        alignSelf: 'flex-start',
+    },
+    sortButtonText: {
+        fontSize: typography.fontSize.xs,
+        fontWeight: typography.fontWeight.semibold,
+        color: colors.primary,
+    },
+    sortPicker: {
+        marginHorizontal: spacing.screenPadding,
+        marginBottom: spacing.md,
+        backgroundColor: colors.cardBackground,
+        borderRadius: 14,
+        padding: spacing.sm,
+        borderWidth: 1,
+        borderColor: colors.border,
+    },
+    sortOption: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: spacing.sm,
+        paddingVertical: spacing.sm,
+        paddingHorizontal: spacing.sm,
+        borderRadius: 10,
+    },
+    sortOptionActive: {
+        backgroundColor: 'rgba(79, 70, 229, 0.08)',
+    },
+    sortOptionText: {
+        fontSize: typography.fontSize.sm,
         color: colors.textSecondary,
-        textAlign: 'center',
+    },
+    sortOptionTextActive: {
+        color: colors.primary,
+        fontWeight: typography.fontWeight.semibold,
     },
 });

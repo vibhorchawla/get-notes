@@ -18,12 +18,6 @@ export function useCommunitySync() {
         isSyncing.current = true;
         try {
             const { synced, failed } = await syncUnpublishedNotes(notes, markPublished);
-            if (synced > 0) {
-                console.log(`[CommunitySync] Published ${synced} note(s) for global search`);
-            }
-            if (failed > 0) {
-                console.warn(`[CommunitySync] ${failed} note(s) could not be published`);
-            }
         } finally {
             isSyncing.current = false;
         }

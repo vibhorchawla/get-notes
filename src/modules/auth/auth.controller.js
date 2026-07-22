@@ -30,14 +30,14 @@ async function register(req, res) {
         });
 
         const token = jwt.sign(
-            { id: user.id, email: user.email, name: user.name, course: user.course, isPremium: user.isPremium, premiumPlan: user.premiumPlan, premiumStartDate: user.premiumStartDate, premiumEndDate: user.premiumEndDate },
+            { id: user.id, email: user.email, name: user.name, course: user.course, isPremium: user.isPremium, premiumPlan: user.premiumPlan, premiumStartDate: user.premiumStartDate, premiumEndDate: user.premiumEndDate, createdAt: user.createdAt },
             JWT_SECRET,
             { expiresIn: '7d' }
         );
 
         res.status(201).json({
             success: true,
-            data: { token, user: { id: user.id, email: user.email, name: user.name, course: user.course, isPremium: user.isPremium, premiumPlan: user.premiumPlan, premiumStartDate: user.premiumStartDate, premiumEndDate: user.premiumEndDate } },
+            data: { token, user: { id: user.id, email: user.email, name: user.name, course: user.course, isPremium: user.isPremium, premiumPlan: user.premiumPlan, premiumStartDate: user.premiumStartDate, premiumEndDate: user.premiumEndDate, createdAt: user.createdAt } },
         });
     } catch (err) {
         console.error('Register error:', err);
@@ -65,14 +65,14 @@ async function login(req, res) {
         }
 
         const token = jwt.sign(
-            { id: user.id, email: user.email, name: user.name, course: user.course, isPremium: user.isPremium, premiumPlan: user.premiumPlan, premiumStartDate: user.premiumStartDate, premiumEndDate: user.premiumEndDate },
+            { id: user.id, email: user.email, name: user.name, course: user.course, isPremium: user.isPremium, premiumPlan: user.premiumPlan, premiumStartDate: user.premiumStartDate, premiumEndDate: user.premiumEndDate, createdAt: user.createdAt },
             JWT_SECRET,
             { expiresIn: '7d' }
         );
 
         res.json({
             success: true,
-            data: { token, user: { id: user.id, email: user.email, name: user.name, course: user.course, isPremium: user.isPremium, premiumPlan: user.premiumPlan, premiumStartDate: user.premiumStartDate, premiumEndDate: user.premiumEndDate } },
+            data: { token, user: { id: user.id, email: user.email, name: user.name, course: user.course, isPremium: user.isPremium, premiumPlan: user.premiumPlan, premiumStartDate: user.premiumStartDate, premiumEndDate: user.premiumEndDate, createdAt: user.createdAt } },
         });
     } catch (err) {
         console.error('Login error:', err);
@@ -89,7 +89,7 @@ function me(req, res) {
 function refresh(req, res) {
     try {
         const token = jwt.sign(
-            { id: req.user.id, email: req.user.email, name: req.user.name, course: req.user.course, isPremium: req.user.isPremium, premiumPlan: req.user.premiumPlan, premiumStartDate: req.user.premiumStartDate, premiumEndDate: req.user.premiumEndDate },
+            { id: req.user.id, email: req.user.email, name: req.user.name, course: req.user.course, isPremium: req.user.isPremium, premiumPlan: req.user.premiumPlan, premiumStartDate: req.user.premiumStartDate, premiumEndDate: req.user.premiumEndDate, createdAt: req.user.createdAt },
             JWT_SECRET,
             { expiresIn: '7d' }
         );
@@ -160,14 +160,14 @@ async function googleLogin(req, res) {
         }
 
         const token = jwt.sign(
-            { id: user.id, email: user.email, name: user.name, course: user.course, isPremium: user.isPremium, premiumPlan: user.premiumPlan, premiumStartDate: user.premiumStartDate, premiumEndDate: user.premiumEndDate },
+            { id: user.id, email: user.email, name: user.name, course: user.course, isPremium: user.isPremium, premiumPlan: user.premiumPlan, premiumStartDate: user.premiumStartDate, premiumEndDate: user.premiumEndDate, createdAt: user.createdAt },
             JWT_SECRET,
             { expiresIn: '7d' }
         );
 
         res.json({
             success: true,
-            data: { token, user: { id: user.id, email: user.email, name: user.name, course: user.course, isPremium: user.isPremium, premiumPlan: user.premiumPlan, premiumStartDate: user.premiumStartDate, premiumEndDate: user.premiumEndDate } },
+            data: { token, user: { id: user.id, email: user.email, name: user.name, course: user.course, isPremium: user.isPremium, premiumPlan: user.premiumPlan, premiumStartDate: user.premiumStartDate, premiumEndDate: user.premiumEndDate, createdAt: user.createdAt } },
         });
     } catch (err) {
         console.error('Google login error:', err);
@@ -217,14 +217,14 @@ async function facebookLogin(req, res) {
         }
 
         const token = jwt.sign(
-            { id: user.id, email: user.email, name: user.name, course: user.course, isPremium: user.isPremium, premiumPlan: user.premiumPlan, premiumStartDate: user.premiumStartDate, premiumEndDate: user.premiumEndDate },
+            { id: user.id, email: user.email, name: user.name, course: user.course, isPremium: user.isPremium, premiumPlan: user.premiumPlan, premiumStartDate: user.premiumStartDate, premiumEndDate: user.premiumEndDate, createdAt: user.createdAt },
             JWT_SECRET,
             { expiresIn: '7d' }
         );
 
         res.json({
             success: true,
-            data: { token, user: { id: user.id, email: user.email, name: user.name, course: user.course, isPremium: user.isPremium, premiumPlan: user.premiumPlan, premiumStartDate: user.premiumStartDate, premiumEndDate: user.premiumEndDate } },
+            data: { token, user: { id: user.id, email: user.email, name: user.name, course: user.course, isPremium: user.isPremium, premiumPlan: user.premiumPlan, premiumStartDate: user.premiumStartDate, premiumEndDate: user.premiumEndDate, createdAt: user.createdAt } },
         });
     } catch (err) {
         console.error('Facebook login error:', err);

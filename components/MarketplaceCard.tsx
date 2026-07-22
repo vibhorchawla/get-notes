@@ -5,7 +5,6 @@ import {
     StyleSheet,
     TouchableOpacity,
     Image,
-    Animated,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { colors } from '../constants/colors';
@@ -18,7 +17,7 @@ interface MarketplaceCardProps {
     rating: number;
     students: string;
     instructor: string;
-    icon: keyof typeof Ionicons.glyphMap;
+    icon: string;
     imageUrl?: string;
     onPress: () => void;
     horizontal?: boolean;
@@ -40,12 +39,14 @@ export default function MarketplaceCard({
             style={[styles.container, horizontal ? styles.horizontalContainer : styles.verticalContainer]}
             onPress={onPress}
             activeOpacity={0.8}
+            accessibilityRole="button"
+            accessibilityLabel={`${title}, ${category}, ${rating} stars`}
         >
             <View style={[styles.imagePlaceholder, horizontal ? styles.horizontalImage : styles.verticalImage]}>
                 {imageUrl ? (
                     <Image source={{ uri: imageUrl }} style={StyleSheet.absoluteFillObject} />
                 ) : (
-                    <Ionicons name={icon} size={32} color={colors.primary} />
+                    <Ionicons name={icon as any} size={32} color={colors.primary} />
                 )}
                 <View style={styles.badge}>
                     <Text style={styles.badgeText}>{category}</Text>
