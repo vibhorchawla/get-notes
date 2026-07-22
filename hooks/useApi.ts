@@ -109,12 +109,9 @@ export async function apiFetch<T = any>(
 
         return json;
     } catch (error) {
-        console.error('[apiFetch] Request failed:', {
-            url,
-            method: fetchOptions.method || 'GET',
-            requiresAuth,
-            error,
-        });
+        if (requiresAuth) {
+            console.error('[apiFetch] Auth request failed:', url);
+        }
         throw error;
     }
 }

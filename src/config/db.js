@@ -31,7 +31,7 @@ const NOTES = {
         { id: 'n2', title: 'Algorithm Analysis & Complexity', subject: 'Algorithms', unit: 'Unit 1', pdfUrl: SAMPLE_PDF_URL },
         { id: 'n3', title: 'Object Oriented Programming Concepts', subject: 'OOP', unit: 'Unit 2', pdfUrl: SAMPLE_PDF_URL },
         { id: 'n4', title: 'Database Management Systems - ER Model', subject: 'DBMS', unit: 'Unit 1', pdfUrl: SAMPLE_PDF_URL },
-        { id: 'n5', title: 'Operating Systems - Process Management', subject: 'OS', unit: 'Unit 2', pdfUrl: SAMPLE_PDF_URL },
+        { id: 'n5', title: 'Operating Systems - Process Management', subject: 'OS', unit: 'Unit 2', pdfUrl: SAMPLE_PDF_URL, isPremium: true },
     ],
     'btech-me': [
         { id: 'n6', title: 'Thermodynamics - First Law', subject: 'Thermodynamics', unit: 'Unit 1', pdfUrl: SAMPLE_PDF_URL },
@@ -70,7 +70,7 @@ function getAllCatalogNotes() {
     const catalog = [];
     for (const [courseId, notes] of Object.entries(NOTES)) {
         for (const note of notes) {
-            catalog.push({ ...note, courseId, source: 'course' });
+            catalog.push({ ...note, courseId, source: 'course', isPremium: note.isPremium || false });
         }
     }
     return catalog;
@@ -79,7 +79,7 @@ function getAllCatalogNotes() {
 function findCatalogNoteById(noteId) {
     for (const [courseId, notes] of Object.entries(NOTES)) {
         const found = notes.find((n) => n.id === noteId);
-        if (found) return { ...found, courseId, source: 'course' };
+        if (found) return { ...found, courseId, source: 'course', isPremium: found.isPremium || false };
     }
     return null;
 }

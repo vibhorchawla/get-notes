@@ -7,6 +7,7 @@ interface Note {
     subject: string;
     unit?: string;
     pdfUrl?: string | null;
+    isPremium?: boolean;
 }
 
 export function useNotes(courseId: string) {

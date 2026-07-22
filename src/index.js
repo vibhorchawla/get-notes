@@ -1,4 +1,4 @@
-require('dotenv').config();
+require("dotenv").config({ path: "./.env" });
 const express = require('express');
 const cors = require('cors');
 const { connectDB } = require('./config/db');
@@ -7,6 +7,7 @@ const authRoutes = require('./modules/auth/auth.routes');
 const coursesRoutes = require('./modules/courses/courses.routes');
 const notesRoutes = require('./modules/notes/notes.routes');
 const userRoutes = require('./modules/user/user.routes');
+const paymentRoutes = require('./modules/payment/payment.routes');
 const {
     searchNotesHandler,
     publishNote,
@@ -39,6 +40,7 @@ app.use('/api/auth', authRoutes);
 app.use('/api/courses', coursesRoutes);
 app.use('/api/notes', notesRoutes);
 app.use('/api/user', userRoutes);
+app.use('/api/payment', paymentRoutes);
 
 // ── 404 catch-all ─────────────────────────────────────────────────────────────
 app.use((_req, res) => {
@@ -56,7 +58,10 @@ connectDB()
             console.log(`   Search  -> GET  /api/search?q=     |  POST /api/share-note`);
             console.log(`   Notes   -> GET  /api/notes/search  |  POST /api/notes/publish`);
             console.log(`           GET  /api/notes/:courseId`);
-            console.log(`   User    -> GET  /api/user/saved      |  GET  /api/user/downloads\n`);
+            console.log(`   User    -> GET  /api/user/saved      |  GET  /api/user/downloads`);
+console.log(`   Payment -> POST /api/payment/create-order | POST /api/payment/verify`);
+console.log(`           POST /api/payment/webhook  | GET  /api/payment/history`);
+console.log(`           GET  /api/payment/status   | GET  /api/payment/plans\n`);
         });
     })
     .catch((err) => {

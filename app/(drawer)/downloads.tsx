@@ -26,6 +26,7 @@ export default function DownloadsScreen() {
                                     title={note.title}
                                     subject={note.subject}
                                     unit={note.unit}
+                                    isPremium={note.isPremium}
                                     onPress={() => { }}
                                     onDownload={() => { }}
                                 />

@@ -54,7 +54,15 @@ export default function PersonalNoteCard({ note, onPress, onShare, index = 0 }: 
             onPressOut={handlePressOut}
             entering={FadeInDown.delay(index * 100).springify().damping(14)}
         >
-            <Text style={styles.title} numberOfLines={1}>{note.title}</Text>
+            <View style={styles.titleRow}>
+                <Text style={styles.title} numberOfLines={1}>{note.title}</Text>
+                {note.isPremium && (
+                    <View style={styles.premiumBadgeSmall}>
+                        <Ionicons name="diamond" size={9} color="#FFFFFF" />
+                        <Text style={styles.premiumBadgeSmallText}>Premium</Text>
+                    </View>
+                )}
+            </View>
             <View style={styles.tagRow}>
                 {note.pdfUrl && (
                     <View style={styles.tag}>
@@ -107,11 +115,31 @@ const styles = StyleSheet.create({
         shadowRadius: 12,
         elevation: 3,
     },
+    titleRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: spacing.xs,
+        marginBottom: spacing.xs,
+    },
+    premiumBadgeSmall: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 2,
+        backgroundColor: '#7C3AED',
+        borderRadius: 999,
+        paddingHorizontal: 6,
+        paddingVertical: 2,
+    },
+    premiumBadgeSmallText: {
+        fontSize: 9,
+        fontWeight: typography.fontWeight.bold,
+        color: '#FFFFFF',
+    },
     title: {
         fontSize: typography.fontSize.md,
         fontWeight: typography.fontWeight.bold,
         color: colors.textPrimary,
-        marginBottom: spacing.xs,
+        flexShrink: 1,
     },
     tagRow: {
         flexDirection: 'row',

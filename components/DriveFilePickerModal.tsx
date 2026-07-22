@@ -99,22 +99,24 @@ export default function DriveFilePickerModal({
 const styles = StyleSheet.create({
     backdrop: {
         flex: 1,
-        backgroundColor: 'rgba(15, 23, 42, 0.45)',
+        backgroundColor: 'rgba(0, 0, 0, 0.6)',
         justifyContent: 'flex-end',
     },
     sheet: {
-        backgroundColor: colors.cardBackground,
+        backgroundColor: '#1A1A2E',
         borderTopLeftRadius: 28,
         borderTopRightRadius: 28,
         paddingHorizontal: spacing.screenPadding,
         paddingBottom: spacing.xl,
+        borderTopWidth: 1,
+        borderTopColor: 'rgba(124, 58, 237, 0.2)',
     },
     handle: {
         alignSelf: 'center',
         width: 40,
         height: 4,
         borderRadius: 2,
-        backgroundColor: colors.border,
+        backgroundColor: 'rgba(255, 255, 255, 0.15)',
         marginVertical: spacing.sm,
     },
     header: {
@@ -126,11 +128,11 @@ const styles = StyleSheet.create({
     title: {
         fontSize: typography.fontSize.lg,
         fontWeight: typography.fontWeight.bold,
-        color: colors.textPrimary,
+        color: '#FFFFFF',
     },
     subtitle: {
         fontSize: typography.fontSize.sm,
-        color: colors.textSecondary,
+        color: 'rgba(255, 255, 255, 0.5)',
         marginBottom: spacing.lg,
     },
     loadingBlock: {
@@ -140,29 +142,29 @@ const styles = StyleSheet.create({
     },
     loadingText: {
         fontSize: typography.fontSize.sm,
-        color: colors.textSecondary,
+        color: 'rgba(255, 255, 255, 0.5)',
     },
     browseBtn: {
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'center',
         gap: spacing.sm,
-        backgroundColor: colors.background,
+        backgroundColor: 'rgba(124, 58, 237, 0.15)',
         borderRadius: 14,
         paddingVertical: 16,
         borderWidth: 1.5,
-        borderColor: '#C7D2FE',
+        borderColor: 'rgba(124, 58, 237, 0.4)',
         marginBottom: spacing.md,
         minHeight: 52,
     },
     browseText: {
-        color: colors.primary,
+        color: '#7C3AED',
         fontWeight: typography.fontWeight.semibold,
         fontSize: typography.fontSize.md,
     },
     errorText: {
         textAlign: 'center',
-        color: colors.textSecondary,
+        color: 'rgba(255, 255, 255, 0.5)',
         fontSize: typography.fontSize.sm,
         marginBottom: spacing.md,
         paddingHorizontal: spacing.md,
@@ -172,7 +174,7 @@ const styles = StyleSheet.create({
         paddingVertical: spacing.md,
     },
     cancelText: {
-        color: colors.textSecondary,
+        color: 'rgba(255, 255, 255, 0.4)',
         fontWeight: typography.fontWeight.medium,
         fontSize: typography.fontSize.md,
     },

@@ -14,6 +14,8 @@ import { colors } from '../../constants/colors';
 import { spacing } from '../../constants/spacing';
 import { typography } from '../../constants/typography';
 import { useNotes } from '../../hooks/useNotes';
+import { useDownloads } from '../../hooks/useDownloads';
+import { useAuth } from '../../context/AuthContext';
 import { openNote } from '../../utils/openNote';
 
 const COURSE_TITLES: Record<string, string> = {
@@ -29,26 +31,36 @@ const COURSE_TITLES: Record<string, string> = {
 export default function NotesScreen() {
     const { id } = useLocalSearchParams<{ id: string }>();
     const router = useRouter();
+    const { user } = useAuth();
     const { notes, isLoading } = useNotes(id);
     const { addDownload } = useDownloads();
 
+    const now = new Date();
+    const isPremium = user?.isPremium && user?.premiumEndDate ? new Date(user.premiumEndDate) > now : false;
+
     const handleNotePress = (noteId: string) => {
         const note = notes.find((n) => n.id === noteId);
-        
-        // Debug logs for troubleshooting
-        console.log('--- Note Navigation Debug ---');
-        console.log('Course ID:', id);
-        console.log('All Notes:', notes.length);
-        console.log('Clicked Note ID:', noteId);
-        console.log('Found Note Object:', note);
+
+        if (note?.isPremium && !isPremium) {
+            Alert.alert(
+                'Premium Note',
+                'This note is only available for Premium members. Upgrade to access all premium notes.',
+                [
+                    { text: 'Cancel', style: 'cancel' },
+                    { text: 'Go Premium', onPress: () => router.push('/(drawer)/subscription') },
+                ]
+            );
+            return;
+        }
 
         if (note?.pdfUrl) {
             router.push({
                 pathname: `/note/${noteId}`,
-                params: { 
-                    title: note.title, 
-                    pdfUrl: note.pdfUrl 
-                }
+                params: {
+                    title: note.title,
+                    pdfUrl: note.pdfUrl,
+                    isPremium: note.isPremium ? 'true' : 'false',
+                },
             });
         } else {
             console.warn('PDF URL missing for note:', noteId);
@@ -57,6 +69,18 @@ export default function NotesScreen() {
     };
 
     const handleDownload = async (noteId: string) => {
+        const note = notes.find((n) => n.id === noteId);
+        if (note?.isPremium && !isPremium) {
+            Alert.alert(
+                'Premium Note',
+                'Downloading premium notes requires a Premium subscription.',
+                [
+                    { text: 'Cancel', style: 'cancel' },
+                    { text: 'Go Premium', onPress: () => router.push('/(drawer)/subscription') },
+                ]
+            );
+            return;
+        }
         await addDownload(noteId);
         Alert.alert('Downloaded', 'Note saved to your downloads!');
     };
@@ -85,6 +109,7 @@ export default function NotesScreen() {
                                         title={note.title}
                                         subject={note.subject}
                                         unit={note.unit}
+                                        isPremium={note.isPremium}
                                         onPress={() => handleNotePress(note.id)}
                                         onDownload={() => handleDownload(note.id)}
                                     />

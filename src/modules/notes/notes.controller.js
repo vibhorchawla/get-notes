@@ -1,7 +1,14 @@
 const CommunityNote = require('../../models/CommunityNote');
 const { NOTES, getAllCatalogNotes, findCatalogNoteById } = require('../../config/db');
 
-// GET /api/notes/search?q=   and   GET /api/search?q=
+// Shared: clean _id -> id from a lean Mongo doc
+function cleanId(doc) {
+    if (!doc) return doc;
+    const { _id, __v, ...rest } = doc;
+    return { ...rest, id: _id };
+}
+
+// GET /api/search?q=   and   GET /api/notes/search?q=
 async function searchNotesHandler(req, res) {
     try {
         const { q = '' } = req.query;
@@ -12,34 +19,24 @@ async function searchNotesHandler(req, res) {
 
         const catalog = getAllCatalogNotes();
 
-        let community = [];
-        try {
-            community = await CommunityNote.find(
-                { $text: { $search: query } },
-                { score: { $meta: 'textScore' } }
-            )
-                .sort({ score: { $meta: 'textScore' } })
-                .limit(50)
-                .lean();
-            community = community.map((n) => ({ ...n, id: n._id, source: 'community' }));
-        } catch {
-            // Text index may not exist yet — fall back to regex
-            const regex = new RegExp(query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i');
-            community = await CommunityNote.find({
-                $or: [
-                    { title: regex },
-                    { content: regex },
-                    { subject: regex },
-                    { unit: regex },
-                    { 'uploadedBy.name': regex },
-                    { 'uploadedBy.course': regex },
-                ],
-            })
-                .limit(50)
-                .lean();
-            community = community.map((n) => ({ ...n, id: n._id, source: 'community' }));
-        }
+        // Search community notes via regex (works without text index)
+        const regex = new RegExp(query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i');
+        const communityDocs = await CommunityNote.find({
+            $or: [
+                { title: regex },
+                { content: regex },
+                { subject: regex },
+                { unit: regex },
+                { 'uploadedBy.name': regex },
+                { 'uploadedBy.course': regex },
+            ],
+        })
+            .sort({ createdAt: -1 })
+            .limit(50)
+            .lean();
+        const community = communityDocs.map((n) => ({ ...cleanId(n), source: 'community' }));
 
+        // Filter catalog notes
         const qLower = query.toLowerCase();
         const filteredCatalog = catalog.filter((note) => {
             const text = [note.title, note.subject, note.unit, note.content]
@@ -57,7 +54,7 @@ async function searchNotesHandler(req, res) {
     }
 }
 
-// GET /api/notes/item/:noteId   and   GET /api/note/:noteId
+// GET /api/note/:noteId   and   GET /api/notes/item/:noteId
 async function getNoteById(req, res) {
     try {
         const { noteId } = req.params;
@@ -69,7 +66,7 @@ async function getNoteById(req, res) {
 
         const note = await CommunityNote.findById(noteId).lean();
         if (note) {
-            return res.json({ success: true, data: { ...note, id: note._id, source: 'community' } });
+            return res.json({ success: true, data: { ...cleanId(note), source: 'community' } });
         }
 
         return res.status(404).json({ success: false, message: 'Note not found' });
@@ -86,14 +83,14 @@ async function getMyUploadedNotes(req, res) {
         const notes = await CommunityNote.find({ 'uploadedBy.id': userId })
             .sort({ createdAt: -1 })
             .lean();
-        res.json({ success: true, data: notes.map((n) => ({ ...n, id: n._id })) });
+        res.json({ success: true, data: notes.map(cleanId) });
     } catch (err) {
         console.error('GetMyNotes error:', err);
         res.status(500).json({ success: false, message: 'Server error' });
     }
 }
 
-// POST /api/notes/publish   and   POST /api/share-note
+// POST /api/share-note   and   POST /api/notes/publish
 async function publishNote(req, res) {
     try {
         const { id: userId, name, course } = req.user;
@@ -106,6 +103,8 @@ async function publishNote(req, res) {
             pdfUrl,
             playlistUrl,
             noteType,
+            createdAt,
+            updatedAt,
         } = req.body;
 
         if (!title || !String(title).trim()) {
@@ -121,7 +120,11 @@ async function publishNote(req, res) {
             playlistUrl: playlistUrl || undefined,
             noteType: noteType || 'text',
             uploadedBy: { id: userId, name, course },
+            isPublished: true,
         };
+
+        if (createdAt) noteData.createdAt = createdAt;
+        if (updatedAt) noteData.updatedAt = updatedAt;
 
         let note;
         if (id) {
@@ -131,11 +134,11 @@ async function publishNote(req, res) {
                 setDefaultsOnInsert: true,
             }).lean();
         } else {
-            note = await CommunityNote.create(noteData);
-            note = note.toObject();
+            const doc = await CommunityNote.create(noteData);
+            note = doc.toObject();
         }
 
-        res.status(201).json({ success: true, data: { ...note, id: note._id } });
+        res.status(201).json({ success: true, data: cleanId(note) });
     } catch (err) {
         console.error('PublishNote error:', err);
         res.status(500).json({ success: false, message: 'Server error' });
@@ -145,10 +148,11 @@ async function publishNote(req, res) {
 // GET /api/notes/:courseId
 function getNotesByCourse(req, res) {
     const { courseId } = req.params;
-    const notes = NOTES[courseId];
-    if (!notes) {
+    const courseNotes = NOTES[courseId];
+    if (!courseNotes) {
         return res.status(404).json({ success: false, message: 'No notes found for this course' });
     }
+    const notes = courseNotes.map((n) => ({ ...n, isPremium: n.isPremium || false }));
     res.json({ success: true, data: notes });
 }
 

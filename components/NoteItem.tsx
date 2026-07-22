@@ -9,6 +9,7 @@ interface NoteItemProps {
     title: string;
     subject: string;
     unit?: string;
+    isPremium?: boolean;
     onPress?: () => void;
     onDownload?: () => void;
 }
@@ -17,19 +18,32 @@ export default function NoteItem({
     title,
     subject,
     unit,
+    isPremium,
     onPress,
     onDownload,
 }: NoteItemProps) {
     return (
         <TouchableOpacity style={styles.container} onPress={onPress}>
             <View style={styles.iconContainer}>
-                <Ionicons name="document-text" size={24} color={colors.primary} />
+                {isPremium ? (
+                    <Ionicons name="lock-closed" size={20} color="#F59E0B" />
+                ) : (
+                    <Ionicons name="document-text" size={24} color={colors.primary} />
+                )}
             </View>
 
             <View style={styles.content}>
-                <Text style={styles.title} numberOfLines={1}>
-                    {title}
-                </Text>
+                <View style={styles.titleRow}>
+                    <Text style={styles.title} numberOfLines={1}>
+                        {title}
+                    </Text>
+                    {isPremium && (
+                        <View style={styles.premiumBadge}>
+                            <Ionicons name="diamond" size={10} color="#FFFFFF" />
+                            <Text style={styles.premiumBadgeText}>Premium</Text>
+                        </View>
+                    )}
+                </View>
                 <View style={styles.meta}>
                     <Text style={styles.subject}>{subject}</Text>
                     {unit && (
@@ -41,15 +55,17 @@ export default function NoteItem({
                 </View>
             </View>
 
-            <TouchableOpacity
-                style={styles.downloadButton}
-                onPress={(e) => {
-                    e.stopPropagation();
-                    onDownload?.();
-                }}
-            >
-                <Ionicons name="download-outline" size={20} color={colors.primary} />
-            </TouchableOpacity>
+            {!isPremium && (
+                <TouchableOpacity
+                    style={styles.downloadButton}
+                    onPress={(e) => {
+                        e.stopPropagation();
+                        onDownload?.();
+                    }}
+                >
+                    <Ionicons name="download-outline" size={20} color={colors.primary} />
+                </TouchableOpacity>
+            )}
         </TouchableOpacity>
     );
 }
@@ -80,11 +96,31 @@ const styles = StyleSheet.create({
     content: {
         flex: 1,
     },
+    titleRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: spacing.xs,
+        marginBottom: spacing.xs,
+    },
     title: {
         fontSize: typography.fontSize.md,
         fontWeight: typography.fontWeight.medium,
         color: colors.textPrimary,
-        marginBottom: spacing.xs,
+        flexShrink: 1,
+    },
+    premiumBadge: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 3,
+        backgroundColor: '#7C3AED',
+        paddingHorizontal: 6,
+        paddingVertical: 2,
+        borderRadius: 6,
+    },
+    premiumBadgeText: {
+        fontSize: 9,
+        fontWeight: typography.fontWeight.bold,
+        color: '#FFFFFF',
     },
     meta: {
         flexDirection: 'row',

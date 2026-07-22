@@ -16,7 +16,9 @@ export default function DrawerLayout() {
                 drawerActiveTintColor: colors.primary,
                 drawerInactiveTintColor: colors.textSecondary,
                 drawerStyle: {
-                    backgroundColor: colors.cardBackground,
+                    backgroundColor: '#1A1A2E',
+                    borderRightWidth: 1,
+                    borderRightColor: 'rgba(255, 255, 255, 0.08)',
                 },
             }}
         >
@@ -67,6 +69,17 @@ export default function DrawerLayout() {
                     title: 'Settings',
                     drawerIcon: ({ color, size }) => (
                         <Ionicons name="settings-outline" size={size} color={color} />
+                    ),
+                }}
+            />
+            <Drawer.Screen
+                name="subscription"
+                options={{
+                    headerShown: false,
+                    drawerLabel: 'Subscription',
+                    title: 'Subscription',
+                    drawerIcon: ({ color, size }) => (
+                        <Ionicons name="card-outline" size={size} color={color} />
                     ),
                 }}
             />

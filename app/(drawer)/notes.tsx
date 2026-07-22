@@ -121,8 +121,8 @@ export default function NotesScreen() {
                     note: {
                         ...note,
                         content: note.content || '',
-                        createdAt: note.createdAt || '',
-                        updatedAt: note.updatedAt || '',
+                        createdAt: '',
+                        updatedAt: '',
                     } as Note,
                     key: `saved-${note.id}`,
                 });

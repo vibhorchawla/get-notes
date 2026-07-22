@@ -8,6 +8,7 @@ import {
     Switch,
     SafeAreaView,
 } from 'react-native';
+import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import GradientBackground from '../../components/GradientBackground';
 import TopHeader from '../../components/TopHeader';
@@ -16,6 +17,7 @@ import { spacing } from '../../constants/spacing';
 import { typography } from '../../constants/typography';
 
 export default function SettingsScreen() {
+    const router = useRouter();
     const [notificationsEnabled, setNotificationsEnabled] = React.useState(true);
     const [darkModeEnabled, setDarkModeEnabled] = React.useState(false);
     const [autoDownload, setAutoDownload] = React.useState(false);
@@ -26,6 +28,31 @@ export default function SettingsScreen() {
                 <TopHeader title="Settings" />
                 <ScrollView showsVerticalScrollIndicator={false}>
                     <View style={styles.content}>
+                        {/* Subscription Section */}
+                        <View style={styles.section}>
+                            <Text style={styles.sectionTitle}>Subscription</Text>
+
+                            <View style={styles.settingsCard}>
+                                <TouchableOpacity
+                                    style={styles.settingRow}
+                                    onPress={() => router.push('/(drawer)/subscription')}
+                                >
+                                    <View style={styles.settingInfo}>
+                                        <View style={styles.subscriptionIconWrap}>
+                                            <Ionicons name="diamond-outline" size={24} color={colors.primary} />
+                                        </View>
+                                        <View style={styles.settingText}>
+                                            <Text style={styles.settingLabel}>Upgrade Plan</Text>
+                                            <Text style={styles.settingDescription}>
+                                                First 2 months free on Pro & Team
+                                            </Text>
+                                        </View>
+                                    </View>
+                                    <Ionicons name="chevron-forward" size={20} color={colors.textLight} />
+                                </TouchableOpacity>
+                            </View>
+                        </View>
+
                         {/* Preferences Section */}
                     <View style={styles.section}>
                         <Text style={styles.sectionTitle}>Preferences</Text>
@@ -193,5 +220,13 @@ const styles = StyleSheet.create({
         height: 1,
         backgroundColor: colors.border,
         marginVertical: spacing.sm,
+    },
+    subscriptionIconWrap: {
+        width: 40,
+        height: 40,
+        borderRadius: 10,
+        backgroundColor: 'rgba(79, 70, 229, 0.1)',
+        alignItems: 'center',
+        justifyContent: 'center',
     },
 });

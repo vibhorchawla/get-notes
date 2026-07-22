@@ -1,25 +1,33 @@
 import React, { useMemo } from 'react';
-import { View, StyleSheet, TouchableOpacity, Alert } from 'react-native';
-import { useLocalSearchParams, Stack } from 'expo-router';
+import { View, Text, StyleSheet, TouchableOpacity, Alert } from 'react-native';
+import { useLocalSearchParams, Stack, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import PdfViewer from '../../components/PdfViewer';
 import { usePersonalNotes } from '../../hooks/usePersonalNotes';
 import { useSaved } from '../../hooks/useSaved';
 import { useDownloads } from '../../hooks/useDownloads';
+import { useAuth } from '../../context/AuthContext';
 import { normalizePdfUrl } from '../../utils/localFile';
 import { colors } from '../../constants/colors';
 import { spacing } from '../../constants/spacing';
 
 export default function NoteViewer() {
-    const { id, title, pdfUrl: paramPdfUrl } = useLocalSearchParams<{
+    const { id, title, pdfUrl: paramPdfUrl, isPremium } = useLocalSearchParams<{
         id: string;
         title: string;
         pdfUrl?: string;
+        isPremium?: string;
     }>();
 
+    const router = useRouter();
+    const { user } = useAuth();
     const { getNote } = usePersonalNotes();
     const { savedNotes, saveNote, unsaveNote } = useSaved();
     const { addDownload } = useDownloads();
+
+    const now = new Date();
+    const userIsPremium = user?.isPremium && user?.premiumEndDate ? new Date(user.premiumEndDate) > now : false;
+    const noteIsPremium = isPremium === 'true';
 
     const storedNote = getNote(id);
     const savedNote = savedNotes.find((n) => n.id === id);
@@ -43,6 +51,17 @@ export default function NoteViewer() {
     };
 
     const handleDownload = async () => {
+        if (noteIsPremium && !userIsPremium) {
+            Alert.alert(
+                'Premium Note',
+                'Downloading premium notes requires a Premium subscription.',
+                [
+                    { text: 'Cancel', style: 'cancel' },
+                    { text: 'Go Premium', onPress: () => router.push('/(drawer)/subscription') },
+                ]
+            );
+            return;
+        }
         await addDownload(id);
         Alert.alert('Download Started', 'The PDF is being saved to your downloads.');
     };
@@ -69,7 +88,25 @@ export default function NoteViewer() {
                 }}
             />
 
-            <PdfViewer pdfUrl={resolvedPdfUrl} />
+            {noteIsPremium && !userIsPremium ? (
+                <View style={styles.premiumLock}>
+                    <Ionicons name="lock-closed" size={64} color="#7C3AED" />
+                    <Text style={styles.premiumLockTitle}>Premium Note</Text>
+                    <Text style={styles.premiumLockSub}>
+                        Upgrade to Premium to access this note and many more.
+                    </Text>
+                    <TouchableOpacity
+                        style={styles.premiumLockBtn}
+                        onPress={() => router.push('/(drawer)/subscription')}
+                        activeOpacity={0.8}
+                    >
+                        <Ionicons name="diamond" size={18} color="#FFFFFF" />
+                        <Text style={styles.premiumLockBtnText}>Go Premium</Text>
+                    </TouchableOpacity>
+                </View>
+            ) : (
+                <PdfViewer pdfUrl={resolvedPdfUrl} />
+            )}
         </View>
     );
 }
@@ -87,5 +124,39 @@ const styles = StyleSheet.create({
     headerButton: {
         padding: spacing.sm,
         marginLeft: spacing.xs,
+    },
+    premiumLock: {
+        flex: 1,
+        justifyContent: 'center',
+        alignItems: 'center',
+        paddingHorizontal: spacing.xxl,
+        gap: spacing.md,
+    },
+    premiumLockTitle: {
+        fontSize: 24,
+        fontWeight: '700',
+        color: '#FFFFFF',
+        textAlign: 'center',
+    },
+    premiumLockSub: {
+        fontSize: 14,
+        color: 'rgba(255, 255, 255, 0.6)',
+        textAlign: 'center',
+        lineHeight: 20,
+    },
+    premiumLockBtn: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: spacing.sm,
+        backgroundColor: '#7C3AED',
+        paddingHorizontal: 24,
+        paddingVertical: 14,
+        borderRadius: 14,
+        marginTop: spacing.md,
+    },
+    premiumLockBtnText: {
+        fontSize: 16,
+        fontWeight: '600',
+        color: '#FFFFFF',
     },
 });

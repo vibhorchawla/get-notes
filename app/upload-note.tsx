@@ -125,7 +125,7 @@ const fieldStyles = StyleSheet.create({
         width: 28,
         height: 28,
         borderRadius: 8,
-        backgroundColor: 'rgba(79, 70, 229, 0.1)',
+        backgroundColor: 'rgba(124, 58, 237, 0.15)',
         justifyContent: 'center',
         alignItems: 'center',
     },
@@ -286,7 +286,7 @@ export default function UploadNoteScreen() {
             <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
                 <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
                     <LinearGradient
-                        colors={['#4F46E5', '#6366F1']}
+                        colors={['#7C3AED', '#6D28D9']}
                         start={{ x: 0, y: 0 }}
                         end={{ x: 1, y: 1 }}
                         style={styles.heroCard}
@@ -584,26 +584,26 @@ const styles = StyleSheet.create({
     },
     driveCard: {
         marginTop: spacing.sm,
-        backgroundColor: '#F5F7FF',
+        backgroundColor: 'rgba(124, 58, 237, 0.08)',
         borderRadius: 18,
         padding: spacing.md,
         borderWidth: 1,
-        borderColor: '#E0E7FF',
+        borderColor: 'rgba(124, 58, 237, 0.2)',
     },
     driveButton: {
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'center',
         gap: spacing.sm,
-        backgroundColor: colors.cardBackground,
+        backgroundColor: 'rgba(124, 58, 237, 0.12)',
         borderRadius: 14,
         paddingVertical: 18,
         borderWidth: 1.5,
-        borderColor: '#C7D2FE',
+        borderColor: 'rgba(124, 58, 237, 0.35)',
         borderStyle: 'dashed',
     },
     driveButtonText: {
-        color: colors.primary,
+        color: '#7C3AED',
         fontSize: typography.fontSize.md,
         fontWeight: typography.fontWeight.semibold,
     },
@@ -611,17 +611,17 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         alignItems: 'center',
         gap: spacing.md,
-        backgroundColor: colors.cardBackground,
+        backgroundColor: 'rgba(255, 255, 255, 0.06)',
         borderRadius: 14,
         padding: spacing.md,
         borderWidth: 1,
-        borderColor: '#C7D2FE',
+        borderColor: 'rgba(124, 58, 237, 0.3)',
     },
     selectedFileIcon: {
         width: 44,
         height: 44,
         borderRadius: 12,
-        backgroundColor: '#EEF2FF',
+        backgroundColor: 'rgba(124, 58, 237, 0.15)',
         justifyContent: 'center',
         alignItems: 'center',
     },

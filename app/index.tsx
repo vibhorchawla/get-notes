@@ -15,7 +15,7 @@ export default function IndexScreen() {
         );
     }
 
-    return <Redirect href={user ? '/home' : '/login'} />;
+    return <Redirect href={user ? '/home' : '/onboarding'} />;
 }
 
 const styles = StyleSheet.create({

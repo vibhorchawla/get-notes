@@ -25,9 +25,9 @@ export default function SearchNoteCard({ note, onPress, onRemove }: SearchNoteCa
         <TouchableOpacity style={styles.card} onPress={onPress} activeOpacity={0.85}>
             <View style={styles.iconWrap}>
                 <Ionicons
-                    name={note.pdfUrl ? 'document-text' : note.playlistUrl ? 'play-circle' : 'reader'}
+                    name={note.isPremium ? 'lock-closed' : note.pdfUrl ? 'document-text' : note.playlistUrl ? 'play-circle' : 'reader'}
                     size={22}
-                    color={colors.primary}
+                    color={note.isPremium ? '#F59E0B' : colors.primary}
                 />
             </View>
 
@@ -50,6 +50,12 @@ export default function SearchNoteCard({ note, onPress, onRemove }: SearchNoteCa
             </View>
 
             <View style={styles.trailing}>
+                {note.isPremium && (
+                    <View style={styles.premiumBadgeSmall}>
+                        <Ionicons name="diamond" size={9} color="#FFFFFF" />
+                        <Text style={styles.premiumBadgeSmallText}>Premium</Text>
+                    </View>
+                )}
                 <View style={[styles.badge, badge.wrap]}>
                     <Text style={[styles.badgeText, badge.text]}>{badge.label}</Text>
                 </View>
@@ -83,7 +89,7 @@ const styles = StyleSheet.create({
         width: 44,
         height: 44,
         borderRadius: 14,
-        backgroundColor: '#EEF2FF',
+        backgroundColor: 'rgba(124, 58, 237, 0.15)',
         justifyContent: 'center',
         alignItems: 'center',
         marginRight: spacing.md,
@@ -125,6 +131,21 @@ const styles = StyleSheet.create({
         borderRadius: 999,
         paddingHorizontal: 8,
         paddingVertical: 4,
+    },
+    premiumBadgeSmall: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 2,
+        backgroundColor: '#7C3AED',
+        borderRadius: 999,
+        paddingHorizontal: 6,
+        paddingVertical: 2,
+        marginBottom: 4,
+    },
+    premiumBadgeSmallText: {
+        fontSize: 9,
+        fontWeight: typography.fontWeight.bold,
+        color: '#FFFFFF',
     },
     removeBtn: {
         padding: 4,

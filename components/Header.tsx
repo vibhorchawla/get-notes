@@ -24,6 +24,15 @@ export default function Header() {
                 <Ionicons name="menu" size={22} color={colors.textPrimary} />
             </TouchableOpacity>
 
+            <TouchableOpacity
+                style={[styles.notificationButton, { top: topOffset }]}
+                onPress={() => {}}
+                activeOpacity={0.8}
+            >
+                <Ionicons name="notifications-outline" size={22} color="#FFFFFF" />
+                <View style={styles.notificationBadge} />
+            </TouchableOpacity>
+
             <Animated.View entering={FadeInDown.delay(40).springify().damping(14)} style={styles.brandCard}>
                 <View style={styles.logoRow}>
                     <View style={styles.logoBadge}>
@@ -50,6 +59,7 @@ const styles = StyleSheet.create({
     menuButton: {
         position: 'absolute',
         left: spacing.screenPadding,
+        top: 0,
         zIndex: 2,
         width: 42,
         height: 42,
@@ -64,6 +74,31 @@ const styles = StyleSheet.create({
         shadowOpacity: 0.06,
         shadowRadius: 8,
         elevation: 2,
+    },
+    notificationButton: {
+        position: 'absolute',
+        right: spacing.screenPadding,
+        top: 0,
+        zIndex: 2,
+        width: 42,
+        height: 42,
+        borderRadius: 21,
+        backgroundColor: 'rgba(124, 58, 237, 0.2)',
+        justifyContent: 'center',
+        alignItems: 'center',
+        borderWidth: 1,
+        borderColor: 'rgba(124, 58, 237, 0.35)',
+    },
+    notificationBadge: {
+        position: 'absolute',
+        top: 10,
+        right: 10,
+        width: 8,
+        height: 8,
+        borderRadius: 4,
+        backgroundColor: '#EF4444',
+        borderWidth: 1.5,
+        borderColor: '#1A1A2E',
     },
     brandCard: {
         alignItems: 'center',
@@ -98,7 +133,7 @@ const styles = StyleSheet.create({
     taglinePill: {
         marginTop: 4,
         alignSelf: 'flex-start',
-        backgroundColor: 'rgba(79, 70, 229, 0.08)',
+        backgroundColor: 'rgba(124, 58, 237, 0.15)',
         borderRadius: 999,
         paddingHorizontal: 10,
         paddingVertical: 3,

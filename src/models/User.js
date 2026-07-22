@@ -12,7 +12,7 @@ const userSchema = new mongoose.Schema(
         },
         passwordHash: {
             type: String,
-            required: [true, 'Password is required'],
+            default: null,
         },
         name: {
             type: String,
@@ -21,9 +21,41 @@ const userSchema = new mongoose.Schema(
         },
         course: {
             type: String,
-            required: [true, 'Course is required'],
+            default: '',
             trim: true,
         },
+        provider: {
+            type: String,
+            enum: ['email', 'google', 'facebook'],
+            default: 'email',
+        },
+        providerId: {
+            type: String,
+            default: null,
+        },
+        isPremium: {
+            type: Boolean,
+            default: false,
+        },
+        premiumPlan: {
+            type: String,
+            enum: ['monthly', 'quarterly', 'yearly', null],
+            default: null,
+        },
+        premiumStartDate: {
+            type: Date,
+            default: null,
+        },
+        premiumEndDate: {
+            type: Date,
+            default: null,
+        },
+        paymentHistory: [
+            {
+                type: mongoose.Schema.Types.ObjectId,
+                ref: 'Payment',
+            },
+        ],
     },
     {
         timestamps: true,

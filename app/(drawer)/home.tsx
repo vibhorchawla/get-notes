@@ -6,8 +6,9 @@ import {
     ScrollView,
     ActivityIndicator,
     TouchableOpacity,
-} from 'react-native';
-import { useRouter } from 'expo-router';
+} from 'react-native'; 
+import { useRouter, useNavigation } from 'expo-router';
+import { DrawerNavigationProp } from '@react-navigation/drawer';
 import Animated, { FadeInDown, FadeInRight } from 'react-native-reanimated';
 import { Ionicons } from '@expo/vector-icons';
 import GradientBackground from '../../components/GradientBackground';
@@ -15,7 +16,7 @@ import Header from '../../components/Header';
 import SearchBar from '../../components/SearchBar';
 import CategoryPill from '../../components/CategoryPill';
 import MarketplaceCard from '../../components/MarketplaceCard';
-import FloatingActionButton from '../../components/FloatingActionButton';
+import BottomBar from '../../components/BottomBar';
 import { useCourses } from '../../hooks/useCourses';
 import { useNoteSearch } from '../../hooks/useNoteSearch';
 import SearchNoteCard from '../../components/SearchNoteCard';
@@ -46,6 +47,7 @@ const CATEGORY_ICONS: Record<string, any> = {
 
 export default function HomeScreen() {
     const router = useRouter();
+    const navigation = useNavigation<DrawerNavigationProp<any>>();
     const [searchQuery, setSearchQuery] = useState('');
     const [activeCategory, setActiveCategory] = useState('All');
     const { courses, featured, categories, isLoading } = useCourses();
@@ -210,7 +212,15 @@ export default function HomeScreen() {
                     </View>
                 </ScrollView>
 
-                <FloatingActionButton onPress={() => router.push('/upload-note')} />
+                <BottomBar
+                    activeTab="home"
+                    onTabPress={(tab) => {
+                        if (tab === 'save') router.push('/saved');
+                        else if (tab === 'downloads') router.push('/downloads');
+                        else if (tab === 'more') navigation.openDrawer();
+                    }}
+                    onAddPress={() => router.push('/upload-note')}
+                />
             </View>
         </GradientBackground>
     );
@@ -268,7 +278,7 @@ const styles = StyleSheet.create({
         marginBottom: spacing.md,
     },
     topPicksPill: {
-        backgroundColor: 'rgba(79, 70, 229, 0.12)',
+        backgroundColor: 'rgba(124, 58, 237, 0.15)',
         paddingHorizontal: 12,
         paddingVertical: 6,
         borderRadius: 999,

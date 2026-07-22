@@ -56,7 +56,7 @@ export default function CustomDrawerContent(props: any) {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: colors.cardBackground,
+        backgroundColor: '#1A1A2E',
     },
     scrollView: {
         paddingTop: 0,

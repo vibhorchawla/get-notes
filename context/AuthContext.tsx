@@ -7,6 +7,10 @@ interface User {
     email: string;
     name: string;
     course: string;
+    isPremium?: boolean;
+    premiumPlan?: 'monthly' | 'quarterly' | 'yearly' | null;
+    premiumStartDate?: string | null;
+    premiumEndDate?: string | null;
 }
 
 interface AuthContextType {
@@ -15,6 +19,8 @@ interface AuthContextType {
     login: (email: string, password: string) => Promise<boolean>;
     signup: (email: string, password: string, name: string, course: string) => Promise<boolean>;
     logout: () => Promise<void>;
+    socialAuth: (token: string, user: User) => Promise<void>;
+    refreshUser: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -92,11 +98,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                 setUser(res.data.user);
                 return true;
             }
-            console.warn('[Auth] Signup failed — server said:', res.message || 'no message');
-            return false;
+            const msg = res.message || 'Signup failed. Please try again.';
+            console.warn('[Auth] Signup failed — server said:', msg);
+            throw new Error(msg);
         } catch (error) {
             console.error('[Auth] Signup network/parse error:', error);
-            return false;
+            throw error;
         }
     };
 
@@ -110,8 +117,28 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         }
     };
 
+    const socialAuth = async (token: string, user: User) => {
+        await setToken(token);
+        await SecureStore.setItemAsync(USER_KEY, JSON.stringify(user));
+        setUser(user);
+    };
+
+    const refreshUser = async () => {
+        try {
+            const token = await getToken();
+            if (!token) return;
+            const res = await apiFetch<{ user: User }>('/auth/me');
+            if (res.success && (res as any).user) {
+                await SecureStore.setItemAsync(USER_KEY, JSON.stringify((res as any).user));
+                setUser((res as any).user);
+            }
+        } catch (error) {
+            console.error('[Auth] Refresh user error:', error);
+        }
+    };
+
     return (
-        <AuthContext.Provider value={{ user, isLoading, login, signup, logout }}>
+        <AuthContext.Provider value={{ user, isLoading, login, signup, logout, socialAuth, refreshUser }}>
             {children}
         </AuthContext.Provider>
     );

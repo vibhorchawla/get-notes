@@ -66,6 +66,7 @@ export default function SavedScreen() {
                                                 title: note.title,
                                                 pdfUrl: note.pdfUrl,
                                                 source: note.source || 'course',
+                                                isPremium: note.isPremium,
                                             })
                                         }
                                         onRemove={() => unsaveNote(note.id)}

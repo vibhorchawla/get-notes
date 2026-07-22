@@ -3,12 +3,18 @@ const Download = require('../../models/Download');
 const CommunityNote = require('../../models/CommunityNote');
 const { findCatalogNoteById } = require('../../config/db');
 
+function cleanId(doc) {
+    if (!doc) return doc;
+    const { _id, __v, ...rest } = doc;
+    return { ...rest, id: _id };
+}
+
 async function resolveNote(noteId) {
     const catalog = findCatalogNoteById(noteId);
     if (catalog) return catalog;
 
     const doc = await CommunityNote.findById(noteId).lean();
-    if (doc) return { ...doc, id: doc._id, source: 'community' };
+    if (doc) return { ...cleanId(doc), source: 'community' };
 
     return null;
 }

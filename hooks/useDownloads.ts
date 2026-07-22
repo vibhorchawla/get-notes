@@ -6,6 +6,7 @@ interface Note {
     title: string;
     subject: string;
     unit?: string;
+    isPremium?: boolean;
 }
 
 export function useDownloads() {

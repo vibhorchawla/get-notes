@@ -1,5 +1,6 @@
-import { View, Text, StyleSheet, ScrollView, SafeAreaView } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, SafeAreaView, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useRouter } from 'expo-router';
 import GradientBackground from '../../components/GradientBackground';
 import TopHeader from '../../components/TopHeader';
 import ProfileAvatar from '../../components/ProfileAvatar';
@@ -9,9 +10,22 @@ import { colors } from '../../constants/colors';
 import { spacing } from '../../constants/spacing';
 import { typography } from '../../constants/typography';
 
+function formatDate(dateStr: string | null | undefined): string {
+    if (!dateStr) return 'N/A';
+    const d = new Date(dateStr);
+    return d.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
+}
+
 export default function ProfileScreen() {
     const { user } = useAuth();
     const { stats } = useUserStats();
+    const router = useRouter();
+
+    const now = new Date();
+    const isPremium = user?.isPremium ?? false;
+    const premiumEnd = user?.premiumEndDate ? new Date(user.premiumEndDate) : null;
+    const isExpired = premiumEnd ? premiumEnd < now : false;
+    const premiumActive = isPremium && !isExpired;
 
     return (
         <GradientBackground>
@@ -19,74 +33,104 @@ export default function ProfileScreen() {
                 <TopHeader title="My Profile" />
                 <ScrollView showsVerticalScrollIndicator={false}>
                     <View style={styles.content}>
-                        {/* Profile Header */}
                         <View style={styles.profileHeader}>
                             <ProfileAvatar size={120} editable />
                             <Text style={styles.name}>{user?.name || 'User Name'}</Text>
                             <Text style={styles.email}>{user?.email || 'user@example.com'}</Text>
                         </View>
 
-                    {/* Profile Details */}
-                    <View style={styles.section}>
-                        <Text style={styles.sectionTitle}>Account Information</Text>
+                        {/* Premium Section */}
+                        <TouchableOpacity
+                            style={styles.premiumCard}
+                            onPress={() => router.push('/(drawer)/subscription')}
+                            activeOpacity={0.8}
+                        >
+                            <View style={styles.premiumRow}>
+                                <Ionicons
+                                    name={premiumActive ? 'diamond' : 'diamond-outline'}
+                                    size={24}
+                                    color={premiumActive ? '#10B981' : colors.primary}
+                                />
+                                <View style={styles.premiumTextWrap}>
+                                    <Text style={styles.premiumTitle}>
+                                        {premiumActive ? 'Premium Member' : 'Get Premium'}
+                                    </Text>
+                                    {premiumActive ? (
+                                        <>
+                                            <Text style={styles.premiumSub}>
+                                                Plan: {user?.premiumPlan ? user.premiumPlan.charAt(0).toUpperCase() + user.premiumPlan.slice(1) : ''}
+                                            </Text>
+                                            <Text style={styles.premiumSub}>
+                                                Expires: {formatDate(user?.premiumEndDate)}
+                                            </Text>
+                                        </>
+                                    ) : (
+                                        <Text style={styles.premiumSub}>Unlock unlimited notes & AI summaries</Text>
+                                    )}
+                                </View>
+                                <Ionicons name="chevron-forward" size={20} color="rgba(255,255,255,0.4)" />
+                            </View>
+                        </TouchableOpacity>
 
-                        <View style={styles.infoCard}>
-                            <View style={styles.infoRow}>
-                                <Ionicons name="school-outline" size={20} color={colors.primary} />
-                                <View style={styles.infoContent}>
-                                    <Text style={styles.infoLabel}>Course</Text>
-                                    <Text style={styles.infoValue}>{user?.course || 'Not Set'}</Text>
+                        <View style={styles.section}>
+                            <Text style={styles.sectionTitle}>Account Information</Text>
+
+                            <View style={styles.infoCard}>
+                                <View style={styles.infoRow}>
+                                    <Ionicons name="school-outline" size={20} color={colors.primary} />
+                                    <View style={styles.infoContent}>
+                                        <Text style={styles.infoLabel}>Course</Text>
+                                        <Text style={styles.infoValue}>{user?.course || 'Not Set'}</Text>
+                                    </View>
+                                </View>
+
+                                <View style={styles.divider} />
+
+                                <View style={styles.infoRow}>
+                                    <Ionicons name="mail-outline" size={20} color={colors.primary} />
+                                    <View style={styles.infoContent}>
+                                        <Text style={styles.infoLabel}>Email</Text>
+                                        <Text style={styles.infoValue}>{user?.email || 'Not Set'}</Text>
+                                    </View>
+                                </View>
+
+                                <View style={styles.divider} />
+
+                                <View style={styles.infoRow}>
+                                    <Ionicons name="calendar-outline" size={20} color={colors.primary} />
+                                    <View style={styles.infoContent}>
+                                        <Text style={styles.infoLabel}>Member Since</Text>
+                                        <Text style={styles.infoValue}>March 2026</Text>
+                                    </View>
                                 </View>
                             </View>
+                        </View>
 
-                            <View style={styles.divider} />
+                        <View style={styles.section}>
+                            <Text style={styles.sectionTitle}>Statistics</Text>
 
-                            <View style={styles.infoRow}>
-                                <Ionicons name="mail-outline" size={20} color={colors.primary} />
-                                <View style={styles.infoContent}>
-                                    <Text style={styles.infoLabel}>Email</Text>
-                                    <Text style={styles.infoValue}>{user?.email || 'Not Set'}</Text>
+                            <View style={styles.statsContainer}>
+                                <View style={styles.statCard}>
+                                    <Ionicons name="document-text" size={32} color={colors.primary} />
+                                    <Text style={styles.statValue}>{stats.notesRead}</Text>
+                                    <Text style={styles.statLabel}>Notes Read</Text>
                                 </View>
-                            </View>
 
-                            <View style={styles.divider} />
+                                <View style={styles.statCard}>
+                                    <Ionicons name="bookmark" size={32} color={colors.secondary} />
+                                    <Text style={styles.statValue}>{stats.saved}</Text>
+                                    <Text style={styles.statLabel}>Saved</Text>
+                                </View>
 
-                            <View style={styles.infoRow}>
-                                <Ionicons name="calendar-outline" size={20} color={colors.primary} />
-                                <View style={styles.infoContent}>
-                                    <Text style={styles.infoLabel}>Member Since</Text>
-                                    <Text style={styles.infoValue}>March 2026</Text>
+                                <View style={styles.statCard}>
+                                    <Ionicons name="download" size={32} color={colors.accent} />
+                                    <Text style={styles.statValue}>{stats.downloads}</Text>
+                                    <Text style={styles.statLabel}>Downloads</Text>
                                 </View>
                             </View>
                         </View>
                     </View>
-
-                    {/* Stats Section */}
-                    <View style={styles.section}>
-                        <Text style={styles.sectionTitle}>Statistics</Text>
-
-                        <View style={styles.statsContainer}>
-                            <View style={styles.statCard}>
-                                <Ionicons name="document-text" size={32} color={colors.primary} />
-                                <Text style={styles.statValue}>{stats.notesRead}</Text>
-                                <Text style={styles.statLabel}>Notes Read</Text>
-                            </View>
-
-                            <View style={styles.statCard}>
-                                <Ionicons name="bookmark" size={32} color={colors.secondary} />
-                                <Text style={styles.statValue}>{stats.saved}</Text>
-                                <Text style={styles.statLabel}>Saved</Text>
-                            </View>
-
-                            <View style={styles.statCard}>
-                                <Ionicons name="download" size={32} color={colors.accent} />
-                                <Text style={styles.statValue}>{stats.downloads}</Text>
-                                <Text style={styles.statLabel}>Downloads</Text>
-                            </View>
-                        </View>
-                    </View>
-                </View>
-            </ScrollView>
+                </ScrollView>
             </SafeAreaView>
         </GradientBackground>
     );
@@ -124,6 +168,37 @@ const styles = StyleSheet.create({
     email: {
         fontSize: typography.fontSize.md,
         color: colors.textSecondary,
+    },
+    premiumCard: {
+        backgroundColor: colors.cardBackground,
+        borderRadius: 16,
+        padding: spacing.lg,
+        marginBottom: spacing.xl,
+        shadowColor: colors.shadow,
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.1,
+        shadowRadius: 8,
+        elevation: 3,
+        borderWidth: 1,
+        borderColor: 'rgba(124, 58, 237, 0.2)',
+    },
+    premiumRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+    },
+    premiumTextWrap: {
+        flex: 1,
+        marginLeft: spacing.md,
+    },
+    premiumTitle: {
+        fontSize: typography.fontSize.md,
+        fontWeight: typography.fontWeight.semibold,
+        color: colors.textPrimary,
+    },
+    premiumSub: {
+        fontSize: typography.fontSize.sm,
+        color: colors.textSecondary,
+        marginTop: 2,
     },
     section: {
         marginBottom: spacing.xl,

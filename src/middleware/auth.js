@@ -11,7 +11,7 @@ function verifyToken(req, res, next) {
     const token = authHeader.split(' ')[1];
     try {
         const decoded = jwt.verify(token, JWT_SECRET);
-        req.user = decoded; // { id, email, name, course }
+        req.user = decoded; // { id, email, name, course, isPremium, premiumPlan, premiumStartDate, premiumEndDate }
         next();
     } catch (err) {
         return res.status(401).json({ success: false, message: 'Invalid or expired token' });

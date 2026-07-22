@@ -18,8 +18,8 @@ export interface Note {
     uploadedBy?: NoteUploader;
     source?: 'course' | 'community' | 'upload';
     courseId?: string;
-    /** True after the note is published to the server for global search */
     isPublished?: boolean;
+    isPremium?: boolean;
 }
 
 export function noteMatchesSearch(note: Note, query: string): boolean {

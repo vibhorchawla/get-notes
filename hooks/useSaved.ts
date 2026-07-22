@@ -10,6 +10,7 @@ interface Note {
     pdfUrl?: string;
     playlistUrl?: string;
     source?: 'course' | 'community';
+    isPremium?: boolean;
 }
 
 export function useSaved() {
