@@ -9,9 +9,7 @@ export default function DrawerLayout() {
             drawerContent={(props) => <CustomDrawerContent {...props} />}
             screenOptions={{
                 headerShown: false,
-                headerStyle: {
-                    backgroundColor: colors.primary,
-                },
+                headerStyle: { backgroundColor: colors.primary },
                 headerTintColor: colors.textPrimary,
                 drawerActiveTintColor: colors.primary,
                 drawerInactiveTintColor: colors.textSecondary,
@@ -39,6 +37,17 @@ export default function DrawerLayout() {
                     title: 'Profile',
                     drawerIcon: ({ color, size }) => (
                         <Ionicons name="person-outline" size={size} color={color} />
+                    ),
+                }}
+            />
+            <Drawer.Screen
+                name="notes"
+                options={{
+                    headerShown: false,
+                    drawerLabel: 'My Notes',
+                    title: 'My Notes',
+                    drawerIcon: ({ color, size }) => (
+                        <Ionicons name="document-text-outline" size={size} color={color} />
                     ),
                 }}
             />
@@ -80,17 +89,6 @@ export default function DrawerLayout() {
                     title: 'Subscription',
                     drawerIcon: ({ color, size }) => (
                         <Ionicons name="card-outline" size={size} color={color} />
-                    ),
-                }}
-            />
-            <Drawer.Screen
-                name="notes"
-                options={{
-                    headerShown: false,
-                    drawerLabel: 'My Notes',
-                    title: 'My Notes',
-                    drawerIcon: ({ color, size }) => (
-                        <Ionicons name="document-text-outline" size={size} color={color} />
                     ),
                 }}
             />

@@ -27,16 +27,6 @@ export default function Header() {
                 <Ionicons name="menu" size={22} color={colors.textPrimary} />
             </TouchableOpacity>
 
-            <TouchableOpacity
-                style={[styles.notificationButton, { top: topOffset }]}
-                onPress={() => router.push('/coming-soon')}
-                activeOpacity={0.8}
-                accessibilityRole="button"
-                accessibilityLabel="Notifications"
-            >
-                <Ionicons name="notifications-outline" size={22} color="#FFFFFF" />
-            </TouchableOpacity>
-
             <Animated.View entering={FadeInDown.delay(40).springify().damping(14)} style={styles.brandCard}>
                 <View style={styles.logoRow}>
                     <View style={styles.logoBadge}>

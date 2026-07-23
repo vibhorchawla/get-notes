@@ -1,82 +1,111 @@
+const mongoose = require('mongoose');
 const CommunityNote = require('../../models/CommunityNote');
-const { NOTES, getAllCatalogNotes, findCatalogNoteById } = require('../../config/db');
+const Subject = require('../../models/Subject');
+const Course = require('../../models/Course');
+const Semester = require('../../models/Semester');
+const Rating = require('../../models/Rating');
+const Report = require('../../models/Report');
+const NoteView = require('../../models/NoteView');
+const UserReputation = require('../../models/UserReputation');
 
-// Shared: clean _id -> id from a lean Mongo doc
 function cleanId(doc) {
     if (!doc) return doc;
     const { _id, __v, ...rest } = doc;
     return { ...rest, id: _id };
 }
 
-// GET /api/search?q=   and   GET /api/notes/search?q=
+const REPUTATION_POINTS = {
+    UPLOAD: 50,
+    DOWNLOAD: 2,
+    LIKE: 5,
+    RATING_5: 10,
+    RATING_4: 5,
+    RATING_3: 2,
+    VERIFIED_BONUS: 100,
+    REPORT_PENALTY: -20,
+};
+
+async function updateReputation(userId, field, increment) {
+    try {
+        const update = {};
+        update[field] = increment;
+        await UserReputation.findOneAndUpdate(
+            { userId },
+            { $inc: update },
+            { upsert: true }
+        );
+    } catch (e) {
+        console.error('Reputation update error:', e);
+    }
+}
+
 async function searchNotesHandler(req, res) {
     try {
-        const { q = '' } = req.query;
+        const { q = '', sort, course, semester, subject, college, type } = req.query;
         const query = String(q).trim();
-        if (!query) {
-            return res.json({ success: true, data: [] });
-        }
 
-        const catalog = getAllCatalogNotes();
+        const filter = { isPublished: true };
 
-        // Search community notes via regex (works without text index)
-        const regex = new RegExp(query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i');
-        const communityDocs = await CommunityNote.find({
-            $or: [
+        if (query) {
+            const regex = new RegExp(query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i');
+            filter.$or = [
                 { title: regex },
-                { content: regex },
+                { description: regex },
                 { subject: regex },
                 { unit: regex },
+                { course: regex },
+                { tags: regex },
                 { 'uploadedBy.name': regex },
-                { 'uploadedBy.course': regex },
-            ],
-        })
-            .sort({ createdAt: -1 })
+                { 'uploadedBy.college': regex },
+                { uploaderName: regex },
+                { uploaderCollege: regex },
+            ];
+        }
+        if (course) filter.course = course;
+        if (semester) filter.semester = parseInt(semester);
+        if (subject) filter.subject = subject;
+        if (college) filter.uploaderCollege = college;
+        if (type) filter.noteType = type;
+
+        let sortOption = { createdAt: -1 };
+        if (sort === 'popular') sortOption = { downloads: -1 };
+        else if (sort === 'rating') sortOption = { averageRating: -1 };
+        else if (sort === 'downloads') sortOption = { downloads: -1 };
+        else if (sort === 'views') sortOption = { views: -1 };
+
+        const notes = await CommunityNote.find(filter)
+            .sort(sortOption)
             .limit(50)
             .lean();
-        const community = communityDocs.map((n) => ({ ...cleanId(n), source: 'community' }));
-
-        // Filter catalog notes
-        const qLower = query.toLowerCase();
-        const filteredCatalog = catalog.filter((note) => {
-            const text = [note.title, note.subject, note.unit, note.content]
-                .filter(Boolean)
-                .join(' ')
-                .toLowerCase();
-            return text.includes(qLower);
-        });
-
-        const results = [...filteredCatalog, ...community].slice(0, 50);
-        res.json({ success: true, data: results });
+        res.json({ success: true, data: notes.map(n => ({ ...cleanId(n), source: 'community' })) });
     } catch (err) {
         console.error('Search error:', err);
         res.status(500).json({ success: false, message: 'Search failed' });
     }
 }
 
-// GET /api/note/:noteId   and   GET /api/notes/item/:noteId
 async function getNoteById(req, res) {
     try {
         const { noteId } = req.params;
-
-        const catalog = findCatalogNoteById(noteId);
-        if (catalog) {
-            return res.json({ success: true, data: catalog });
-        }
-
         const note = await CommunityNote.findById(noteId).lean();
-        if (note) {
-            return res.json({ success: true, data: { ...cleanId(note), source: 'community' } });
+        if (!note) {
+            return res.status(404).json({ success: false, message: 'Note not found' });
         }
 
-        return res.status(404).json({ success: false, message: 'Note not found' });
+        await CommunityNote.findByIdAndUpdate(noteId, { $inc: { views: 1 } });
+
+        if (req.user?.id) {
+            await NoteView.create({ noteId, userId: req.user.id });
+            await updateReputation(req.user.id, 'totalViews', 1);
+        }
+
+        res.json({ success: true, data: { ...cleanId(note), source: 'community' } });
     } catch (err) {
         console.error('GetNote error:', err);
         res.status(500).json({ success: false, message: 'Server error' });
     }
 }
 
-// GET /api/notes/mine
 async function getMyUploadedNotes(req, res) {
     try {
         const { id: userId } = req.user;
@@ -90,45 +119,60 @@ async function getMyUploadedNotes(req, res) {
     }
 }
 
-// POST /api/share-note   and   POST /api/notes/publish
 async function publishNote(req, res) {
     try {
-        const { id: userId, name, course } = req.user;
+        const { id: userId, name, course: userCourse } = req.user;
         const {
-            id,
             title,
-            content,
+            description,
+            pdfUrl,
+            thumbnail,
+            course,
+            semester,
             subject,
             unit,
-            pdfUrl,
-            playlistUrl,
+            tags,
             noteType,
-            createdAt,
-            updatedAt,
+            playlistUrl,
         } = req.body;
 
         if (!title || !String(title).trim()) {
             return res.status(400).json({ success: false, message: 'Note title is required' });
         }
+        if (!course || semester === undefined || !subject) {
+            return res.status(400).json({ success: false, message: 'Course, semester, and subject are required' });
+        }
 
         const noteData = {
             title: String(title).trim(),
-            content: content || '',
-            subject: subject || undefined,
-            unit: unit || undefined,
+            description: description || '',
             pdfUrl: pdfUrl || undefined,
+            thumbnail: thumbnail || undefined,
+            course: String(course).trim(),
+            semester: parseInt(semester),
+            subject: String(subject).trim(),
+            unit: unit || undefined,
+            tags: Array.isArray(tags) ? tags : [],
+            noteType: noteType || 'pdf',
             playlistUrl: playlistUrl || undefined,
-            noteType: noteType || 'text',
-            uploadedBy: { id: userId, name, course },
+            uploadedBy: {
+                id: userId,
+                name,
+                course: userCourse || '',
+                college: req.body.uploaderCollege || '',
+                avatar: req.body.uploaderAvatar || '',
+            },
+            uploaderId: userId,
+            uploaderName: name,
+            uploaderCollege: req.body.uploaderCollege || '',
+            uploaderAvatar: req.body.uploaderAvatar || '',
             isPublished: true,
+            needsReview: req.body.needsReview === true,
         };
 
-        if (createdAt) noteData.createdAt = createdAt;
-        if (updatedAt) noteData.updatedAt = updatedAt;
-
         let note;
-        if (id) {
-            note = await CommunityNote.findByIdAndUpdate(id, noteData, {
+        if (req.body.id) {
+            note = await CommunityNote.findByIdAndUpdate(req.body.id, noteData, {
                 new: true,
                 upsert: true,
                 setDefaultsOnInsert: true,
@@ -138,6 +182,14 @@ async function publishNote(req, res) {
             note = doc.toObject();
         }
 
+        await Subject.updateOne(
+            { name: subject },
+            { $inc: { noteCount: 1 } }
+        );
+
+        await updateReputation(userId, 'totalUploads', 1);
+        await updateReputation(userId, 'points', REPUTATION_POINTS.UPLOAD);
+
         res.status(201).json({ success: true, data: cleanId(note) });
     } catch (err) {
         console.error('PublishNote error:', err);
@@ -145,15 +197,225 @@ async function publishNote(req, res) {
     }
 }
 
-// GET /api/notes/:courseId
-function getNotesByCourse(req, res) {
-    const { courseId } = req.params;
-    const courseNotes = NOTES[courseId];
-    if (!courseNotes) {
-        return res.status(404).json({ success: false, message: 'No notes found for this course' });
+async function getTrendingNotes(req, res) {
+    try {
+        const notes = await CommunityNote.find({ isPublished: true })
+            .sort({ downloads: -1, views: -1, likes: -1 })
+            .limit(20)
+            .lean();
+        res.json({ success: true, data: notes.map(n => ({ ...cleanId(n), source: 'community' })) });
+    } catch (err) {
+        console.error('Trending error:', err);
+        res.status(500).json({ success: false, message: 'Server error' });
     }
-    const notes = courseNotes.map((n) => ({ ...n, isPremium: n.isPremium || false }));
-    res.json({ success: true, data: notes });
+}
+
+async function getTopRatedNotes(req, res) {
+    try {
+        const notes = await CommunityNote.find({ isPublished: true, ratingCount: { $gt: 0 } })
+            .sort({ averageRating: -1, ratingCount: -1 })
+            .limit(20)
+            .lean();
+        res.json({ success: true, data: notes.map(n => ({ ...cleanId(n), source: 'community' })) });
+    } catch (err) {
+        console.error('TopRated error:', err);
+        res.status(500).json({ success: false, message: 'Server error' });
+    }
+}
+
+async function getRecentNotes(req, res) {
+    try {
+        const notes = await CommunityNote.find({ isPublished: true })
+            .sort({ createdAt: -1 })
+            .limit(20)
+            .lean();
+        res.json({ success: true, data: notes.map(n => ({ ...cleanId(n), source: 'community' })) });
+    } catch (err) {
+        console.error('Recent error:', err);
+        res.status(500).json({ success: false, message: 'Server error' });
+    }
+}
+
+async function getVerifiedNotes(req, res) {
+    try {
+        const notes = await CommunityNote.find({ isPublished: true, isVerified: true })
+            .sort({ createdAt: -1 })
+            .limit(50)
+            .lean();
+        res.json({ success: true, data: notes.map(n => ({ ...cleanId(n), source: 'community' })) });
+    } catch (err) {
+        console.error('Verified error:', err);
+        res.status(500).json({ success: false, message: 'Server error' });
+    }
+}
+
+async function getNotesBySubject(req, res) {
+    try {
+        const { subjectName } = req.params;
+        const { sort } = req.query;
+
+        let sortOption = { createdAt: -1 };
+        if (sort === 'popular') sortOption = { downloads: -1 };
+        else if (sort === 'rating') sortOption = { averageRating: -1 };
+
+        const notes = await CommunityNote.find({ subject: subjectName, isPublished: true })
+            .sort(sortOption)
+            .limit(50)
+            .lean();
+        res.json({ success: true, data: notes.map(n => ({ ...cleanId(n), source: 'community' })) });
+    } catch (err) {
+        console.error('SubjectNotes error:', err);
+        res.status(500).json({ success: false, message: 'Server error' });
+    }
+}
+
+async function getRelatedNotes(req, res) {
+    try {
+        const { noteId } = req.params;
+        const note = await CommunityNote.findById(noteId).lean();
+        if (!note) return res.json({ success: true, data: [] });
+
+        const related = await CommunityNote.find({
+            _id: { $ne: noteId },
+            subject: note.subject,
+            isPublished: true,
+        })
+            .sort({ downloads: -1 })
+            .limit(6)
+            .lean();
+        res.json({ success: true, data: related.map(n => ({ ...cleanId(n), source: 'community' })) });
+    } catch (err) {
+        console.error('Related error:', err);
+        res.status(500).json({ success: false, message: 'Server error' });
+    }
+}
+
+async function rateNote(req, res) {
+    try {
+        const { noteId } = req.params;
+        const { rating } = req.body;
+        const userId = req.user.id;
+
+        if (!rating || rating < 1 || rating > 5) {
+            return res.status(400).json({ success: false, message: 'Rating must be between 1 and 5' });
+        }
+
+        if (!mongoose.Types.ObjectId.isValid(noteId)) {
+            return res.status(400).json({ success: false, message: 'Invalid note ID' });
+        }
+        const objectId = new mongoose.Types.ObjectId(noteId);
+
+        await Rating.findOneAndUpdate(
+            { noteId: objectId, userId },
+            { $set: { noteId: objectId, userId, rating } },
+            { upsert: true }
+        );
+
+        const stats = await Rating.aggregate([
+            { $match: { noteId: objectId } },
+            { $group: { _id: null, avg: { $avg: '$rating' }, count: { $sum: 1 } } },
+        ]);
+
+        const avg = stats.length > 0 ? Math.round(stats[0].avg * 10) / 10 : rating;
+        const count = stats.length > 0 ? stats[0].count : 1;
+
+        await CommunityNote.findByIdAndUpdate(noteId, {
+            averageRating: avg,
+            ratingCount: count,
+        });
+
+        let points = REPUTATION_POINTS.RATING_3;
+        if (rating >= 5) points = REPUTATION_POINTS.RATING_5;
+        else if (rating >= 4) points = REPUTATION_POINTS.RATING_4;
+        await updateReputation(userId, 'points', points);
+
+        res.json({ success: true, data: { averageRating: avg, ratingCount: count } });
+    } catch (err) {
+        console.error('Rate error:', err);
+        const message = err.name === 'ValidationError'
+            ? 'Invalid rating data. Please try again.'
+            : err.message || 'Server error';
+        res.status(500).json({ success: false, message });
+    }
+}
+
+async function reportNote(req, res) {
+    try {
+        const { noteId } = req.params;
+        const { reason, description } = req.body;
+        const userId = req.user.id;
+
+        if (!reason) {
+            return res.status(400).json({ success: false, message: 'Reason is required' });
+        }
+
+        await Report.create({ noteId, reportedBy: userId, reason, description });
+        await CommunityNote.findByIdAndUpdate(noteId, { $inc: { reportCount: 1 } });
+        await updateReputation(userId, 'points', REPUTATION_POINTS.REPORT_PENALTY);
+
+        res.json({ success: true, message: 'Note reported. Thank you for keeping the community safe.' });
+    } catch (err) {
+        console.error('Report error:', err);
+        res.status(500).json({ success: false, message: 'Server error' });
+    }
+}
+
+async function incrementDownloads(req, res) {
+    try {
+        const { noteId } = req.params;
+        const note = await CommunityNote.findByIdAndUpdate(noteId, { $inc: { downloads: 1 } }, { new: true }).lean();
+        if (!note) return res.status(404).json({ success: false, message: 'Note not found' });
+
+        await updateReputation(note.uploadedBy.id, 'totalDownloads', 1);
+        await updateReputation(note.uploadedBy.id, 'points', REPUTATION_POINTS.DOWNLOAD);
+
+        res.json({ success: true, data: cleanId(note) });
+    } catch (err) {
+        console.error('Download error:', err);
+        res.status(500).json({ success: false, message: 'Server error' });
+    }
+}
+
+async function likeNote(req, res) {
+    try {
+        const { noteId } = req.params;
+        const note = await CommunityNote.findByIdAndUpdate(noteId, { $inc: { likes: 1 } }, { new: true }).lean();
+        if (!note) return res.status(404).json({ success: false, message: 'Note not found' });
+
+        await updateReputation(note.uploadedBy.id, 'totalLikes', 1);
+        await updateReputation(req.user.id, 'points', REPUTATION_POINTS.LIKE);
+
+        res.json({ success: true, data: cleanId(note) });
+    } catch (err) {
+        console.error('Like error:', err);
+        res.status(500).json({ success: false, message: 'Server error' });
+    }
+}
+
+async function getPopularSubjects(req, res) {
+    try {
+        const subjects = await Subject.find({ isActive: true })
+            .sort({ noteCount: -1 })
+            .limit(20)
+            .lean();
+        res.json({ success: true, data: subjects.map(cleanId) });
+    } catch (err) {
+        console.error('PopularSubjects error:', err);
+        res.status(500).json({ success: false, message: 'Server error' });
+    }
+}
+
+async function getTopContributors(req, res) {
+    try {
+        const contributors = await UserReputation.find()
+            .sort({ points: -1 })
+            .limit(20)
+            .lean();
+        res.json({ success: true, data: contributors.map(cleanId) });
+    } catch (err) {
+        console.error('Contributors error:', err);
+        res.status(500).json({ success: false, message: 'Server error' });
+    }
 }
 
 module.exports = {
@@ -161,5 +423,16 @@ module.exports = {
     getNoteById,
     getMyUploadedNotes,
     publishNote,
-    getNotesByCourse,
+    getTrendingNotes,
+    getTopRatedNotes,
+    getRecentNotes,
+    getVerifiedNotes,
+    getNotesBySubject,
+    getRelatedNotes,
+    rateNote,
+    reportNote,
+    incrementDownloads,
+    likeNote,
+    getPopularSubjects,
+    getTopContributors,
 };

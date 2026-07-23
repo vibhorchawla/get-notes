@@ -1,7 +1,11 @@
-import { useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, SafeAreaView, TouchableOpacity, TextInput, Alert } from 'react-native';
+import { useState, useCallback } from 'react';
+import {
+    View, Text, StyleSheet, ScrollView, SafeAreaView,
+    TouchableOpacity, TextInput, RefreshControl,
+} from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
+import Animated, { FadeInDown } from 'react-native-reanimated';
 import GradientBackground from '../../components/GradientBackground';
 import TopHeader from '../../components/TopHeader';
 import ProfileAvatar from '../../components/ProfileAvatar';
@@ -10,31 +14,58 @@ import LoadingSkeleton from '../../components/LoadingSkeleton';
 import { useAuth } from '../../context/AuthContext';
 import { useUserStats } from '../../hooks/useUserStats';
 import { useToast } from '../../context/ToastContext';
+import { useReputation } from '../../hooks/useReputation';
 import { colors } from '../../constants/colors';
 import { spacing } from '../../constants/spacing';
 import { typography } from '../../constants/typography';
 
 function formatDate(dateStr: string | null | undefined): string {
     if (!dateStr) return 'N/A';
-    const d = new Date(dateStr);
-    return d.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
+    return new Date(dateStr).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
 }
 
-function calculateStorageFraction(stats: { saved: number; downloads: number; notesRead: number }): { used: number; total: number; fraction: number } {
-    const used = stats.saved * 0.5 + stats.downloads * 1.2 + stats.notesRead * 0.3;
-    const total = 500;
-    return { used: Math.min(used, total), total, fraction: Math.min(used / total, 1) };
-}
+const StatCard = ({ icon, value, label, color }: { icon: any; value: string | number; label: string; color: string }) => (
+    <View style={styles.statCard}>
+        <Ionicons name={icon} size={24} color={color} />
+        <Text style={styles.statValue}>{value}</Text>
+        <Text style={styles.statLabel}>{label}</Text>
+    </View>
+);
+
+const BadgeCard = ({ name, earned }: { name: string; earned?: string }) => {
+    const colors_map: Record<string, string> = {
+        '🌟': '#FFC107',
+        '📘': '#3B82F6',
+        '🏆': '#F59E0B',
+        '👑': '#8B5CF6',
+    };
+    const emoji = name.split(' ')[0] || '🌟';
+    return (
+        <View style={[styles.badgeCard, { borderColor: colors_map[emoji] || colors.border }]}>
+            <Text style={styles.badgeEmoji}>{emoji}</Text>
+            <Text style={styles.badgeName}>{name.replace(emoji, '').trim()}</Text>
+            {earned ? <Text style={styles.badgeDate}>{formatDate(earned)}</Text> : null}
+        </View>
+    );
+};
 
 export default function ProfileScreen() {
     const { user } = useAuth();
-    const { stats, isLoading: statsLoading } = useUserStats();
+    const { stats, isLoading: statsLoading, refetch: refetchStats } = useUserStats();
+    const { reputation, isLoading: repLoading } = useReputation();
     const { showToast } = useToast();
     const router = useRouter();
 
     const [editing, setEditing] = useState(false);
     const [editName, setEditName] = useState('');
     const [editCourse, setEditCourse] = useState('');
+    const [refreshing, setRefreshing] = useState(false);
+
+    const onRefresh = useCallback(async () => {
+        setRefreshing(true);
+        await refetchStats();
+        setRefreshing(false);
+    }, [refetchStats]);
 
     const now = new Date();
     const isPremium = user?.isPremium ?? false;
@@ -43,9 +74,9 @@ export default function ProfileScreen() {
     const premiumActive = isPremium && !isExpired;
 
     const isLoading = !user;
-    const isLoadingStats = statsLoading;
-
-    const storage = calculateStorageFraction(stats);
+    const badgeName = stats.badge || reputation?.currentBadge?.name || '🌟 Beginner';
+    const totalPts = stats.reputationPoints || reputation?.points || 0;
+    const userRank = stats.rank || reputation?.rank || 0;
 
     const handleEditStart = () => {
         setEditName(user?.name || '');
@@ -62,15 +93,16 @@ export default function ProfileScreen() {
         setEditing(false);
     };
 
-    const handleEditCancel = () => {
-        setEditing(false);
-    };
+    const handleEditCancel = () => setEditing(false);
 
     return (
         <GradientBackground>
             <SafeAreaView style={styles.container}>
                 <TopHeader title="My Profile" />
-                <ScrollView showsVerticalScrollIndicator={false}>
+                <ScrollView
+                    showsVerticalScrollIndicator={false}
+                    refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} />}
+                >
                     <View style={styles.content}>
                         {isLoading ? (
                             <LoadingSkeleton.ProfileHeader />
@@ -79,21 +111,9 @@ export default function ProfileScreen() {
                                 <ProfileAvatar size={120} editable />
                                 <View style={styles.editForm}>
                                     <Text style={styles.fieldLabel}>Name</Text>
-                                    <TextInput
-                                        style={styles.editInput}
-                                        value={editName}
-                                        onChangeText={setEditName}
-                                        placeholder="Your name"
-                                        placeholderTextColor={colors.textLight}
-                                    />
+                                    <TextInput style={styles.editInput} value={editName} onChangeText={setEditName} placeholder="Your name" placeholderTextColor={colors.textLight} />
                                     <Text style={styles.fieldLabel}>Course</Text>
-                                    <TextInput
-                                        style={styles.editInput}
-                                        value={editCourse}
-                                        onChangeText={setEditCourse}
-                                        placeholder="e.g. B.Tech CSE"
-                                        placeholderTextColor={colors.textLight}
-                                    />
+                                    <TextInput style={styles.editInput} value={editCourse} onChangeText={setEditCourse} placeholder="e.g. B.Tech CSE" placeholderTextColor={colors.textLight} />
                                     <View style={styles.editActions}>
                                         <Button title="Save" onPress={handleEditSave} size="sm" />
                                         <Button title="Cancel" onPress={handleEditCancel} variant="secondary" size="sm" />
@@ -102,49 +122,31 @@ export default function ProfileScreen() {
                             </View>
                         ) : (
                             <View style={styles.profileHeader}>
-                                <ProfileAvatar size={120} editable />
-                                <Text style={styles.name}>{user?.name || 'User Name'}</Text>
+                                <ProfileAvatar size={100} editable />
+                                <Text style={styles.name}>{user?.name || 'User'}</Text>
                                 <Text style={styles.email}>{user?.email || ''}</Text>
-                                <TouchableOpacity
-                                    style={styles.editProfileBtn}
-                                    onPress={handleEditStart}
-                                    activeOpacity={0.8}
-                                    accessibilityRole="button"
-                                    accessibilityLabel="Edit profile"
-                                >
+                                <View style={styles.badgeRow}>
+                                    <Text style={styles.badgeLabel}>{badgeName}</Text>
+                                    <Text style={styles.pointsLabel}>{totalPts} pts</Text>
+                                    {userRank > 0 && <Text style={styles.rankLabel}>#{userRank}</Text>}
+                                </View>
+                                <TouchableOpacity style={styles.editProfileBtn} onPress={handleEditStart} activeOpacity={0.8}>
                                     <Ionicons name="create-outline" size={16} color={colors.primary} />
                                     <Text style={styles.editProfileText}>Edit Profile</Text>
                                 </TouchableOpacity>
                             </View>
                         )}
 
-                        {/* Premium Section */}
                         {!isLoading && (
-                            <TouchableOpacity
-                                style={styles.premiumCard}
-                                onPress={() => router.push('/(drawer)/subscription')}
-                                activeOpacity={0.8}
-                                accessibilityRole="button"
-                                accessibilityLabel={premiumActive ? 'Premium subscription details' : 'Get premium'}
-                            >
+                            <TouchableOpacity style={styles.premiumCard} onPress={() => router.push('/(drawer)/subscription')} activeOpacity={0.8}>
                                 <View style={styles.premiumRow}>
-                                    <Ionicons
-                                        name={premiumActive ? 'diamond' : 'diamond-outline'}
-                                        size={24}
-                                        color={premiumActive ? '#10B981' : colors.primary}
-                                    />
+                                    <Ionicons name={premiumActive ? 'diamond' : 'diamond-outline'} size={24} color={premiumActive ? '#10B981' : colors.primary} />
                                     <View style={styles.premiumTextWrap}>
-                                        <Text style={styles.premiumTitle}>
-                                            {premiumActive ? 'Premium Member' : 'Get Premium'}
-                                        </Text>
+                                        <Text style={styles.premiumTitle}>{premiumActive ? 'Premium Member' : 'Get Premium'}</Text>
                                         {premiumActive ? (
                                             <>
-                                                <Text style={styles.premiumSub}>
-                                                    Plan: {user?.premiumPlan ? user.premiumPlan.charAt(0).toUpperCase() + user.premiumPlan.slice(1) : ''}
-                                                </Text>
-                                                <Text style={styles.premiumSub}>
-                                                    Expires: {formatDate(user?.premiumEndDate)}
-                                                </Text>
+                                                <Text style={styles.premiumSub}>Plan: {user?.premiumPlan ? user.premiumPlan.charAt(0).toUpperCase() + user.premiumPlan.slice(1) : ''}</Text>
+                                                <Text style={styles.premiumSub}>Expires: {formatDate(user?.premiumEndDate)}</Text>
                                             </>
                                         ) : (
                                             <Text style={styles.premiumSub}>Unlock unlimited notes & AI summaries</Text>
@@ -155,130 +157,63 @@ export default function ProfileScreen() {
                             </TouchableOpacity>
                         )}
 
-                        {!isLoading && (
-                            <View style={styles.section}>
-                                <Text style={styles.sectionTitle}>Academic Information</Text>
-                                <View style={styles.infoCard}>
-                                    <View style={styles.infoRow}>
-                                        <Ionicons name="school-outline" size={20} color={colors.primary} />
-                                        <View style={styles.infoContent}>
-                                            <Text style={styles.infoLabel}>Course</Text>
-                                            <Text style={styles.infoValue}>{user?.course || 'Not Set'}</Text>
+                        <View style={styles.section}>
+                            <Text style={styles.sectionTitle}>Contribution Stats</Text>
+                            {statsLoading || repLoading ? (
+                                <View style={styles.statsGrid}>
+                                    {[1, 2, 3, 4].map((i) => (
+                                        <View key={i} style={styles.statCard}>
+                                            <LoadingSkeleton.Block width={24} height={24} borderRadius={12} />
+                                            <View style={{ height: 8 }} />
+                                            <LoadingSkeleton.Block width={30} height={20} borderRadius={4} />
+                                            <View style={{ height: 4 }} />
+                                            <LoadingSkeleton.Block width={40} height={10} borderRadius={4} />
                                         </View>
-                                    </View>
-                                    <View style={styles.divider} />
-                                    <View style={styles.infoRow}>
-                                        <Ionicons name="mail-outline" size={20} color={colors.primary} />
-                                        <View style={styles.infoContent}>
-                                            <Text style={styles.infoLabel}>Email</Text>
-                                            <Text style={styles.infoValue}>{user?.email || 'Not Set'}</Text>
-                                        </View>
-                                    </View>
-                                    <View style={styles.divider} />
-                                    <View style={styles.infoRow}>
-                                        <Ionicons name="calendar-outline" size={20} color={colors.primary} />
-                                        <View style={styles.infoContent}>
-                                            <Text style={styles.infoLabel}>Member Since</Text>
-                                            <Text style={styles.infoValue}>{formatDate(user?.createdAt)}</Text>
-                                        </View>
-                                    </View>
+                                    ))}
                                 </View>
+                            ) : (
+                                <View style={styles.statsGrid}>
+                                    <StatCard icon="cloud-upload" value={stats.totalUploads} label="Uploads" color={colors.primary} />
+                                    <StatCard icon="download" value={stats.downloadsReceived} label="Downloads" color={colors.accent} />
+                                    <StatCard icon="eye" value={stats.totalViews} label="Views" color={colors.secondary} />
+                                    <StatCard icon="heart" value={stats.totalLikes} label="Likes" color="#EF4444" />
+                                </View>
+                            )}
+                        </View>
+
+                        {reputation?.badges && reputation.badges.length > 0 && (
+                            <View style={styles.section}>
+                                <Text style={styles.sectionTitle}>Achievements</Text>
+                                <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.badgesScroll}>
+                                    {reputation.badges.map((b, i) => (
+                                        <BadgeCard key={i} name={b.name} earned={b.earnedAt} />
+                                    ))}
+                                </ScrollView>
                             </View>
                         )}
 
                         <View style={styles.section}>
                             <Text style={styles.sectionTitle}>Statistics</Text>
-
-                            {isLoadingStats ? (
-                                <View style={styles.statsContainer}>
-                                    {[1, 2, 3].map((i) => (
-                                        <View key={i} style={styles.statCard}>
-                                            <LoadingSkeleton.Block width={32} height={32} borderRadius={16} />
-                                            <View style={{ height: spacing.sm }} />
-                                            <LoadingSkeleton.Block width={36} height={24} borderRadius={6} />
-                                            <View style={{ height: spacing.xs }} />
-                                            <LoadingSkeleton.Block width={50} height={12} borderRadius={6} />
-                                        </View>
-                                    ))}
-                                </View>
-                            ) : (
-                                <>
-                                    <View style={styles.statsContainer}>
-                                        <View style={styles.statCard}>
-                                            <Ionicons name="document-text" size={28} color={colors.primary} />
-                                            <Text style={styles.statValue}>{stats.notesRead}</Text>
-                                            <Text style={styles.statLabel}>Read</Text>
-                                        </View>
-                                        <View style={styles.statCard}>
-                                            <Ionicons name="bookmark" size={28} color={colors.secondary} />
-                                            <Text style={styles.statValue}>{stats.saved}</Text>
-                                            <Text style={styles.statLabel}>Saved</Text>
-                                        </View>
-                                        <View style={styles.statCard}>
-                                            <Ionicons name="download" size={28} color={colors.accent} />
-                                            <Text style={styles.statValue}>{stats.downloads}</Text>
-                                            <Text style={styles.statLabel}>Downloads</Text>
-                                        </View>
-                                    </View>
-
-                                    <View style={styles.storageCard}>
-                                        <View style={styles.storageHeader}>
-                                            <Ionicons name="cloud-outline" size={20} color={colors.primary} />
-                                            <Text style={styles.storageTitle}>Storage Usage</Text>
-                                        </View>
-                                        <View style={styles.storageBar}>
-                                            <View style={[styles.storageFill, { width: `${storage.fraction * 100}%` }]} />
-                                        </View>
-                                        <Text style={styles.storageText}>
-                                            {storage.used.toFixed(1)} MB of {storage.total} MB used
-                                        </Text>
-                                    </View>
-                                </>
-                            )}
+                            <View style={styles.statsGrid}>
+                                <StatCard icon="bookmark" value={stats.saved} label="Saved" color="#3B82F6" />
+                                <StatCard icon="download-outline" value={stats.downloads} label="Downloaded" color="#8B5CF6" />
+                                <StatCard icon="star" value={stats.averageRating.toFixed(1)} label="Avg Rating" color="#FFC107" />
+                                <StatCard icon="trophy" value={`#${stats.rank || '-'}`} label="Rank" color="#F59E0B" />
+                            </View>
                         </View>
 
                         <View style={styles.quickLinks}>
-                            <TouchableOpacity
-                                style={styles.quickLink}
-                                onPress={() => router.push('/(drawer)/settings')}
-                                activeOpacity={0.7}
-                                accessibilityRole="button"
-                                accessibilityLabel="Settings"
-                            >
-                                <Ionicons name="settings-outline" size={22} color={colors.primary} />
-                                <Text style={styles.quickLinkLabel}>Settings</Text>
-                            </TouchableOpacity>
-                            <TouchableOpacity
-                                style={styles.quickLink}
-                                onPress={() => router.push('/(drawer)/subscription')}
-                                activeOpacity={0.7}
-                                accessibilityRole="button"
-                                accessibilityLabel="Subscription"
-                            >
-                                <Ionicons name="card-outline" size={22} color={colors.primary} />
-                                <Text style={styles.quickLinkLabel}>Subscription</Text>
-                            </TouchableOpacity>
-                            <TouchableOpacity
-                                style={styles.quickLink}
-                                onPress={() => router.push('/(drawer)/saved')}
-                                activeOpacity={0.7}
-                                accessibilityRole="button"
-                                accessibilityLabel="Saved notes"
-                            >
-                                <Ionicons name="bookmark-outline" size={22} color={colors.primary} />
-                                <Text style={styles.quickLinkLabel}>Saved</Text>
-                            </TouchableOpacity>
-                            <TouchableOpacity
-                                style={styles.quickLink}
-                                onPress={() => router.push('/(drawer)/downloads')}
-                                activeOpacity={0.7}
-                                accessibilityRole="button"
-                                accessibilityLabel="Downloads"
-                            >
-                                <Ionicons name="download-outline" size={22} color={colors.primary} />
-                                <Text style={styles.quickLinkLabel}>Downloads</Text>
-                            </TouchableOpacity>
+                            <QuickLink icon="document-text-outline" label="My Uploads" onPress={() => router.push('/(drawer)/notes')} />
+                            <QuickLink icon="bookmark-outline" label="Saved" onPress={() => router.push('/(drawer)/saved')} />
+                            <QuickLink icon="download-outline" label="Downloads" onPress={() => router.push('/(drawer)/downloads')} />
+                            <QuickLink icon="compass-outline" label="Explore" onPress={() => router.push('/community')} />
                         </View>
+
+                        <TouchableOpacity style={styles.logoutBtn} onPress={async () => {
+                            const { useAuth } = await import('../../context/AuthContext');
+                        }}>
+                            <Text style={styles.logoutBtnText}>Settings</Text>
+                        </TouchableOpacity>
                     </View>
                 </ScrollView>
             </SafeAreaView>
@@ -286,237 +221,63 @@ export default function ProfileScreen() {
     );
 }
 
+function QuickLink({ icon, label, onPress }: { icon: any; label: string; onPress: () => void }) {
+    return (
+        <TouchableOpacity style={styles.quickLink} onPress={onPress} activeOpacity={0.7}>
+            <Ionicons name={icon} size={22} color={colors.primary} />
+            <Text style={styles.quickLinkLabel}>{label}</Text>
+        </TouchableOpacity>
+    );
+}
+
 const styles = StyleSheet.create({
-    quickLinks: {
-        flexDirection: 'row',
-        gap: spacing.sm,
-        marginBottom: spacing.xl,
-    },
-    quickLink: {
-        flex: 1,
-        backgroundColor: colors.cardBackground,
-        borderRadius: 16,
-        padding: spacing.md,
-        alignItems: 'center',
-        gap: spacing.sm,
-        borderWidth: 1,
-        borderColor: colors.border,
-    },
-    quickLinkLabel: {
-        fontSize: typography.fontSize.xs,
-        fontWeight: typography.fontWeight.medium,
-        color: colors.textPrimary,
-    },
-    fieldLabel: {
-        fontSize: typography.fontSize.sm,
-        fontWeight: typography.fontWeight.semibold,
-        color: colors.textSecondary,
-        marginTop: spacing.md,
-        marginBottom: spacing.xs,
-        alignSelf: 'flex-start',
-    },
-    editInput: {
-        width: '100%',
-        backgroundColor: colors.background,
-        borderRadius: 14,
-        borderWidth: 1,
-        borderColor: colors.border,
-        paddingHorizontal: spacing.md,
-        paddingVertical: 12,
-        color: colors.textPrimary,
-        fontSize: typography.fontSize.md,
-    },
-    editForm: {
-        width: '100%',
-        marginTop: spacing.md,
-    },
-    editActions: {
-        flexDirection: 'row',
-        gap: spacing.sm,
-        marginTop: spacing.lg,
-    },
-    editProfileBtn: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: spacing.xs,
-        marginTop: spacing.md,
-        paddingHorizontal: spacing.md,
-        paddingVertical: spacing.sm,
-        borderRadius: 999,
-        backgroundColor: 'rgba(79, 70, 229, 0.1)',
-    },
-    editProfileText: {
-        fontSize: typography.fontSize.sm,
-        fontWeight: typography.fontWeight.semibold,
-        color: colors.primary,
-    },
-    storageCard: {
-        backgroundColor: colors.cardBackground,
-        borderRadius: 16,
-        padding: spacing.md,
-        marginTop: spacing.md,
-        borderWidth: 1,
-        borderColor: colors.border,
-    },
-    storageHeader: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: spacing.sm,
-        marginBottom: spacing.md,
-    },
-    storageTitle: {
-        fontSize: typography.fontSize.sm,
-        fontWeight: typography.fontWeight.semibold,
-        color: colors.textPrimary,
-    },
-    storageBar: {
-        height: 8,
-        borderRadius: 4,
-        backgroundColor: colors.background,
-        overflow: 'hidden',
-    },
-    storageFill: {
-        height: '100%',
-        borderRadius: 4,
-        backgroundColor: colors.primary,
-    },
-    storageText: {
-        fontSize: typography.fontSize.xs,
-        color: colors.textSecondary,
-        marginTop: spacing.sm,
-    },
-    container: {
-        flex: 1,
-    },
-    content: {
-        padding: spacing.screenPadding,
-    },
+    container: { flex: 1 },
+    content: { padding: spacing.screenPadding },
     profileHeader: {
-        alignItems: 'center',
-        paddingVertical: spacing.lg,
-        paddingHorizontal: spacing.md,
-        marginBottom: spacing.sm,
-        backgroundColor: colors.cardBackground,
-        borderRadius: 24,
-        borderWidth: 1,
-        borderColor: colors.border,
-        shadowColor: colors.shadow,
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.08,
-        shadowRadius: 16,
-        elevation: 3,
+        alignItems: 'center', paddingVertical: spacing.lg, paddingHorizontal: spacing.md,
+        marginBottom: spacing.sm, backgroundColor: colors.cardBackground, borderRadius: 24,
+        borderWidth: 1, borderColor: colors.border,
     },
-    name: {
-        fontSize: typography.fontSize.xxl,
-        fontWeight: typography.fontWeight.bold,
-        color: colors.textPrimary,
-        marginTop: spacing.md,
-        marginBottom: spacing.xs,
-    },
-    email: {
-        fontSize: typography.fontSize.md,
-        color: colors.textSecondary,
-    },
-    premiumCard: {
-        backgroundColor: colors.cardBackground,
-        borderRadius: 16,
-        padding: spacing.lg,
-        marginBottom: spacing.xl,
-        shadowColor: colors.shadow,
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.1,
-        shadowRadius: 8,
-        elevation: 3,
-        borderWidth: 1,
-        borderColor: 'rgba(124, 58, 237, 0.2)',
-    },
-    premiumRow: {
-        flexDirection: 'row',
-        alignItems: 'center',
-    },
-    premiumTextWrap: {
-        flex: 1,
-        marginLeft: spacing.md,
-    },
-    premiumTitle: {
-        fontSize: typography.fontSize.md,
-        fontWeight: typography.fontWeight.semibold,
-        color: colors.textPrimary,
-    },
-    premiumSub: {
-        fontSize: typography.fontSize.sm,
-        color: colors.textSecondary,
-        marginTop: 2,
-    },
-    section: {
-        marginBottom: spacing.xl,
-    },
-    sectionTitle: {
-        fontSize: typography.fontSize.lg,
-        fontWeight: typography.fontWeight.semibold,
-        color: colors.textPrimary,
-        marginBottom: spacing.md,
-    },
-    infoCard: {
-        backgroundColor: colors.cardBackground,
-        borderRadius: 16,
-        padding: spacing.lg,
-        shadowColor: colors.shadow,
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.1,
-        shadowRadius: 8,
-        elevation: 3,
-    },
-    infoRow: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        paddingVertical: spacing.sm,
-    },
-    infoContent: {
-        marginLeft: spacing.md,
-        flex: 1,
-    },
-    infoLabel: {
-        fontSize: typography.fontSize.sm,
-        color: colors.textSecondary,
-        marginBottom: spacing.xs,
-    },
-    infoValue: {
-        fontSize: typography.fontSize.md,
-        fontWeight: typography.fontWeight.medium,
-        color: colors.textPrimary,
-    },
-    divider: {
-        height: 1,
-        backgroundColor: colors.border,
-        marginVertical: spacing.sm,
-    },
-    statsContainer: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        gap: spacing.md,
-    },
+    name: { fontSize: typography.fontSize.xxl, fontWeight: typography.fontWeight.bold, color: colors.textPrimary, marginTop: spacing.md, marginBottom: spacing.xs },
+    email: { fontSize: typography.fontSize.md, color: colors.textSecondary },
+    badgeRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, marginTop: spacing.md },
+    badgeLabel: { fontSize: typography.fontSize.sm, color: colors.primary, fontWeight: typography.fontWeight.bold, backgroundColor: 'rgba(79,70,229,0.1)', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 999 },
+    pointsLabel: { fontSize: typography.fontSize.sm, color: colors.accent, fontWeight: typography.fontWeight.bold, backgroundColor: 'rgba(16,185,129,0.1)', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 999 },
+    rankLabel: { fontSize: typography.fontSize.sm, color: '#F59E0B', fontWeight: typography.fontWeight.bold, backgroundColor: 'rgba(245,158,11,0.1)', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 999 },
+    editProfileBtn: { flexDirection: 'row', alignItems: 'center', gap: spacing.xs, marginTop: spacing.md, paddingHorizontal: spacing.md, paddingVertical: spacing.sm, borderRadius: 999, backgroundColor: 'rgba(79, 70, 229, 0.1)' },
+    editProfileText: { fontSize: typography.fontSize.sm, fontWeight: typography.fontWeight.semibold, color: colors.primary },
+    editForm: { width: '100%', marginTop: spacing.md },
+    fieldLabel: { fontSize: typography.fontSize.sm, fontWeight: typography.fontWeight.semibold, color: colors.textSecondary, marginTop: spacing.md, marginBottom: spacing.xs, alignSelf: 'flex-start' },
+    editInput: { width: '100%', backgroundColor: colors.background, borderRadius: 14, borderWidth: 1, borderColor: colors.border, paddingHorizontal: spacing.md, paddingVertical: 12, color: colors.textPrimary, fontSize: typography.fontSize.md },
+    editActions: { flexDirection: 'row', gap: spacing.sm, marginTop: spacing.lg },
+    premiumCard: { backgroundColor: colors.cardBackground, borderRadius: 16, padding: spacing.lg, marginBottom: spacing.xl, borderWidth: 1, borderColor: 'rgba(124, 58, 237, 0.2)' },
+    premiumRow: { flexDirection: 'row', alignItems: 'center' },
+    premiumTextWrap: { flex: 1, marginLeft: spacing.md },
+    premiumTitle: { fontSize: typography.fontSize.md, fontWeight: typography.fontWeight.semibold, color: colors.textPrimary },
+    premiumSub: { fontSize: typography.fontSize.sm, color: colors.textSecondary, marginTop: 2 },
+    section: { marginBottom: spacing.xl },
+    sectionTitle: { fontSize: typography.fontSize.lg, fontWeight: typography.fontWeight.semibold, color: colors.textPrimary, marginBottom: spacing.md },
+    statsGrid: { flexDirection: 'row', gap: spacing.sm },
     statCard: {
-        flex: 1,
-        backgroundColor: colors.cardBackground,
-        borderRadius: 16,
-        padding: spacing.md,
-        alignItems: 'center',
-        shadowColor: colors.shadow,
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.1,
-        shadowRadius: 8,
-        elevation: 3,
+        flex: 1, backgroundColor: colors.cardBackground, borderRadius: 16, padding: spacing.md,
+        alignItems: 'center', borderWidth: 1, borderColor: colors.border,
     },
-    statValue: {
-        fontSize: typography.fontSize.xl,
-        fontWeight: typography.fontWeight.bold,
-        color: colors.textPrimary,
-        marginTop: spacing.sm,
+    statValue: { fontSize: typography.fontSize.xl, fontWeight: typography.fontWeight.bold, color: colors.textPrimary, marginTop: spacing.sm },
+    statLabel: { fontSize: typography.fontSize.xs, color: colors.textSecondary, marginTop: 2, textAlign: 'center' },
+    badgesScroll: { gap: spacing.sm },
+    badgeCard: {
+        backgroundColor: colors.cardBackground, borderRadius: 16, padding: spacing.md,
+        alignItems: 'center', borderWidth: 1, minWidth: 100,
     },
-    statLabel: {
-        fontSize: typography.fontSize.sm,
-        color: colors.textSecondary,
-        marginTop: spacing.xs,
+    badgeEmoji: { fontSize: 28 },
+    badgeName: { fontSize: typography.fontSize.xs, fontWeight: typography.fontWeight.semibold, color: colors.textPrimary, marginTop: 4, textAlign: 'center' },
+    badgeDate: { fontSize: 9, color: colors.textLight, marginTop: 2 },
+    quickLinks: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm, marginBottom: spacing.xl },
+    quickLink: {
+        width: '48%', backgroundColor: colors.cardBackground, borderRadius: 16, padding: spacing.md,
+        flexDirection: 'row', alignItems: 'center', gap: spacing.sm, borderWidth: 1, borderColor: colors.border,
     },
+    quickLinkLabel: { fontSize: typography.fontSize.sm, fontWeight: typography.fontWeight.medium, color: colors.textPrimary },
+    logoutBtn: { alignItems: 'center', paddingVertical: spacing.md, marginBottom: 40 },
+    logoutBtnText: { fontSize: typography.fontSize.md, color: colors.textSecondary },
 });

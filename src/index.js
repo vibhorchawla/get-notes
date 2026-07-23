@@ -8,6 +8,10 @@ const coursesRoutes = require('./modules/courses/courses.routes');
 const notesRoutes = require('./modules/notes/notes.routes');
 const userRoutes = require('./modules/user/user.routes');
 const paymentRoutes = require('./modules/payment/payment.routes');
+const communityRoutes = require('./modules/community/community.routes');
+const collegesRoutes = require('./modules/colleges/colleges.routes');
+const reputationRoutes = require('./modules/reputation/reputation.routes');
+const adminRoutes = require('./modules/admin/admin.routes');
 const {
     searchNotesHandler,
     publishNote,
@@ -19,17 +23,13 @@ const { handleUpload, uploadFile, serveFile } = require('./modules/files/files.r
 const app = express();
 const PORT = process.env.PORT || 5000;
 
-// ── Middleware ────────────────────────────────────────────────────────────────
 app.use(cors());
-app.use(express.json());
+app.use(express.json({ limit: '50mb' }));
 
-// ── Health check ─────────────────────────────────────────────────────────────
 app.get('/', (_req, res) => {
-    res.json({ message: 'GetNotes API is running!', version: '1.0.0' });
+    res.json({ message: 'GetNotes API is running!', version: '2.0.0' });
 });
 
-// ── Routes ────────────────────────────────────────────────────────────────────
-// Top-level search & share (avoids /api/notes/:courseId catching "search")
 app.get('/api/search', searchNotesHandler);
 app.post('/api/share-note', verifyToken, publishNote);
 app.get('/api/note/:noteId', getNoteById);
@@ -41,27 +41,32 @@ app.use('/api/courses', coursesRoutes);
 app.use('/api/notes', notesRoutes);
 app.use('/api/user', userRoutes);
 app.use('/api/payment', paymentRoutes);
+app.use('/api/community', communityRoutes);
+app.use('/api/colleges', collegesRoutes);
+app.use('/api/reputation', reputationRoutes);
+app.use('/api/admin', adminRoutes);
 
-// ── 404 catch-all ─────────────────────────────────────────────────────────────
 app.use((_req, res) => {
     res.status(404).json({ success: false, message: 'Route not found' });
 });
 
-// ── Start ─────────────────────────────────────────────────────────────────────
 connectDB()
     .then(() => {
         app.listen(PORT, '0.0.0.0', () => {
-            console.log(`\nGetNotes API running on http://0.0.0.0:${PORT}`);
-            console.log(`   Auth    -> POST /api/auth/register  |  POST /api/auth/login`);
-            console.log(`   Courses -> GET  /api/courses         |  GET  /api/courses/featured`);
-            console.log(`   Files   -> POST /api/files/upload   |  GET /api/files/:filename`);
-            console.log(`   Search  -> GET  /api/search?q=     |  POST /api/share-note`);
-            console.log(`   Notes   -> GET  /api/notes/search  |  POST /api/notes/publish`);
-            console.log(`           GET  /api/notes/:courseId`);
-            console.log(`   User    -> GET  /api/user/saved      |  GET  /api/user/downloads`);
-console.log(`   Payment -> POST /api/payment/create-order | POST /api/payment/verify`);
-console.log(`           POST /api/payment/webhook  | GET  /api/payment/history`);
-console.log(`           GET  /api/payment/status   | GET  /api/payment/plans\n`);
+            console.log(`\nGetNotes API v2.0.0 running on http://0.0.0.0:${PORT}`);
+            console.log(`   Auth       -> POST /api/auth/register  |  POST /api/auth/login`);
+            console.log(`   Courses    -> GET  /api/courses         |  GET  /api/courses/featured`);
+            console.log(`               GET  /api/courses/:id/semesters`);
+            console.log(`   Notes      -> GET  /api/notes/trending  |  GET  /api/notes/top-rated`);
+            console.log(`               GET  /api/notes/recent      |  GET  /api/notes/verified`);
+            console.log(`               GET  /api/notes/subject/:name`);
+            console.log(`               POST /api/notes/publish     |  POST /api/notes/:id/rate`);
+            console.log(`   Community  -> GET  /api/community       |  GET  /api/community/:type`);
+            console.log(`   User       -> GET  /api/user/stats      |  PUT  /api/user/profile`);
+            console.log(`   Reputation -> GET  /api/reputation/me   |  GET  /api/reputation/leaderboard`);
+            console.log(`   Colleges   -> GET  /api/colleges        |  GET  /api/colleges/:name/notes`);
+            console.log(`   Admin      -> POST /api/admin/notes/:id/verify`);
+            console.log(`   Payment    -> POST /api/payment/create-order | POST /api/payment/verify\n`);
         });
     })
     .catch((err) => {

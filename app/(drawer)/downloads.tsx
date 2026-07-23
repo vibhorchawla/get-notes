@@ -3,56 +3,32 @@ import { View, StyleSheet, ScrollView, SafeAreaView, RefreshControl } from 'reac
 import { useRouter } from 'expo-router';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 import GradientBackground from '../../components/GradientBackground';
-import NoteItem from '../../components/NoteItem';
+import SearchNoteCard from '../../components/SearchNoteCard';
 import TopHeader from '../../components/TopHeader';
 import LoadingSkeleton from '../../components/LoadingSkeleton';
 import EmptyState from '../../components/EmptyState';
-import ErrorState from '../../components/ErrorState';
 import { colors } from '../../constants/colors';
 import { spacing } from '../../constants/spacing';
-import { useDownloads } from '../../hooks/useDownloads';
-import { useToast } from '../../context/ToastContext';
+import { usePersonalNotes } from '../../hooks/usePersonalNotes';
+import { openNote } from '../../utils/openNote';
 
-export default function DownloadsScreen() {
+export default function MyUploadsScreen() {
     const router = useRouter();
-    const { showToast } = useToast();
-    const { downloads, isLoading, addDownload, refetch, error } = useDownloads();
+    const { notes, isLoading, loadNotes } = usePersonalNotes();
     const [refreshing, setRefreshing] = useState(false);
+
+    const uploadedNotes = notes.filter((n) => n.isPublished || true);
 
     const onRefresh = useCallback(async () => {
         setRefreshing(true);
-        await refetch();
+        await loadNotes();
         setRefreshing(false);
-    }, [refetch]);
-
-    const handleNotePress = (note: typeof downloads[0]) => {
-        if (note.pdfUrl) {
-            router.push({
-                pathname: `/note/${note.id}`,
-                params: {
-                    title: note.title,
-                    pdfUrl: note.pdfUrl,
-                    isPremium: note.isPremium ? 'true' : 'false',
-                },
-            });
-        } else {
-            showToast('This note has no PDF attached.', 'error');
-        }
-    };
-
-    const handleDownload = async (noteId: string) => {
-        const success = await addDownload(noteId);
-        if (success) {
-            showToast('Note re-downloaded.', 'success');
-        } else {
-            showToast('Download failed. Please try again.', 'error');
-        }
-    };
+    }, [loadNotes]);
 
     return (
         <GradientBackground>
             <SafeAreaView style={styles.container}>
-                <TopHeader title="Downloads" />
+                <TopHeader title="My Uploads" />
                 <Animated.View entering={FadeInDown.delay(100).springify().damping(14)} style={{ flex: 1 }}>
                 <ScrollView
                     showsVerticalScrollIndicator={false}
@@ -65,34 +41,23 @@ export default function DownloadsScreen() {
                                 <LoadingSkeleton.Card lines={2} />
                                 <LoadingSkeleton.Card lines={2} />
                             </View>
-                        ) : error && downloads.length === 0 ? (
-                            <ErrorState
-                                title="Could not load downloads"
-                                message={error}
-                                onRetry={refetch}
-                                retryLabel="Retry"
-                            />
-                        ) : downloads.length > 0 ? (
+                        ) : uploadedNotes.length > 0 ? (
                             <View style={styles.notesList}>
-                                {downloads.map((note) => (
-                                    <NoteItem
+                                {uploadedNotes.map((note) => (
+                                    <SearchNoteCard
                                         key={note.id}
-                                        title={note.title}
-                                        subject={note.subject}
-                                        unit={note.unit}
-                                        isPremium={note.isPremium}
-                                        onPress={() => handleNotePress(note)}
-                                        onDownload={() => handleDownload(note.id)}
+                                        note={note}
+                                        onPress={() => openNote(router, note)}
                                     />
                                 ))}
                             </View>
                         ) : (
                             <EmptyState
-                                icon="download-outline"
-                                title="No downloads"
-                                message="Notes you download will appear here for offline access."
-                                actionLabel="Browse Courses"
-                                onAction={() => router.push('/')}
+                                icon="cloud-upload-outline"
+                                title="No uploads yet"
+                                message="Notes you upload will appear here. Tap + to share your first note."
+                                actionLabel="Upload Note"
+                                onAction={() => router.push('/upload-note')}
                             />
                         )}
                     </View>

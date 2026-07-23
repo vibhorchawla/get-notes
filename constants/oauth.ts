@@ -9,3 +9,11 @@ export const oauthConfig = {
         clientToken: process.env.EXPO_PUBLIC_FACEBOOK_CLIENT_TOKEN || '',
     },
 };
+
+export function isGoogleConfigured(): boolean {
+    return !!(oauthConfig.google.iosClientId || oauthConfig.google.androidClientId || oauthConfig.google.webClientId);
+}
+
+export function isFacebookConfigured(): boolean {
+    return !!(oauthConfig.facebook.appId && oauthConfig.facebook.clientToken);
+}

@@ -1,7 +1,7 @@
 const SavedNote = require('../../models/SavedNote');
 const Download = require('../../models/Download');
 const CommunityNote = require('../../models/CommunityNote');
-const { findCatalogNoteById } = require('../../config/db');
+const UserReputation = require('../../models/UserReputation');
 
 function cleanId(doc) {
     if (!doc) return doc;
@@ -10,16 +10,11 @@ function cleanId(doc) {
 }
 
 async function resolveNote(noteId) {
-    const catalog = findCatalogNoteById(noteId);
-    if (catalog) return catalog;
-
     const doc = await CommunityNote.findById(noteId).lean();
     if (doc) return { ...cleanId(doc), source: 'community' };
-
     return null;
 }
 
-// GET /api/user/saved
 async function getSaved(req, res) {
     try {
         const { id: userId } = req.user;
@@ -34,21 +29,18 @@ async function getSaved(req, res) {
     }
 }
 
-// POST /api/user/saved   body: { noteId }
 async function saveNote(req, res) {
     try {
         const { id: userId } = req.user;
         const { noteId } = req.body;
         if (!noteId) return res.status(400).json({ success: false, message: 'noteId is required' });
 
-        const note = await resolveNote(noteId);
-        if (!note) return res.status(404).json({ success: false, message: 'Note not found' });
-
         await SavedNote.findOneAndUpdate(
             { userId, noteId },
             { userId, noteId },
             { upsert: true, new: true }
         );
+        await CommunityNote.findByIdAndUpdate(noteId, { $inc: { saves: 1 } });
         res.json({ success: true, message: 'Note saved' });
     } catch (err) {
         console.error('SaveNote error:', err);
@@ -56,7 +48,6 @@ async function saveNote(req, res) {
     }
 }
 
-// DELETE /api/user/saved/:noteId
 async function unsaveNote(req, res) {
     try {
         const { id: userId } = req.user;
@@ -69,13 +60,12 @@ async function unsaveNote(req, res) {
     }
 }
 
-// GET /api/user/downloads
 async function getDownloads(req, res) {
     try {
         const { id: userId } = req.user;
-        const downloads = await Download.find({ userId }).lean();
+        const downloadRecords = await Download.find({ userId }).lean();
         const notes = (
-            await Promise.all(downloads.map((d) => resolveNote(d.noteId)))
+            await Promise.all(downloadRecords.map((d) => resolveNote(d.noteId)))
         ).filter(Boolean);
         res.json({ success: true, data: notes });
     } catch (err) {
@@ -84,21 +74,18 @@ async function getDownloads(req, res) {
     }
 }
 
-// POST /api/user/downloads   body: { noteId }
 async function addDownload(req, res) {
     try {
         const { id: userId } = req.user;
         const { noteId } = req.body;
         if (!noteId) return res.status(400).json({ success: false, message: 'noteId is required' });
 
-        const note = await resolveNote(noteId);
-        if (!note) return res.status(404).json({ success: false, message: 'Note not found' });
-
         await Download.findOneAndUpdate(
             { userId, noteId },
             { userId, noteId },
             { upsert: true, new: true }
         );
+        await CommunityNote.findByIdAndUpdate(noteId, { $inc: { downloads: 1 } });
         res.json({ success: true, message: 'Download recorded' });
     } catch (err) {
         console.error('AddDownload error:', err);
@@ -106,20 +93,48 @@ async function addDownload(req, res) {
     }
 }
 
-// GET /api/user/stats
 async function getStats(req, res) {
     try {
         const { id: userId } = req.user;
-        const [saved, downloads] = await Promise.all([
+        const [saved, downloads, uploaded, reputation] = await Promise.all([
             SavedNote.countDocuments({ userId }),
             Download.countDocuments({ userId }),
+            CommunityNote.countDocuments({ 'uploadedBy.id': userId }),
+            UserReputation.findOne({ userId }).lean(),
         ]);
+
+        const uploadStats = await CommunityNote.aggregate([
+            { $match: { 'uploadedBy.id': userId } },
+            {
+                $group: {
+                    _id: null,
+                    totalDownloads: { $sum: '$downloads' },
+                    totalViews: { $sum: '$views' },
+                    totalLikes: { $sum: '$likes' },
+                    avgRating: { $avg: '$averageRating' },
+                },
+            },
+        ]);
+
+        const stats = uploadStats[0] || {};
+        const repPoints = reputation?.points || 0;
+        const repBadge = reputation?.currentBadge?.name || '🌟 Beginner';
+
         res.json({
             success: true,
             data: {
                 saved,
                 downloads,
                 notesRead: saved + downloads,
+                uploaded,
+                totalUploads: uploaded,
+                downloadsReceived: stats.totalDownloads || 0,
+                totalViews: stats.totalViews || 0,
+                totalLikes: stats.totalLikes || 0,
+                averageRating: Math.round((stats.avgRating || 0) * 10) / 10,
+                reputationPoints: repPoints,
+                badge: repBadge,
+                rank: reputation?.rank || 0,
             },
         });
     } catch (err) {
@@ -128,4 +143,31 @@ async function getStats(req, res) {
     }
 }
 
-module.exports = { getSaved, saveNote, unsaveNote, getDownloads, addDownload, getStats };
+async function updateProfile(req, res) {
+    try {
+        const { name, course, college } = req.body;
+        const User = require('../../models/User');
+        const update = {};
+        if (name) update.name = name;
+        if (course !== undefined) update.course = course;
+
+        await User.findByIdAndUpdate(req.user.id, update);
+
+        if (college) {
+            const College = require('../../models/College');
+            await College.findOneAndUpdate(
+                { name: college },
+                { $inc: { contributorCount: 1 } },
+                { upsert: true }
+            );
+        }
+
+        const user = await User.findById(req.user.id).lean();
+        res.json({ success: true, data: cleanId(user) });
+    } catch (err) {
+        console.error('UpdateProfile error:', err);
+        res.status(500).json({ success: false, message: 'Server error' });
+    }
+}
+
+module.exports = { getSaved, saveNote, unsaveNote, getDownloads, addDownload, getStats, updateProfile };

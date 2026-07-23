@@ -19,13 +19,21 @@ export async function publishCommunityNote(note: Note): Promise<PublishResult> {
         id: note.id,
         title: note.title,
         content: note.content,
+        course: note.course,
+        semester: note.semester,
         subject: note.subject,
         unit: note.unit,
         pdfUrl: note.pdfUrl,
         playlistUrl: note.playlistUrl,
         noteType: note.noteType,
+        tags: note.tags,
+        uploadedBy: note.uploadedBy,
+        uploaderName: note.uploaderName,
+        uploaderCollege: note.uploaderCollege,
+        uploaderAvatar: note.uploaderAvatar,
         createdAt: note.createdAt,
         updatedAt: note.updatedAt,
+        needsReview: (note as any).needsReview === true,
     };
 
     try {

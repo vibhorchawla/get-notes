@@ -20,10 +20,13 @@ export default function RootLayout() {
                     <Stack.Screen name="(auth)" options={{ headerShown: false }} />
                     <Stack.Screen name="(drawer)" options={{ headerShown: false }} />
                     <Stack.Screen name="upload-note" options={{ headerShown: false }} />
+                    <Stack.Screen name="community/index" options={{ headerShown: false }} />
+                    <Stack.Screen name="course/[id]" options={{ headerShown: false }} />
+                    <Stack.Screen name="semester/[id]" options={{ headerShown: false }} />
+                    <Stack.Screen name="subject/[id]" options={{ headerShown: false }} />
+                    <Stack.Screen name="note/[id]" options={{ headerShown: false }} />
                     <Stack.Screen name="personal-note/[id]" options={{ headerShown: false }} />
                     <Stack.Screen name="shared-note/[id]" options={{ headerShown: false }} />
-                    <Stack.Screen name="course/[id]" options={{ headerShown: false }} />
-                    <Stack.Screen name="note/[id]" options={{ headerShown: false }} />
                     <Stack.Screen name="coming-soon" options={{ headerShown: true, title: 'Coming Soon' }} />
                     <Stack.Screen name="settings/about" options={{ headerShown: true, title: 'About GetNotes' }} />
                     <Stack.Screen name="settings/contact" options={{ headerShown: true, title: 'Contact Us' }} />

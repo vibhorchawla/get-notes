@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import {
     View,
     Text,
@@ -6,95 +6,50 @@ import {
     ScrollView,
     Alert,
     ActivityIndicator,
+    TouchableOpacity,
 } from 'react-native';
 import { useLocalSearchParams, Stack, useRouter } from 'expo-router';
+import { Ionicons } from '@expo/vector-icons';
 import GradientBackground from '../../components/GradientBackground';
 import NoteItem from '../../components/NoteItem';
 import { colors } from '../../constants/colors';
 import { spacing } from '../../constants/spacing';
 import { typography } from '../../constants/typography';
-import { useNotes } from '../../hooks/useNotes';
-import { useDownloads } from '../../hooks/useDownloads';
 import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../../context/ToastContext';
-import { openNote } from '../../utils/openNote';
+import { useSemesters } from '../../hooks/useSemesters';
+import { useSubjects, useSubjectNotes } from '../../hooks/useSemesters';
+import { apiFetch } from '../../hooks/useApi';
+import { Course } from '../../types/note';
+import EmptyState from '../../components/EmptyState';
+import LoadingSkeleton from '../../components/LoadingSkeleton';
 
-const COURSE_TITLES: Record<string, string> = {
-    'btech-cse': 'B.Tech CSE',
-    'btech-me': 'B.Tech ME',
-    'btech-ee': 'B.Tech EE',
-    'bca': 'BCA',
-    'mca': 'MCA',
-    'diploma': 'Diploma',
-    'bca-web': 'Full Stack Web Dev',
-};
-
-export default function NotesScreen() {
+export default function CourseScreen() {
     const { id } = useLocalSearchParams<{ id: string }>();
     const router = useRouter();
     const { showToast } = useToast();
     const { user } = useAuth();
-    const { notes, isLoading } = useNotes(id);
-    const { addDownload } = useDownloads();
+    const [course, setCourse] = useState<Course | null>(null);
+    const { semesters, isLoading: semLoading } = useSemesters(id);
+
+    useEffect(() => {
+        async function loadCourse() {
+            try {
+                const res = await apiFetch<Course>(`/courses/${id}`, { requiresAuth: false });
+                if (res.success && res.data) setCourse(res.data);
+            } catch {}
+        }
+        loadCourse();
+    }, [id]);
 
     const now = new Date();
     const isPremium = user?.isPremium && user?.premiumEndDate ? new Date(user.premiumEndDate) > now : false;
-
-    const handleNotePress = (noteId: string) => {
-        const note = notes.find((n) => n.id === noteId);
-
-        if (note?.isPremium && !isPremium) {
-            Alert.alert(
-                'Premium Note',
-                'This note is only available for Premium members. Upgrade to access all premium notes.',
-                [
-                    { text: 'Cancel', style: 'cancel' },
-                    { text: 'Go Premium', onPress: () => router.push('/(drawer)/subscription') },
-                ]
-            );
-            return;
-        }
-
-        if (note?.pdfUrl) {
-            router.push({
-                pathname: `/note/${noteId}`,
-                params: {
-                    title: note.title,
-                    pdfUrl: note.pdfUrl,
-                    isPremium: note.isPremium ? 'true' : 'false',
-                },
-            });
-        } else {
-            Alert.alert('Error', 'PDF URL not found for this note.');
-        }
-    };
-
-    const handleDownload = async (noteId: string) => {
-        const note = notes.find((n) => n.id === noteId);
-        if (note?.isPremium && !isPremium) {
-            Alert.alert(
-                'Premium Note',
-                'Downloading premium notes requires a Premium subscription.',
-                [
-                    { text: 'Cancel', style: 'cancel' },
-                    { text: 'Go Premium', onPress: () => router.push('/(drawer)/subscription') },
-                ]
-            );
-            return;
-        }
-        const success = await addDownload(noteId);
-        if (success) {
-            showToast('Note saved to downloads!', 'success');
-        } else {
-            showToast('Download failed. Please try again.', 'error');
-        }
-    };
 
     return (
         <>
             <Stack.Screen
                 options={{
-                    title: COURSE_TITLES[id] || 'Course Notes',
+                    title: course?.name || 'Course',
                     headerStyle: { backgroundColor: colors.primary },
                     headerTintColor: colors.white,
                 }}
@@ -102,28 +57,41 @@ export default function NotesScreen() {
             <GradientBackground>
                 <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
                     <View style={styles.content}>
-                        <Text style={styles.title}>Available Notes</Text>
+                        <Text style={styles.title}>{course?.name || 'Course Notes'}</Text>
+                        <Text style={styles.subtitle}>Select a semester to browse notes</Text>
 
-                        {isLoading ? (
-                            <ActivityIndicator size="large" color={colors.primary} style={{ marginTop: spacing.xl }} />
-                        ) : notes.length > 0 ? (
-                            <View style={styles.notesList}>
-                                {notes.map((note) => (
-                                    <NoteItem
-                                        key={note.id}
-                                        title={note.title}
-                                        subject={note.subject}
-                                        unit={note.unit}
-                                        isPremium={note.isPremium}
-                                        onPress={() => handleNotePress(note.id)}
-                                        onDownload={() => handleDownload(note.id)}
-                                    />
+                        {semLoading ? (
+                            <View style={styles.skeletonWrap}>
+                                <LoadingSkeleton.Card lines={1} />
+                                <LoadingSkeleton.Card lines={1} />
+                                <LoadingSkeleton.Card lines={1} />
+                            </View>
+                        ) : semesters.length > 0 ? (
+                            <View style={styles.semesterList}>
+                                {semesters.map((sem) => (
+                                    <TouchableOpacity
+                                        key={sem.id}
+                                        style={styles.semesterCard}
+                                        onPress={() => router.push(`/semester/${sem.id}?courseName=${course?.name || ''}&semester=${sem.number}`)}
+                                        activeOpacity={0.7}
+                                    >
+                                        <View style={styles.semesterIcon}>
+                                            <Ionicons name="layers-outline" size={28} color={colors.primary} />
+                                        </View>
+                                        <View style={styles.semesterInfo}>
+                                            <Text style={styles.semesterName}>Semester {sem.number}</Text>
+                                            <Text style={styles.semesterSub}>Browse all subjects and notes</Text>
+                                        </View>
+                                        <Ionicons name="chevron-forward" size={20} color={colors.textLight} />
+                                    </TouchableOpacity>
                                 ))}
                             </View>
                         ) : (
-                            <View style={styles.emptyState}>
-                                <Text style={styles.emptyText}>No notes available yet</Text>
-                            </View>
+                            <EmptyState
+                                icon="school-outline"
+                                title="No semesters yet"
+                                message="Semesters for this course haven't been added yet."
+                            />
                         )}
                     </View>
                 </ScrollView>
@@ -133,28 +101,21 @@ export default function NotesScreen() {
 }
 
 const styles = StyleSheet.create({
-    container: {
-        flex: 1,
+    container: { flex: 1 },
+    content: { padding: spacing.screenPadding },
+    title: { fontSize: typography.fontSize.xxl, fontWeight: typography.fontWeight.bold, color: colors.textPrimary, marginBottom: spacing.xs },
+    subtitle: { fontSize: typography.fontSize.sm, color: colors.textSecondary, marginBottom: spacing.lg },
+    skeletonWrap: { gap: spacing.sm },
+    semesterList: { gap: spacing.md },
+    semesterCard: {
+        flexDirection: 'row', alignItems: 'center', backgroundColor: colors.cardBackground,
+        borderRadius: 16, padding: spacing.lg, borderWidth: 1, borderColor: colors.border, gap: spacing.md,
     },
-    content: {
-        padding: spacing.screenPadding,
+    semesterIcon: {
+        width: 52, height: 52, borderRadius: 16, backgroundColor: 'rgba(79, 70, 229, 0.1)',
+        justifyContent: 'center', alignItems: 'center',
     },
-    title: {
-        fontSize: typography.fontSize.xl,
-        fontWeight: typography.fontWeight.bold,
-        color: colors.textPrimary,
-        marginBottom: spacing.lg,
-    },
-    notesList: {
-        marginBottom: spacing.lg,
-    },
-    emptyState: {
-        alignItems: 'center',
-        justifyContent: 'center',
-        paddingVertical: spacing.xxl,
-    },
-    emptyText: {
-        fontSize: typography.fontSize.md,
-        color: colors.textSecondary,
-    },
+    semesterInfo: { flex: 1 },
+    semesterName: { fontSize: typography.fontSize.lg, fontWeight: typography.fontWeight.bold, color: colors.textPrimary },
+    semesterSub: { fontSize: typography.fontSize.sm, color: colors.textSecondary, marginTop: 2 },
 });
