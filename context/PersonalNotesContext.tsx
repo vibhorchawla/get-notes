@@ -35,9 +35,9 @@ function extractUrlAfterLabel(content: string, labels: string[]): string | undef
 function normalizeNote(note: Note): Note {
     const rawDriveOrPdf =
         note.pdfUrl ||
-        extractUrlAfterLabel(note.content, ['Drive Link', 'Google Drive Link', 'PDF Link']);
+        extractUrlAfterLabel(note.content || '', ['Drive Link', 'Google Drive Link', 'PDF Link']);
     const playlistUrl =
-        note.playlistUrl || extractUrlAfterLabel(note.content, ['Playlist Link']);
+        note.playlistUrl || extractUrlAfterLabel(note.content || '', ['Playlist Link']);
 
     const pdfUrl = rawDriveOrPdf
         ? isGoogleDriveLink(rawDriveOrPdf) || /drive\.google\.com/i.test(rawDriveOrPdf)

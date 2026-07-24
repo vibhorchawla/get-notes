@@ -5,7 +5,6 @@ const downloadSchema = new mongoose.Schema(
         userId: {
             type: String,
             required: true,
-            index: true,
         },
         noteId: {
             type: String,

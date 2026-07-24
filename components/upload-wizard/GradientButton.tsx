@@ -1,0 +1,99 @@
+import React from 'react';
+import { Text, StyleSheet, Pressable, ActivityIndicator, ViewStyle } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
+import { Ionicons } from '@expo/vector-icons';
+import { colors } from '../../constants/colors';
+import { spacing } from '../../constants/spacing';
+import { typography } from '../../constants/typography';
+
+interface GradientButtonProps {
+    label: string;
+    onPress: () => void;
+    disabled?: boolean;
+    loading?: boolean;
+    loadingLabel?: string;
+    icon?: keyof typeof Ionicons.glyphMap;
+    style?: ViewStyle;
+}
+
+export default function GradientButton({
+    label,
+    onPress,
+    disabled = false,
+    loading = false,
+    loadingLabel,
+    icon,
+    style,
+}: GradientButtonProps) {
+    return (
+        <Pressable
+            style={[styles.wrapper, style]}
+            onPress={() => {
+                if (!disabled && !loading) onPress();
+            }}
+            disabled={disabled || loading}
+            accessibilityRole="button"
+            accessibilityLabel={loading ? loadingLabel || 'Loading' : label}
+            accessibilityState={{ disabled, busy: loading }}
+        >
+            <LinearGradient
+                colors={
+                    disabled
+                        ? [colors.border, colors.border]
+                        : ['#4F46E5', '#6D28D9']
+                }
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 0 }}
+                style={styles.gradient}
+            >
+                {loading ? (
+                    <ActivityIndicator size="small" color={colors.textOnPrimary} />
+                ) : icon ? (
+                    <Ionicons
+                        name={icon}
+                        size={20}
+                        color={disabled ? colors.textLight : colors.textOnPrimary}
+                    />
+                ) : null}
+                <Text
+                    style={[
+                        styles.label,
+                        disabled && styles.labelDisabled,
+                    ]}
+                >
+                    {loading ? loadingLabel || 'Processing...' : label}
+                </Text>
+            </LinearGradient>
+        </Pressable>
+    );
+}
+
+const styles = StyleSheet.create({
+    wrapper: {
+        borderRadius: 18,
+        overflow: 'hidden',
+        shadowColor: colors.primary,
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.25,
+        shadowRadius: 12,
+        elevation: 6,
+    },
+    gradient: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: spacing.sm,
+        paddingVertical: 18,
+        paddingHorizontal: spacing.lg,
+        minHeight: 58,
+    },
+    label: {
+        fontSize: typography.fontSize.md,
+        fontWeight: typography.fontWeight.bold,
+        color: colors.textOnPrimary,
+        letterSpacing: 0.3,
+    },
+    labelDisabled: {
+        color: colors.textLight,
+    },
+});

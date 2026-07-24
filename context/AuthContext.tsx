@@ -7,6 +7,11 @@ interface User {
     email: string;
     name: string;
     course: string;
+    branch?: string;
+    college?: string;
+    currentSemester?: number | null;
+    graduationYear?: number | null;
+    avatar?: string;
     isPremium?: boolean;
     premiumPlan?: 'monthly' | 'quarterly' | 'yearly' | null;
     premiumStartDate?: string | null;
@@ -17,7 +22,7 @@ interface User {
 interface AuthContextType {
     user: User | null;
     isLoading: boolean;
-    login: (email: string, password: string) => Promise<boolean>;
+    login: (email: string, password: string) => Promise<{ success: boolean; message?: string }>;
     signup: (email: string, password: string, name: string, course: string) => Promise<boolean>;
     logout: () => Promise<void>;
     socialAuth: (token: string, user: User) => Promise<void>;
@@ -51,7 +56,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         }
     };
 
-    const login = async (email: string, password: string): Promise<boolean> => {
+    const login = async (email: string, password: string): Promise<{ success: boolean; message?: string }> => {
         try {
             const res = await apiFetch<{ token: string; user: User }>('/auth/login', {
                 method: 'POST',
@@ -63,11 +68,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                 await setToken(res.data.token);
                 await SecureStore.setItemAsync(USER_KEY, JSON.stringify(res.data.user));
                 setUser(res.data.user);
-                return true;
+                return { success: true };
             }
-            return false;
+            return { success: false, message: res.message || 'Login failed. Please try again.' };
         } catch (error) {
-            return false;
+            return { success: false, message: 'Could not reach the server.' };
         }
     };
 
@@ -117,9 +122,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             const token = await getToken();
             if (!token) return;
             const res = await apiFetch<{ user: User }>('/auth/me');
-            if (res.success && res.data?.user) {
-                await SecureStore.setItemAsync(USER_KEY, JSON.stringify(res.data.user));
-                setUser(res.data.user);
+            const userData = (res as any).user || (res.data as any)?.user;
+            if (res.success && userData) {
+                await SecureStore.setItemAsync(USER_KEY, JSON.stringify(userData));
+                setUser(userData);
             }
         } catch {
         }

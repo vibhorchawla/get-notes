@@ -1,4 +1,4 @@
-import React, { useMemo, useState, useEffect } from 'react';
+import React, { useMemo, useState, useEffect, useCallback } from 'react';
 import {
     View,
     Text,
@@ -28,6 +28,18 @@ import { Note, Course } from '../types/note';
 import { apiFetch } from '../hooks/useApi';
 import DriveFilePickerModal from '../components/DriveFilePickerModal';
 import { PickedDriveFile, uploadFileToServer } from '../hooks/useDriveFiles';
+
+import AnimatedStepper from '../components/upload-wizard/AnimatedStepper';
+import WizardStep from '../components/upload-wizard/WizardStep';
+import SelectionCard from '../components/upload-wizard/SelectionCard';
+import ReviewSummary from '../components/upload-wizard/ReviewSummary';
+import GradientButton from '../components/upload-wizard/GradientButton';
+import FormField from '../components/upload-wizard/FormField';
+import StepHeader from '../components/upload-wizard/StepHeader';
+import GlassCard from '../components/upload-wizard/GlassCard';
+import ProgressIndicator from '../components/upload-wizard/ProgressIndicator';
+
+// ─── Picker Modal (unchanged) ────────────────────────────────────────────────
 
 interface PickerOption {
     id: string;
@@ -88,55 +100,21 @@ function PickerModal({
 }
 
 const pickerStyles = StyleSheet.create({
-    overlay: {
-        flex: 1,
-        backgroundColor: 'rgba(0,0,0,0.6)',
-        justifyContent: 'flex-end',
-    },
-    container: {
-        backgroundColor: '#1A1A2E',
-        borderTopLeftRadius: 24,
-        borderTopRightRadius: 24,
-        maxHeight: '70%',
-        paddingBottom: 40,
-    },
-    header: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        padding: spacing.lg,
-        borderBottomWidth: 1,
-        borderBottomColor: colors.border,
-    },
-    title: {
-        fontSize: typography.fontSize.lg,
-        fontWeight: typography.fontWeight.bold,
-        color: colors.textPrimary,
-    },
-    list: {
-        padding: spacing.md,
-    },
-    option: {
-        padding: spacing.md,
-        borderRadius: 12,
-        backgroundColor: colors.cardBackground,
-        marginBottom: spacing.sm,
-        borderWidth: 1,
-        borderColor: colors.border,
-    },
-    optionName: {
-        fontSize: typography.fontSize.md,
-        fontWeight: typography.fontWeight.semibold,
-        color: colors.textPrimary,
-    },
-    optionSub: {
-        fontSize: typography.fontSize.sm,
-        color: colors.textSecondary,
-        marginTop: 4,
-    },
+    overlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.6)', justifyContent: 'flex-end' },
+    container: { backgroundColor: '#1A1A2E', borderTopLeftRadius: 24, borderTopRightRadius: 24, maxHeight: '70%', paddingBottom: 40 },
+    header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: spacing.lg, borderBottomWidth: 1, borderBottomColor: colors.border },
+    title: { fontSize: typography.fontSize.lg, fontWeight: typography.fontWeight.bold, color: colors.textPrimary },
+    list: { padding: spacing.md },
+    option: { padding: spacing.md, borderRadius: 12, backgroundColor: colors.cardBackground, marginBottom: spacing.sm, borderWidth: 1, borderColor: colors.border },
+    optionName: { fontSize: typography.fontSize.md, fontWeight: typography.fontWeight.semibold, color: colors.textPrimary },
+    optionSub: { fontSize: typography.fontSize.sm, color: colors.textSecondary, marginTop: 4 },
 });
 
-const UPLOAD_STEPS = ['Course', 'Semester', 'Subject', 'Upload'] as const;
+// ─── Constants ────────────────────────────────────────────────────────────────
+
+const STEPS = ['Course', 'Semester', 'Subject', 'Upload'] as const;
+
+// ─── Main Screen ──────────────────────────────────────────────────────────────
 
 export default function UploadNoteScreen() {
     const router = useRouter();
@@ -144,8 +122,12 @@ export default function UploadNoteScreen() {
     const { user } = useAuth();
     const { addNote, markPublished } = usePersonalNotes();
 
-    const [step, setStep] = useState(0);
+    const hasAcademicProfile = Boolean(user?.course && (user as any)?.college && (user as any)?.branch);
 
+    const [step, setStep] = useState(0);
+    const [previousStep, setPreviousStep] = useState(0);
+
+    // ── Form state ──────────────────────────────────────────────────────────
     const [title, setTitle] = useState('');
     const [description, setDescription] = useState('');
     const [tags, setTags] = useState('');
@@ -154,7 +136,9 @@ export default function UploadNoteScreen() {
     const [pickerVisible, setPickerVisible] = useState(false);
     const [isUploadingFile, setIsUploadingFile] = useState(false);
     const [isSaving, setIsSaving] = useState(false);
+    const [uploadProgress, setUploadProgress] = useState(0);
 
+    // ── Picker state ────────────────────────────────────────────────────────
     const [courses, setCourses] = useState<PickerOption[]>([]);
     const [semesters, setSemesters] = useState<PickerOption[]>([]);
     const [subjects, setSubjects] = useState<PickerOption[]>([]);
@@ -167,18 +151,17 @@ export default function UploadNoteScreen() {
     const [customSubject, setCustomSubject] = useState('');
     const [showCustomSubjectInput, setShowCustomSubjectInput] = useState(false);
 
-    const [showCoursePicker, setShowCoursePicker] = useState(false);
-    const [showSemesterPicker, setShowSemesterPicker] = useState(false);
-    const [showSubjectPicker, setShowSubjectPicker] = useState(false);
     const [loadingSemesters, setLoadingSemesters] = useState(false);
     const [loadingSubjects, setLoadingSubjects] = useState(false);
 
     const [courseSearch, setCourseSearch] = useState('');
 
+    // ── Derived ─────────────────────────────────────────────────────────────
+
     const filteredCourses = useMemo(() => {
         if (!courseSearch.trim()) return courses;
         const q = courseSearch.toLowerCase();
-        return courses.filter(c => c.name.toLowerCase().includes(q));
+        return courses.filter((c) => c.name.toLowerCase().includes(q));
     }, [courses, courseSearch]);
 
     const resolvedSubjectName = selectedSubject
@@ -187,12 +170,23 @@ export default function UploadNoteScreen() {
             : selectedSubject.name
         : '';
 
+    const completedSteps = useMemo(() => {
+        const completed: number[] = [];
+        if (selectedCourse) completed.push(0);
+        if (selectedSemester) completed.push(1);
+        if (selectedSubject && resolvedSubjectName) completed.push(2);
+        if (pickedFile && title.trim()) completed.push(3);
+        return completed;
+    }, [selectedCourse, selectedSemester, selectedSubject, resolvedSubjectName, pickedFile, title]);
+
+    // ── Load courses ────────────────────────────────────────────────────────
+
     useEffect(() => {
         async function loadCourses() {
             try {
                 const res = await apiFetch<Course[]>('/courses', { requiresAuth: false });
                 if (res.success && res.data) {
-                    setCourses(res.data.map(c => ({ id: c.id || c._id || '', name: c.name })));
+                    setCourses(res.data.map((c) => ({ id: c.id || c._id || '', name: c.name })));
                 }
             } catch (e) {
                 console.warn('Could not load courses');
@@ -201,6 +195,26 @@ export default function UploadNoteScreen() {
         loadCourses();
     }, []);
 
+    // ── Step navigation ─────────────────────────────────────────────────────
+
+    const goToStep = useCallback(
+        (newStep: number) => {
+            setPreviousStep(step);
+            setStep(newStep);
+        },
+        [step]
+    );
+
+    const handleBack = useCallback(() => {
+        if (step > 0) {
+            goToStep(step - 1);
+        } else {
+            router.back();
+        }
+    }, [step, goToStep, router]);
+
+    // ── Handlers (unchanged logic) ──────────────────────────────────────────
+
     const handleSelectCourse = async (course: PickerOption) => {
         setSelectedCourse(course);
         setSelectedSemester(null);
@@ -208,13 +222,21 @@ export default function UploadNoteScreen() {
         setShowCustomSubjectInput(false);
         setSemesters([]);
         setSubjects([]);
-        setShowCoursePicker(false);
-        setStep(1);
+        goToStep(1);
         setLoadingSemesters(true);
         try {
-            const res = await apiFetch<Array<{ id: string; number: number }>>(`/courses/${course.id}/semesters`, { requiresAuth: false });
+            const res = await apiFetch<Array<{ id: string; number: number }>>(
+                `/courses/${course.id}/semesters`,
+                { requiresAuth: false }
+            );
             if (res.success && res.data) {
-                setSemesters(res.data.map(s => ({ id: s.id, name: `Semester ${s.number}`, subtitle: `${s.number}th Semester` })));
+                setSemesters(
+                    res.data.map((s) => ({
+                        id: s.id,
+                        name: `Semester ${s.number}`,
+                        subtitle: `${s.number}th Semester`,
+                    }))
+                );
             }
         } catch (e) {
             console.warn('Could not load semesters');
@@ -228,14 +250,16 @@ export default function UploadNoteScreen() {
         setSelectedSubject(null);
         setShowCustomSubjectInput(false);
         setSubjects([]);
-        setShowSemesterPicker(false);
-        setStep(2);
+        goToStep(2);
         setLoadingSubjects(true);
         try {
-            const res = await apiFetch<Array<{ id: string; name: string; noteCount: number }>>(`/courses/semester/${semester.id}/subjects`, { requiresAuth: false });
+            const res = await apiFetch<Array<{ id: string; name: string; noteCount: number }>>(
+                `/courses/semester/${semester.id}/subjects`,
+                { requiresAuth: false }
+            );
             if (res.success && res.data) {
                 setSubjects([
-                    ...res.data.map(s => ({ id: s.id, name: s.name, subtitle: `${s.noteCount} notes` })),
+                    ...res.data.map((s) => ({ id: s.id, name: s.name, subtitle: `${s.noteCount} notes` })),
                     { id: '__custom__', name: 'Other (custom subject)', subtitle: 'Subject not in the list' },
                 ]);
             }
@@ -249,13 +273,11 @@ export default function UploadNoteScreen() {
     const handleSelectSubject = (subject: PickerOption) => {
         if (subject.id === '__custom__') {
             setSelectedSubject(subject);
-            setShowSubjectPicker(false);
             setShowCustomSubjectInput(true);
         } else {
             setSelectedSubject(subject);
             setShowCustomSubjectInput(false);
-            setShowSubjectPicker(false);
-            setStep(3);
+            goToStep(3);
         }
     };
 
@@ -264,22 +286,20 @@ export default function UploadNoteScreen() {
             showToast('Please enter a subject name.', 'error');
             return;
         }
-        setStep(3);
-    };
-
-    const handleBack = () => {
-        if (step > 0) {
-            setStep(step - 1);
-        } else {
-            router.back();
-        }
+        goToStep(3);
     };
 
     const handleSubmit = async () => {
+        if (!hasAcademicProfile) {
+            showToast('Please complete your academic profile first.', 'error');
+            router.push('/(drawer)/profile');
+            return;
+        }
+
         const trimmedTitle = title.trim();
         const trimmedDesc = description.trim();
         const trimmedUnit = unit.trim();
-        const trimmedTags = tags.split(',').map(t => t.trim()).filter(Boolean);
+        const trimmedTags = tags.split(',').map((t) => t.trim()).filter(Boolean);
 
         if (!trimmedTitle) {
             showToast('Please enter a note title.', 'error');
@@ -296,7 +316,10 @@ export default function UploadNoteScreen() {
 
             if (user && fileForNote?.uri && !fileForNote.uploadedUrl) {
                 setIsUploadingFile(true);
-                const uploaded = await uploadFileToServer(fileForNote.uri, fileForNote.name);
+                setUploadProgress(0);
+                const uploaded = await uploadFileToServer(fileForNote.uri, fileForNote.name, (pct) => {
+                    setUploadProgress(pct);
+                });
                 setIsUploadingFile(false);
                 if (uploaded.ok) {
                     fileForNote = { ...fileForNote, uploadedUrl: uploaded.url, viewUrl: uploaded.url, shareUrl: uploaded.url };
@@ -318,10 +341,6 @@ export default function UploadNoteScreen() {
                 tags: trimmedTags,
                 pdfUrl: fileForNote?.uploadedUrl || fileForNote?.viewUrl || fileForNote?.shareUrl || undefined,
                 noteType: fileForNote ? 'pdf' : 'text',
-                uploadedBy: user ? { id: user.id || '', name: user.name, course: user.course } : undefined,
-                uploaderName: user?.name,
-                uploaderCollege: (user as any)?.college || '',
-                uploaderAvatar: (user as any)?.avatar || '',
                 isPublished: true,
                 needsReview: selectedSubject?.id === '__custom__',
             };
@@ -357,43 +376,21 @@ export default function UploadNoteScreen() {
         }
     };
 
-    const renderStepIndicator = () => (
-        <View style={[styles.stepIndicator]}>
-            {UPLOAD_STEPS.map((label, i) => (
-                <React.Fragment key={label}>
-                    <TouchableOpacity onPress={() => i <= step && setStep(i)} disabled={i > step} style={styles.stepItem}>
-                        <View style={[styles.stepDot, i === step ? styles.stepDotActive : i < step ? styles.stepDotDone : styles.stepDotInactive]}>
-                            {i < step ? (
-                                <Ionicons name="checkmark" size={14} color="#fff" />
-                            ) : (
-                                <Text style={[styles.stepDotText, i === step && styles.stepDotTextActive]}>{i + 1}</Text>
-                            )}
-                        </View>
-                        <Text style={[styles.stepLabel, i === step && styles.stepLabelActive]}>{label}</Text>
-                    </TouchableOpacity>
-                    {i < UPLOAD_STEPS.length - 1 && (
-                        <Ionicons name="chevron-forward" size={14} color={i < step ? colors.accent : colors.border} style={styles.stepArrow} />
-                    )}
-                </React.Fragment>
-            ))}
-        </View>
-    );
+    // ── Step content ────────────────────────────────────────────────────────
 
     const renderStepContent = () => {
         switch (step) {
+            // ── Step 0: Course ──────────────────────────────────────────────
             case 0:
                 return (
-                    <View>
-                        <LinearGradient colors={['#7C3AED', '#6D28D9']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.heroCard}>
-                            <View style={styles.heroIconWrap}>
-                                <Ionicons name="cloud-upload-outline" size={28} color={colors.textOnPrimary} />
-                            </View>
-                            <Text style={styles.heroTitle}>Share your notes</Text>
-                            <Text style={styles.heroSubtitle}>Upload notes and help thousands of students learn better.</Text>
-                        </LinearGradient>
+                    <WizardStep stepKey="course" stepIndex={0} previousStep={previousStep}>
+                        <GlassCard delay={120}>
+                            <StepHeader
+                                icon="school-outline"
+                                title="Choose Your Course"
+                                subtitle="Select the course this note belongs to"
+                            />
 
-                        <View style={styles.formCard}>
-                            <Text style={styles.formHeading}>Choose Your Course</Text>
                             <View style={styles.searchWrap}>
                                 <Ionicons name="search" size={18} color={colors.textLight} style={styles.searchIcon} />
                                 <TextInput
@@ -404,6 +401,7 @@ export default function UploadNoteScreen() {
                                     onChangeText={setCourseSearch}
                                     autoCapitalize="none"
                                     autoCorrect={false}
+                                    accessibilityLabel="Search courses"
                                 />
                                 {courseSearch.length > 0 && (
                                     <TouchableOpacity onPress={() => setCourseSearch('')} hitSlop={8}>
@@ -411,156 +409,201 @@ export default function UploadNoteScreen() {
                                     </TouchableOpacity>
                                 )}
                             </View>
+
                             {courses.length === 0 ? (
                                 <ActivityIndicator size="large" color={colors.primary} style={{ marginVertical: 40 }} />
                             ) : (
-                                filteredCourses.map((course) => (
-                                    <TouchableOpacity
+                                filteredCourses.map((course, idx) => (
+                                    <SelectionCard
                                         key={course.id}
-                                        style={[styles.selectCard, selectedCourse?.id === course.id && styles.selectCardActive]}
+                                        id={course.id}
+                                        name={course.name}
+                                        icon="school-outline"
+                                        isSelected={selectedCourse?.id === course.id}
+                                        isCompleted={selectedCourse?.id === course.id}
                                         onPress={() => handleSelectCourse(course)}
-                                        activeOpacity={0.7}
-                                    >
-                                        <Ionicons name="school-outline" size={24} color={colors.primary} />
-                                        <View style={styles.selectCardInfo}>
-                                            <Text style={styles.selectCardName}>{course.name}</Text>
-                                        </View>
-                                        {selectedCourse?.id === course.id && (
-                                            <Ionicons name="checkmark-circle" size={22} color={colors.accent} />
-                                        )}
-                                    </TouchableOpacity>
+                                        index={idx}
+                                    />
                                 ))
                             )}
-                        </View>
-                    </View>
+                        </GlassCard>
+                    </WizardStep>
                 );
+
+            // ── Step 1: Semester ───────────────────────────────────────────
             case 1:
                 return (
-                    <View>
+                    <WizardStep stepKey="semester" stepIndex={1} previousStep={previousStep}>
                         <TouchableOpacity style={styles.backBtn} onPress={handleBack}>
-                            <Ionicons name="arrow-back" size={20} color={colors.textPrimary} />
+                            <Ionicons name="arrow-back" size={20} color={colors.primary} />
                             <Text style={styles.backBtnText}>{selectedCourse?.name || 'Back'}</Text>
                         </TouchableOpacity>
-                        <View style={styles.formCard}>
-                            <Text style={styles.formHeading}>Select Semester</Text>
+
+                        <GlassCard delay={120}>
+                            <StepHeader
+                                icon="layers-outline"
+                                title="Select Semester"
+                                subtitle={`For ${selectedCourse?.name || ''}`}
+                            />
+
                             {loadingSemesters ? (
                                 <ActivityIndicator size="large" color={colors.primary} style={{ marginVertical: 40 }} />
                             ) : semesters.length === 0 ? (
-                                <Text style={{ color: colors.textSecondary, textAlign: 'center', marginVertical: 20 }}>No semesters available.</Text>
+                                <Text style={styles.emptyText}>No semesters available.</Text>
                             ) : (
-                                semesters.map((sem) => (
-                                    <TouchableOpacity
+                                semesters.map((sem, idx) => (
+                                    <SelectionCard
                                         key={sem.id}
-                                        style={[styles.selectCard, selectedSemester?.id === sem.id && styles.selectCardActive]}
+                                        id={sem.id}
+                                        name={sem.name}
+                                        subtitle={sem.subtitle}
+                                        icon="layers-outline"
+                                        isSelected={selectedSemester?.id === sem.id}
+                                        isCompleted={selectedSemester?.id === sem.id}
                                         onPress={() => handleSelectSemester(sem)}
-                                        activeOpacity={0.7}
-                                    >
-                                        <Ionicons name="layers-outline" size={24} color={colors.primary} />
-                                        <View style={styles.selectCardInfo}>
-                                            <Text style={styles.selectCardName}>{sem.name}</Text>
-                                        </View>
-                                        {selectedSemester?.id === sem.id && (
-                                            <Ionicons name="checkmark-circle" size={22} color={colors.accent} />
-                                        )}
-                                    </TouchableOpacity>
+                                        index={idx}
+                                    />
                                 ))
                             )}
-                        </View>
-                    </View>
+                        </GlassCard>
+                    </WizardStep>
                 );
+
+            // ── Step 2: Subject ────────────────────────────────────────────
             case 2:
                 return (
-                    <View>
+                    <WizardStep stepKey="subject" stepIndex={2} previousStep={previousStep}>
                         <TouchableOpacity style={styles.backBtn} onPress={handleBack}>
-                            <Ionicons name="arrow-back" size={20} color={colors.textPrimary} />
+                            <Ionicons name="arrow-back" size={20} color={colors.primary} />
                             <Text style={styles.backBtnText}>{selectedSemester?.name || 'Back'}</Text>
                         </TouchableOpacity>
-                        <View style={styles.formCard}>
-                            <Text style={styles.formHeading}>Select Subject</Text>
+
+                        <GlassCard delay={120}>
+                            <StepHeader
+                                icon="book-outline"
+                                title="Select Subject"
+                                subtitle={`${selectedSemester?.name || ''} — ${selectedCourse?.name || ''}`}
+                            />
+
                             {loadingSubjects ? (
                                 <ActivityIndicator size="large" color={colors.primary} style={{ marginVertical: 40 }} />
                             ) : showCustomSubjectInput ? (
                                 <View>
-                                    <Text style={styles.label}>Enter Subject Name</Text>
-                                    <TextInput
+                                    <FormField
+                                        label="Enter Subject Name"
+                                        required
+                                        placeholder="e.g. Advanced Graph Theory"
                                         value={customSubject}
                                         onChangeText={setCustomSubject}
-                                        placeholder="e.g. Advanced Graph Theory"
-                                        placeholderTextColor={colors.textLight}
-                                        style={styles.input}
                                         autoFocus
                                     />
-                                    <Text style={styles.customSubjectHint}>
+                                    <Text style={styles.hint}>
                                         This will be marked as "Pending Review" until an admin approves it.
                                     </Text>
                                     <View style={styles.stepActions}>
-                                        <TouchableOpacity style={styles.secondaryBtn} onPress={() => { setShowCustomSubjectInput(false); setSelectedSubject(null); }}>
-                                            <Text style={styles.secondaryBtnText}>Pick from list</Text>
-                                        </TouchableOpacity>
-                                        <TouchableOpacity style={styles.primaryBtn} onPress={proceedFromCustomSubject}>
-                                            <Text style={styles.primaryBtnText}>Continue</Text>
-                                        </TouchableOpacity>
+                                        <GradientButton
+                                            label="Pick from list"
+                                            onPress={() => {
+                                                setShowCustomSubjectInput(false);
+                                                setSelectedSubject(null);
+                                            }}
+                                            disabled={false}
+                                            style={{ flex: 1, shadowOpacity: 0, elevation: 0 }}
+                                        />
+                                        <GradientButton
+                                            label="Continue"
+                                            onPress={proceedFromCustomSubject}
+                                            style={{ flex: 1 }}
+                                        />
                                     </View>
                                 </View>
                             ) : (
-                                subjects.map((subj) => (
-                                    <TouchableOpacity
+                                subjects.map((subj, idx) => (
+                                    <SelectionCard
                                         key={subj.id}
-                                        style={[styles.selectCard, selectedSubject?.id === subj.id && styles.selectCardActive]}
+                                        id={subj.id}
+                                        name={subj.name}
+                                        subtitle={subj.subtitle}
+                                        icon={subj.id === '__custom__' ? 'add-circle-outline' : 'book-outline'}
+                                        isSelected={selectedSubject?.id === subj.id}
+                                        isCompleted={selectedSubject?.id === subj.id && subj.id !== '__custom__'}
                                         onPress={() => handleSelectSubject(subj)}
-                                        activeOpacity={0.7}
-                                    >
-                                        <Ionicons name="book-outline" size={24} color={colors.primary} />
-                                        <View style={styles.selectCardInfo}>
-                                            <Text style={styles.selectCardName}>{subj.name}</Text>
-                                            {subj.subtitle ? <Text style={styles.selectCardSub}>{subj.subtitle}</Text> : null}
-                                        </View>
-                                        {subj.id === '__custom__' ? (
-                                            <Ionicons name="add-circle-outline" size={22} color={colors.textLight} />
-                                        ) : selectedSubject?.id === subj.id ? (
-                                            <Ionicons name="checkmark-circle" size={22} color={colors.accent} />
-                                        ) : null}
-                                    </TouchableOpacity>
+                                        index={idx}
+                                    />
                                 ))
                             )}
-                        </View>
-                    </View>
+                        </GlassCard>
+                    </WizardStep>
                 );
+
+            // ── Step 3: Upload ─────────────────────────────────────────────
             case 3:
                 return (
-                    <View>
+                    <WizardStep stepKey="upload" stepIndex={3} previousStep={previousStep}>
                         <TouchableOpacity style={styles.backBtn} onPress={handleBack}>
-                            <Ionicons name="arrow-back" size={20} color={colors.textPrimary} />
+                            <Ionicons name="arrow-back" size={20} color={colors.primary} />
                             <Text style={styles.backBtnText}>Subject Selection</Text>
                         </TouchableOpacity>
 
-                        <View style={styles.selectionSummary}>
-                            <Text style={styles.summaryLabel}>Course</Text>
-                            <Text style={styles.summaryValue}>{selectedCourse?.name}</Text>
-                            <Text style={styles.summaryLabel}>Semester</Text>
-                            <Text style={styles.summaryValue}>{selectedSemester?.name}</Text>
-                            <Text style={styles.summaryLabel}>Subject</Text>
-                            <Text style={styles.summaryValue}>{resolvedSubjectName}</Text>
-                        </View>
+                        {/* Review Summary */}
+                        <ReviewSummary
+                            fields={[
+                                { label: 'Course', value: selectedCourse?.name || '', onEdit: () => goToStep(0) },
+                                { label: 'Semester', value: selectedSemester?.name || '', onEdit: () => goToStep(1) },
+                                { label: 'Subject', value: resolvedSubjectName, onEdit: () => goToStep(2) },
+                            ]}
+                            fileName={pickedFile?.name}
+                        />
 
-                        <View style={styles.formCard}>
-                            <Text style={styles.formHeading}>Note Details</Text>
+                        {/* Note Details */}
+                        <GlassCard delay={180} style={styles.mt}>
+                            <StepHeader
+                                icon="document-text-outline"
+                                title="Note Details"
+                                subtitle="Add details about your note"
+                            />
 
-                            <Text style={styles.label}>Title *</Text>
-                            <TextInput value={title} onChangeText={setTitle} placeholder="e.g. Graph Algorithms Notes" placeholderTextColor={colors.textLight} style={styles.input} />
+                            <FormField
+                                label="Title"
+                                required
+                                placeholder="e.g. Graph Algorithms Notes"
+                                value={title}
+                                onChangeText={setTitle}
+                            />
 
-                            <Text style={styles.label}>Unit / Module</Text>
-                            <TextInput value={unit} onChangeText={setUnit} placeholder="e.g. Unit 3" placeholderTextColor={colors.textLight} style={styles.input} />
+                            <FormField
+                                label="Unit / Module"
+                                placeholder="e.g. Unit 3"
+                                value={unit}
+                                onChangeText={setUnit}
+                            />
 
-                            <Text style={styles.label}>Tags (comma separated)</Text>
-                            <TextInput value={tags} onChangeText={setTags} placeholder="e.g. graphs, BFS, DFS, algorithms" placeholderTextColor={colors.textLight} style={styles.input} />
+                            <FormField
+                                label="Tags (comma separated)"
+                                placeholder="e.g. graphs, BFS, DFS, algorithms"
+                                value={tags}
+                                onChangeText={setTags}
+                            />
 
-                            <Text style={styles.label}>Description</Text>
-                            <TextInput value={description} onChangeText={setDescription} placeholder="Brief description..." placeholderTextColor={colors.textLight} multiline textAlignVertical="top" style={[styles.input, styles.textArea]} />
+                            <FormField
+                                label="Description"
+                                placeholder="Brief description of the note..."
+                                value={description}
+                                onChangeText={setDescription}
+                                multiline
+                                numberOfLines={4}
+                                textAlignVertical="top"
+                                style={styles.textArea}
+                            />
+                        </GlassCard>
 
-                            <View style={styles.divider} />
-
-                            <Text style={styles.formHeading}>File</Text>
+                        {/* File Selection */}
+                        <GlassCard delay={240} style={styles.mt}>
+                            <StepHeader
+                                icon="attach-outline"
+                                title="Attach File"
+                                subtitle="Upload a PDF or document"
+                            />
 
                             {pickedFile ? (
                                 <View style={styles.selectedFileCard}>
@@ -568,7 +611,9 @@ export default function UploadNoteScreen() {
                                         <Ionicons name="document-text" size={22} color={colors.primary} />
                                     </View>
                                     <View style={styles.selectedFileInfo}>
-                                        <Text style={styles.selectedFileName} numberOfLines={2}>{pickedFile.name}</Text>
+                                        <Text style={styles.selectedFileName} numberOfLines={2}>
+                                            {pickedFile.name}
+                                        </Text>
                                         <Text style={styles.selectedFileMeta}>Ready to upload</Text>
                                     </View>
                                     <TouchableOpacity onPress={() => setPickedFile(null)} hitSlop={8}>
@@ -576,52 +621,72 @@ export default function UploadNoteScreen() {
                                     </TouchableOpacity>
                                 </View>
                             ) : (
-                                <TouchableOpacity style={styles.fileButton} onPress={() => setPickerVisible(true)} activeOpacity={0.85}>
-                                    <Ionicons name="document-attach-outline" size={22} color={colors.primary} />
+                                <TouchableOpacity
+                                    style={styles.fileButton}
+                                    onPress={() => setPickerVisible(true)}
+                                    activeOpacity={0.85}
+                                    accessibilityRole="button"
+                                    accessibilityLabel="Choose file to upload"
+                                >
+                                    <Ionicons name="cloud-upload-outline" size={26} color={colors.primary} />
                                     <Text style={styles.fileButtonText}>Choose PDF File</Text>
+                                    <Text style={styles.fileButtonSubtext}>Tap to browse your files</Text>
                                 </TouchableOpacity>
                             )}
 
                             {pickedFile ? (
-                                <TouchableOpacity style={styles.changeFileBtn} onPress={() => setPickerVisible(true)}>
+                                <TouchableOpacity
+                                    style={styles.changeFileBtn}
+                                    onPress={() => setPickerVisible(true)}
+                                    accessibilityLabel="Choose a different file"
+                                >
+                                    <Ionicons name="swap-horizontal" size={16} color={colors.primary} />
                                     <Text style={styles.changeFileText}>Choose a different file</Text>
                                 </TouchableOpacity>
                             ) : null}
+                        </GlassCard>
 
-                            <View style={styles.divider} />
+                        {/* Upload Progress */}
+                        {isSaving && (
+                            <View style={styles.mt}>
+                                <ProgressIndicator
+                                    label={isUploadingFile ? 'Uploading your file' : 'Publishing to community'}
+                                    percent={isUploadingFile ? uploadProgress : 95}
+                                    statusText={isUploadingFile
+                                        ? uploadProgress < 100
+                                            ? 'Encrypting and transmitting...'
+                                            : 'Almost there...'
+                                        : 'Finalizing your note...'}
+                                />
+                            </View>
+                        )}
 
-                            {isSaving && (
-                                <View style={styles.progressContainer}>
-                                    <View style={styles.progressBar}>
-                                        <View style={[styles.progressFill, { width: isUploadingFile ? '60%' : '90%' }]} />
-                                    </View>
-                                    <Text style={styles.progressText}>{isUploadingFile ? 'Uploading file...' : 'Publishing your note...'}</Text>
-                                </View>
-                            )}
-
-                            <TouchableOpacity style={[styles.submitButton, isSaving && styles.submitButtonDisabled]} onPress={handleSubmit} disabled={isSaving} activeOpacity={0.9}>
-                                {isSaving ? (
-                                    <ActivityIndicator size="small" color={colors.textOnPrimary} />
-                                ) : (
-                                    <Ionicons name="checkmark-circle-outline" size={22} color={colors.textOnPrimary} />
-                                )}
-                                <Text style={styles.submitButtonText}>
-                                    {isSaving ? (isUploadingFile ? 'Uploading...' : 'Publishing...') : 'Publish to Community'}
-                                </Text>
-                            </TouchableOpacity>
+                        {/* Submit */}
+                        <View style={styles.mtLg}>
+                            <GradientButton
+                                label={isSaving ? '' : 'Publish to Community'}
+                                loading={isSaving}
+                                loadingLabel={isUploadingFile ? 'Uploading...' : 'Publishing...'}
+                                onPress={handleSubmit}
+                                disabled={!title.trim() || !resolvedSubjectName}
+                                icon={!isSaving ? 'rocket-outline' : undefined}
+                            />
                         </View>
-                    </View>
+                    </WizardStep>
                 );
+
             default:
                 return null;
         }
     };
 
+    // ── Render ──────────────────────────────────────────────────────────────
+
     return (
         <GradientBackground>
             <Stack.Screen
                 options={{
-                    title: 'Upload Notes',
+                    title: 'Upload Note',
                     headerShown: true,
                     headerStyle: { backgroundColor: colors.gradientStart },
                     headerShadowVisible: false,
@@ -632,36 +697,50 @@ export default function UploadNoteScreen() {
             <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
                 <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
                     <View style={[styles.headerSpacer, { height: insets.top + spacing.sm }]} />
-                    {renderStepIndicator()}
+
+                    {/* Header area with gradient */}
+                    <View style={styles.heroSection}>
+                        <LinearGradient
+                            colors={['#4F46E5', '#6D28D9']}
+                            start={{ x: 0, y: 0 }}
+                            end={{ x: 1, y: 1 }}
+                            style={styles.heroGradient}
+                        >
+                            <View style={styles.heroIconWrap}>
+                                <Ionicons name="cloud-upload" size={28} color={colors.textOnPrimary} />
+                            </View>
+                            <Text style={styles.heroTitle}>Upload Note</Text>
+                            <Text style={styles.heroSubtitle}>
+                                Share knowledge with thousands of students
+                            </Text>
+                        </LinearGradient>
+                    </View>
+
+                    {/* Profile Incomplete Banner */}
+                    {!hasAcademicProfile && (
+                        <View style={styles.profileBanner}>
+                            <Ionicons name="alert-circle-outline" size={20} color="#F59E0B" />
+                            <View style={styles.profileBannerText}>
+                                <Text style={styles.profileBannerTitle}>Complete your profile</Text>
+                                <Text style={styles.profileBannerSub}>Academic info is required before uploading.</Text>
+                            </View>
+                            <TouchableOpacity style={styles.profileBannerBtn} onPress={() => router.push('/(drawer)/profile')} activeOpacity={0.8}>
+                                <Text style={styles.profileBannerBtnText}>Complete</Text>
+                            </TouchableOpacity>
+                        </View>
+                    )}
+
+                    {/* Stepper */}
+                    <AnimatedStepper
+                        currentStep={step}
+                        completedSteps={completedSteps}
+                        onStepPress={goToStep}
+                    />
+
+                    {/* Step Content */}
                     {renderStepContent()}
                 </ScrollView>
             </KeyboardAvoidingView>
-
-            <PickerModal
-                visible={showCoursePicker}
-                title="Select Course"
-                options={courses}
-                onSelect={handleSelectCourse}
-                onClose={() => setShowCoursePicker(false)}
-            />
-
-            <PickerModal
-                visible={showSemesterPicker}
-                title="Select Semester"
-                options={semesters}
-                onSelect={handleSelectSemester}
-                onClose={() => setShowSemesterPicker(false)}
-                loading={loadingSemesters}
-            />
-
-            <PickerModal
-                visible={showSubjectPicker}
-                title="Select Subject"
-                options={subjects}
-                onSelect={(s) => { setSelectedSubject(s); setShowSubjectPicker(false); }}
-                onClose={() => setShowSubjectPicker(false)}
-                loading={loadingSubjects}
-            />
 
             <DriveFilePickerModal
                 visible={pickerVisible}
@@ -678,148 +757,180 @@ export default function UploadNoteScreen() {
     );
 }
 
+// ─── Styles ───────────────────────────────────────────────────────────────────
+
 const styles = StyleSheet.create({
     flex: { flex: 1 },
     content: { padding: spacing.screenPadding, paddingBottom: spacing.xxl },
-    heroCard: {
-        borderRadius: 24, padding: spacing.lg, marginBottom: spacing.lg, overflow: 'hidden',
+    headerSpacer: { width: '100%' },
+    mt: { marginTop: spacing.md },
+    mtLg: { marginTop: spacing.lg },
+
+    // Hero
+    heroSection: { marginBottom: spacing.lg },
+    heroGradient: {
+        borderRadius: 20,
+        padding: spacing.lg,
+        alignItems: 'center',
     },
     heroIconWrap: {
-        width: 52, height: 52, borderRadius: 16, backgroundColor: 'rgba(255,255,255,0.2)',
-        justifyContent: 'center', alignItems: 'center', marginBottom: spacing.md,
+        width: 56,
+        height: 56,
+        borderRadius: 18,
+        backgroundColor: 'rgba(255,255,255,0.2)',
+        justifyContent: 'center',
+        alignItems: 'center',
+        marginBottom: spacing.md,
     },
     heroTitle: {
-        fontSize: typography.fontSize.xl, fontWeight: typography.fontWeight.bold,
-        color: colors.textOnPrimary, marginBottom: spacing.xs, letterSpacing: -0.5,
+        fontSize: typography.fontSize.xl,
+        fontWeight: typography.fontWeight.bold,
+        color: colors.textOnPrimary,
+        marginBottom: spacing.xs,
+        letterSpacing: -0.5,
     },
     heroSubtitle: {
-        fontSize: typography.fontSize.sm, color: 'rgba(255,255,255,0.88)', lineHeight: 22,
+        fontSize: typography.fontSize.sm,
+        color: 'rgba(255,255,255,0.85)',
+        lineHeight: 20,
     },
-    formCard: {
-        backgroundColor: colors.cardBackground, borderRadius: 24, padding: spacing.lg,
-        borderWidth: 1, borderColor: colors.border,
-    },
-    formHeading: {
-        fontSize: typography.fontSize.lg, fontWeight: typography.fontWeight.bold,
-        color: colors.textPrimary, marginBottom: spacing.md,
-    },
-    label: {
-        fontSize: typography.fontSize.sm, fontWeight: typography.fontWeight.semibold,
-        color: colors.textSecondary, marginBottom: spacing.sm, marginTop: spacing.md,
-    },
-    input: {
-        backgroundColor: colors.background, borderRadius: 14, borderWidth: 1,
-        borderColor: colors.border, paddingHorizontal: spacing.md, paddingVertical: 14,
-        color: colors.textPrimary, fontSize: typography.fontSize.md,
-    },
-    textArea: { minHeight: 100 },
-    divider: { height: 1, backgroundColor: colors.border, marginVertical: spacing.lg },
-    pickerButton: {
-        flexDirection: 'row', alignItems: 'center', backgroundColor: colors.background,
-        borderRadius: 14, borderWidth: 1, borderColor: colors.border,
-        paddingHorizontal: spacing.md, paddingVertical: 14, gap: spacing.sm,
-    },
-    pickerDisabled: { opacity: 0.5 },
-    pickerText: { flex: 1, fontSize: typography.fontSize.md, color: colors.textPrimary },
-    pickerPlaceholder: { color: colors.textLight },
-    fileButton: {
-        flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: spacing.sm,
-        backgroundColor: 'rgba(124, 58, 237, 0.12)', borderRadius: 14, paddingVertical: 18,
-        borderWidth: 1.5, borderColor: 'rgba(124, 58, 237, 0.35)', borderStyle: 'dashed',
-    },
-    fileButtonText: { color: '#7C3AED', fontSize: typography.fontSize.md, fontWeight: typography.fontWeight.semibold },
-    selectedFileCard: {
-        flexDirection: 'row', alignItems: 'center', gap: spacing.md,
-        backgroundColor: 'rgba(255, 255, 255, 0.06)', borderRadius: 14, padding: spacing.md,
-        borderWidth: 1, borderColor: 'rgba(124, 58, 237, 0.3)',
-    },
-    selectedFileIcon: {
-        width: 44, height: 44, borderRadius: 12,
-        backgroundColor: 'rgba(124, 58, 237, 0.15)', justifyContent: 'center', alignItems: 'center',
-    },
-    selectedFileInfo: { flex: 1 },
-    selectedFileName: { fontSize: typography.fontSize.md, fontWeight: typography.fontWeight.semibold, color: colors.textPrimary },
-    selectedFileMeta: { fontSize: typography.fontSize.xs, color: colors.accent, marginTop: 2, fontWeight: typography.fontWeight.medium },
-    changeFileBtn: { marginTop: spacing.sm, alignItems: 'center', paddingVertical: spacing.sm },
-    changeFileText: { color: colors.primary, fontSize: typography.fontSize.sm, fontWeight: typography.fontWeight.medium },
-    submitButton: {
-        marginTop: spacing.lg, backgroundColor: colors.primary, borderRadius: 16, paddingVertical: 16,
-        flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: spacing.sm,
-        shadowColor: colors.primary, shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.3,
-        shadowRadius: 12, elevation: 4, minHeight: 56,
-    },
-    submitButtonDisabled: { opacity: 0.7 },
-    submitButtonText: { color: colors.textOnPrimary, fontSize: typography.fontSize.md, fontWeight: typography.fontWeight.bold },
-    headerSpacer: { width: '100%' },
+
+    // Search
     searchWrap: {
-        flexDirection: 'row', alignItems: 'center', backgroundColor: colors.background,
-        borderRadius: 14, borderWidth: 1, borderColor: colors.border,
-        paddingHorizontal: spacing.md, marginBottom: spacing.md, marginTop: spacing.sm,
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: colors.background,
+        borderRadius: 14,
+        borderWidth: 1,
+        borderColor: colors.border,
+        paddingHorizontal: spacing.md,
+        marginBottom: spacing.md,
     },
     searchIcon: { marginRight: spacing.sm },
     searchInput: {
-        flex: 1, paddingVertical: 12, fontSize: typography.fontSize.md,
+        flex: 1,
+        paddingVertical: 12,
+        fontSize: typography.fontSize.md,
         color: colors.textPrimary,
     },
-    progressContainer: {
-        marginTop: spacing.lg, backgroundColor: 'rgba(79, 70, 229, 0.08)',
-        borderRadius: 14, padding: spacing.md,
-    },
-    progressBar: { height: 6, borderRadius: 3, backgroundColor: colors.background, overflow: 'hidden' },
-    progressFill: { height: '100%', borderRadius: 3, backgroundColor: colors.primary },
-    progressText: { fontSize: typography.fontSize.xs, color: colors.primary, marginTop: spacing.sm, fontWeight: typography.fontWeight.medium },
-    stepIndicator: {
-        flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
-        marginBottom: spacing.lg, gap: 0,
-    },
-    stepItem: { alignItems: 'center', marginHorizontal: spacing.xs },
-    stepArrow: { marginHorizontal: 2 },
-    stepDot: {
-        width: 30, height: 30, borderRadius: 15, justifyContent: 'center', alignItems: 'center',
-        marginBottom: 4,
-    },
-    stepDotActive: { backgroundColor: colors.primary },
-    stepDotDone: { backgroundColor: colors.accent },
-    stepDotInactive: { backgroundColor: colors.border },
-    stepDotText: { fontSize: 13, fontWeight: typography.fontWeight.bold, color: colors.textLight },
-    stepDotTextActive: { color: colors.textOnPrimary },
-    stepLabel: { fontSize: 11, color: colors.textLight, textAlign: 'center' },
-    stepLabelActive: { color: colors.primary, fontWeight: typography.fontWeight.semibold },
+
+    // Back button
     backBtn: {
-        flexDirection: 'row', alignItems: 'center', gap: spacing.sm,
-        marginBottom: spacing.md, paddingVertical: spacing.sm,
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: spacing.sm,
+        marginBottom: spacing.md,
+        paddingVertical: spacing.sm,
     },
-    backBtnText: { fontSize: typography.fontSize.md, color: colors.primary, fontWeight: typography.fontWeight.semibold },
-    selectCard: {
-        flexDirection: 'row', alignItems: 'center', gap: spacing.md,
-        backgroundColor: colors.background, borderRadius: 14, padding: spacing.md,
-        marginBottom: spacing.sm, borderWidth: 1, borderColor: colors.border,
+    backBtnText: {
+        fontSize: typography.fontSize.md,
+        color: colors.primary,
+        fontWeight: typography.fontWeight.semibold,
     },
-    selectCardActive: { borderColor: colors.primary, backgroundColor: 'rgba(124, 58, 237, 0.08)' },
-    selectCardInfo: { flex: 1 },
-    selectCardName: { fontSize: typography.fontSize.md, fontWeight: typography.fontWeight.semibold, color: colors.textPrimary },
-    selectCardSub: { fontSize: typography.fontSize.xs, color: colors.textSecondary, marginTop: 2 },
-    customSubjectHint: {
-        fontSize: typography.fontSize.xs, color: colors.textSecondary, fontStyle: 'italic',
-        marginTop: spacing.sm, lineHeight: 18,
+
+    // Empty
+    emptyText: {
+        color: colors.textSecondary,
+        textAlign: 'center',
+        marginVertical: spacing.xl,
     },
+    hint: {
+        fontSize: typography.fontSize.xs,
+        color: colors.textSecondary,
+        fontStyle: 'italic',
+        marginBottom: spacing.md,
+        lineHeight: 18,
+    },
+
+    // Step actions
     stepActions: {
-        flexDirection: 'row', justifyContent: 'space-between', marginTop: spacing.lg, gap: spacing.md,
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        marginTop: spacing.md,
+        gap: spacing.md,
     },
-    primaryBtn: {
-        flex: 1, backgroundColor: colors.primary, borderRadius: 14, paddingVertical: 14,
+
+    // File picker
+    fileButton: {
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: spacing.xs,
+        backgroundColor: 'rgba(79, 70, 229, 0.06)',
+        borderRadius: 16,
+        paddingVertical: spacing.xl,
+        borderWidth: 1.5,
+        borderColor: 'rgba(79, 70, 229, 0.15)',
+        borderStyle: 'dashed',
+    },
+    fileButtonText: {
+        color: colors.primary,
+        fontSize: typography.fontSize.md,
+        fontWeight: typography.fontWeight.semibold,
+    },
+    fileButtonSubtext: {
+        color: colors.textLight,
+        fontSize: typography.fontSize.xs,
+    },
+    selectedFileCard: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: spacing.md,
+        backgroundColor: 'rgba(16, 185, 129, 0.06)',
+        borderRadius: 14,
+        padding: spacing.md,
+        borderWidth: 1,
+        borderColor: 'rgba(16, 185, 129, 0.2)',
+    },
+    selectedFileIcon: {
+        width: 44,
+        height: 44,
+        borderRadius: 12,
+        backgroundColor: 'rgba(16, 185, 129, 0.12)',
+        justifyContent: 'center',
         alignItems: 'center',
     },
-    primaryBtnText: { color: colors.textOnPrimary, fontSize: typography.fontSize.md, fontWeight: typography.fontWeight.bold },
-    secondaryBtn: {
-        flex: 1, borderRadius: 14, paddingVertical: 14, alignItems: 'center',
-        borderWidth: 1, borderColor: colors.border, backgroundColor: colors.background,
+    selectedFileInfo: { flex: 1 },
+    selectedFileName: {
+        fontSize: typography.fontSize.md,
+        fontWeight: typography.fontWeight.semibold,
+        color: colors.textPrimary,
     },
-    secondaryBtnText: { color: colors.textPrimary, fontSize: typography.fontSize.md, fontWeight: typography.fontWeight.semibold },
-    selectionSummary: {
-        backgroundColor: 'rgba(124, 58, 237, 0.08)', borderRadius: 14, padding: spacing.md,
-        marginBottom: spacing.md, borderWidth: 1, borderColor: 'rgba(124, 58, 237, 0.2)',
+    selectedFileMeta: {
+        fontSize: typography.fontSize.xs,
+        color: colors.accent,
+        marginTop: 2,
+        fontWeight: typography.fontWeight.medium,
     },
-    summaryLabel: { fontSize: typography.fontSize.xs, color: colors.textSecondary, marginTop: spacing.xs },
-    summaryValue: { fontSize: typography.fontSize.md, color: colors.textPrimary, fontWeight: typography.fontWeight.semibold, marginBottom: spacing.sm },
+    changeFileBtn: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: spacing.xs,
+        marginTop: spacing.sm,
+        paddingVertical: spacing.sm,
+    },
+    changeFileText: {
+        color: colors.primary,
+        fontSize: typography.fontSize.sm,
+        fontWeight: typography.fontWeight.medium,
+    },
+
+    // Textarea
+    textArea: { minHeight: 100 },
+
+    // Profile incomplete banner
+    profileBanner: {
+        flexDirection: 'row', alignItems: 'center', gap: spacing.sm,
+        backgroundColor: 'rgba(245, 158, 11, 0.1)', borderRadius: 14,
+        padding: spacing.md, marginBottom: spacing.lg,
+        borderWidth: 1, borderColor: 'rgba(245, 158, 11, 0.3)',
+    },
+    profileBannerText: { flex: 1 },
+    profileBannerTitle: { fontSize: typography.fontSize.sm, fontWeight: typography.fontWeight.semibold, color: colors.textPrimary },
+    profileBannerSub: { fontSize: typography.fontSize.xs, color: colors.textSecondary, marginTop: 2 },
+    profileBannerBtn: {
+        backgroundColor: '#F59E0B', borderRadius: 8,
+        paddingHorizontal: spacing.md, paddingVertical: spacing.sm,
+    },
+    profileBannerBtnText: { fontSize: typography.fontSize.sm, fontWeight: typography.fontWeight.semibold, color: '#000' },
 });

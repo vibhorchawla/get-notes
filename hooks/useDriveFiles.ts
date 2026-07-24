@@ -32,9 +32,10 @@ export async function pickFileFromDevice(): Promise<PickedDriveFile | null> {
     if (result.canceled || !result.assets[0]) return null;
 
     const asset = result.assets[0];
+    const localPath = await persistPickedFile(asset.uri, asset.name);
     return {
         name: asset.name,
-        uri: asset.uri,
+        uri: localPath,
     };
 }
 
@@ -65,7 +66,8 @@ function guessMimeType(fileName: string): string {
 
 export async function uploadFileToServer(
     localUri: string,
-    fileName: string
+    fileName: string,
+    onProgress?: (progress: number) => void
 ): Promise<UploadResult> {
     let token = await getToken();
     if (!token) {
@@ -76,13 +78,25 @@ export async function uploadFileToServer(
     const mimeType = guessMimeType(fileName);
 
     const doUpload = async (authToken: string) => {
-        return FileSystem.uploadAsync(uploadUrl, localUri, {
-            httpMethod: 'POST',
-            uploadType: FileSystem.FileSystemUploadType.MULTIPART,
-            fieldName: 'file',
-            mimeType,
-            headers: { Authorization: `Bearer ${authToken}` },
+        const formData = new FormData();
+        formData.append('file', {
+            uri: localUri,
+            name: fileName,
+            type: mimeType,
+        } as any);
+
+        if (onProgress) onProgress(0);
+
+        const response = await fetch(uploadUrl, {
+            method: 'POST',
+            headers: {
+                Authorization: `Bearer ${authToken}`,
+            },
+            body: formData,
         });
+
+        if (onProgress) onProgress(100);
+        return response;
     };
 
     try {
@@ -98,13 +112,13 @@ export async function uploadFileToServer(
 
         let json: { success?: boolean; data?: { url?: string; name?: string }; message?: string };
         try {
-            json = JSON.parse(response.body);
+            json = await response.json();
         } catch {
             return {
                 ok: false,
                 message:
                     response.status >= 400
-                        ? `Server error (${response.status}). Restart the API with npm run server.`
+                        ? 'Upload failed with server error.'
                         : 'Invalid server response while uploading.',
             };
         }
@@ -125,17 +139,13 @@ export async function uploadFileToServer(
         return {
             ok: false,
             message:
-                json.message ||
-                (response.status === 404
-                    ? 'Upload route not found. Restart the API (npm run server).'
-                    : `Upload failed (${response.status}).`),
+                json.message || `Upload failed (${response.status}).`,
         };
     } catch (error) {
         console.error('uploadFileToServer error:', error);
         return {
             ok: false,
-            message:
-                'Could not reach the server. Use the same Wi‑Fi and run npm run server on your PC.',
+            message: 'Could not reach the server. Please check your connection.',
         };
     }
 }

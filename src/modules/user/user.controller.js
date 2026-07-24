@@ -118,7 +118,9 @@ async function getStats(req, res) {
 
         const stats = uploadStats[0] || {};
         const repPoints = reputation?.points || 0;
-        const repBadge = reputation?.currentBadge?.name || '🌟 Beginner';
+        const { getBadgeForPoints } = require('../../models/UserReputation');
+        const badgeForPoints = getBadgeForPoints ? getBadgeForPoints(repPoints) : null;
+        const repBadge = (badgeForPoints?.name) || reputation?.currentBadge?.name || '🌟 Beginner';
 
         res.json({
             success: true,
@@ -145,11 +147,15 @@ async function getStats(req, res) {
 
 async function updateProfile(req, res) {
     try {
-        const { name, course, college } = req.body;
+        const { name, course, branch, college, currentSemester, graduationYear } = req.body;
         const User = require('../../models/User');
         const update = {};
         if (name) update.name = name;
         if (course !== undefined) update.course = course;
+        if (branch !== undefined) update.branch = branch;
+        if (college !== undefined) update.college = college;
+        if (currentSemester !== undefined) update.currentSemester = currentSemester ? Number(currentSemester) : null;
+        if (graduationYear !== undefined) update.graduationYear = graduationYear ? Number(graduationYear) : null;
 
         await User.findByIdAndUpdate(req.user.id, update);
 

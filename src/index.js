@@ -50,6 +50,11 @@ app.use((_req, res) => {
     res.status(404).json({ success: false, message: 'Route not found' });
 });
 
+app.use((err, _req, res, _next) => {
+    console.error('Unhandled error:', err.stack || err.message || err);
+    res.status(500).json({ success: false, message: 'Internal server error' });
+});
+
 connectDB()
     .then(() => {
         app.listen(PORT, '0.0.0.0', () => {

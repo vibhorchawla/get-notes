@@ -24,8 +24,8 @@ export default function SettingsScreen() {
     const [autoDownload, setAutoDownload] = React.useState(false);
 
     const handleToggle = (label: string, value: boolean, setter: (v: boolean) => void) => {
-        setter(!value);
-        showToast(`${label} ${!value ? 'enabled' : 'disabled'}`, 'info');
+        setter(value);
+        showToast(`${label} ${value ? 'enabled' : 'disabled'}`, 'info');
     };
 
     return (

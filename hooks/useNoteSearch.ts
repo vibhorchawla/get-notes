@@ -88,14 +88,14 @@ export function useNoteSearch(query: string) {
             } else {
                 setRemoteResults([]);
                 setError(
-                    'Shared notes unavailable. Run npm run server on your PC, then upload again while signed in.'
+                    'Shared notes unavailable right now. Please try again later.'
                 );
             }
         } catch (e) {
             console.error('useNoteSearch error:', e);
             setRemoteResults([]);
             setError(
-                'Cannot reach the server. Start it with: npm run server'
+                'Cannot reach the server. Please check your internet connection.'
             );
         } finally {
             setIsSearching(false);

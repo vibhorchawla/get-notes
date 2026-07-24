@@ -47,10 +47,10 @@ async function getCommunityNotesByType(req, res) {
 
         let filter = { isPublished: true };
         if (type === 'verified') filter.isVerified = true;
-        if (type === 'previous-year') filter.tags = 'previous-year';
-        if (type === 'assignment') filter.tags = 'assignment';
-        if (type === 'lab-manual') filter.tags = 'lab-manual';
-        if (type === 'question-bank') filter.tags = 'question-bank';
+        if (type === 'previous-year') filter.tags = { $in: ['previous-year'] };
+        if (type === 'assignment') filter.tags = { $in: ['assignment'] };
+        if (type === 'lab-manual') filter.tags = { $in: ['lab-manual'] };
+        if (type === 'question-bank') filter.tags = { $in: ['question-bank'] };
 
         let sortOption = { createdAt: -1 };
         if (sort === 'popular') sortOption = { downloads: -1 };

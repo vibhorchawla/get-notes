@@ -14,6 +14,7 @@ import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../../context/AuthContext';
 import { useGoogleAuth, useFacebookAuth } from '../../hooks/useSocialAuth';
+import { isGoogleConfigured, isFacebookConfigured } from '../../constants/oauth';
 import { spacing } from '../../constants/spacing';
 import { typography } from '../../constants/typography';
 
@@ -198,29 +199,33 @@ export default function SignupScreen() {
                             <View style={styles.orLine} />
                         </View>
 
-                        <TouchableOpacity
-                            style={[styles.socialButton, googleLoading && styles.signupButtonDisabled]}
-                            onPress={signInWithGoogle}
-                            disabled={googleLoading}
-                            activeOpacity={0.8}
-                        >
-                            <Ionicons name="logo-google" size={20} color="#FFFFFF" />
-                            <Text style={styles.socialButtonText}>
-                                {googleLoading ? 'Connecting...' : 'Sign up with Google'}
-                            </Text>
-                        </TouchableOpacity>
+                        {isGoogleConfigured() ? (
+                            <TouchableOpacity
+                                style={[styles.socialButton, googleLoading && styles.signupButtonDisabled]}
+                                onPress={signInWithGoogle}
+                                disabled={googleLoading}
+                                activeOpacity={0.8}
+                            >
+                                <Ionicons name="logo-google" size={20} color="#FFFFFF" />
+                                <Text style={styles.socialButtonText}>
+                                    {googleLoading ? 'Connecting...' : 'Sign up with Google'}
+                                </Text>
+                            </TouchableOpacity>
+                        ) : null}
 
-                        <TouchableOpacity
-                            style={[styles.socialButton, facebookLoading && styles.signupButtonDisabled]}
-                            onPress={signInWithFacebook}
-                            disabled={facebookLoading}
-                            activeOpacity={0.8}
-                        >
-                            <Ionicons name="logo-facebook" size={20} color="#FFFFFF" />
-                            <Text style={styles.socialButtonText}>
-                                {facebookLoading ? 'Connecting...' : 'Sign up with Facebook'}
-                            </Text>
-                        </TouchableOpacity>
+                        {isFacebookConfigured() ? (
+                            <TouchableOpacity
+                                style={[styles.socialButton, facebookLoading && styles.signupButtonDisabled]}
+                                onPress={signInWithFacebook}
+                                disabled={facebookLoading}
+                                activeOpacity={0.8}
+                            >
+                                <Ionicons name="logo-facebook" size={20} color="#FFFFFF" />
+                                <Text style={styles.socialButtonText}>
+                                    {facebookLoading ? 'Connecting...' : 'Sign up with Facebook'}
+                                </Text>
+                            </TouchableOpacity>
+                        ) : null}
                     </View>
 
                     <View style={styles.footer}>

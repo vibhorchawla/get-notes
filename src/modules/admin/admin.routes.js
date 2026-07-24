@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const { verifyToken } = require('../../middleware/auth');
+const { verifyToken, requireAdmin } = require('../../middleware/auth');
 const {
     verifyNote,
     featureNote,
@@ -13,7 +13,7 @@ const {
     banUser,
 } = require('./admin.controller');
 
-router.use(verifyToken);
+router.use(verifyToken, requireAdmin);
 
 router.post('/notes/:noteId/verify', verifyNote);
 router.post('/notes/:noteId/feature', featureNote);

@@ -9,10 +9,10 @@ import {
     ActivityIndicator,
     TextInput,
     Share,
+    Linking,
 } from 'react-native';
 import { useLocalSearchParams, Stack, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import PdfViewer from '../../components/PdfViewer';
 import { usePersonalNotes } from '../../hooks/usePersonalNotes';
 import { useSaved } from '../../hooks/useSaved';
 import { useDownloads } from '../../hooks/useDownloads';
@@ -56,22 +56,25 @@ export default function NoteViewer() {
     const [relatedNotes, setRelatedNotes] = useState<Note[]>([]);
 
     useEffect(() => {
+        let cancelled = false;
         async function loadNote() {
             setLoading(true);
             try {
                 const res = await apiFetch<Note>(`/note/${id}`, { requiresAuth: false });
+                if (cancelled) return;
                 if (res.success && res.data) {
                     setNote(res.data);
                     const relRes = await apiFetch<Note[]>(`/notes/${id}/related`, { requiresAuth: false });
-                    if (relRes.success && relRes.data) setRelatedNotes(relRes.data);
+                    if (!cancelled && relRes.success && relRes.data) setRelatedNotes(relRes.data);
                 }
             } catch (e) {
-                console.error('Load note error:', e);
+                if (!cancelled) console.error('Load note error:', e);
             } finally {
-                setLoading(false);
+                if (!cancelled) setLoading(false);
             }
         }
         loadNote();
+        return () => { cancelled = true; };
     }, [id]);
 
     const now = new Date();
@@ -91,11 +94,11 @@ export default function NoteViewer() {
 
     const handleSave = async () => {
         if (isSaved) {
-            await unsaveNote(id);
-            showToast('Bookmark removed.', 'info');
+            const ok = await unsaveNote(id);
+            showToast(ok ? 'Bookmark removed.' : 'Failed to remove bookmark.', ok ? 'info' : 'error');
         } else {
-            await saveNote(id);
-            showToast('Note saved to bookmarks!', 'success');
+            const ok = await saveNote(id);
+            showToast(ok ? 'Note saved to bookmarks!' : 'Failed to save.', ok ? 'success' : 'error');
         }
     };
 
@@ -107,11 +110,22 @@ export default function NoteViewer() {
             ]);
             return;
         }
-        await addDownload(id);
-        try {
-            await apiFetch(`/notes/${id}/download`, { method: 'POST', requiresAuth: false });
-        } catch {}
-        showToast('Download started!', 'success');
+        if (!user) {
+            showToast('Sign in to download notes.', 'error');
+            return;
+        }
+        const ok = await addDownload(id);
+        if (ok) {
+            try {
+                await apiFetch(`/notes/${id}/download`, { method: 'POST', requiresAuth: false });
+            } catch {}
+            if (resolvedPdfUrl) {
+                await Linking.openURL(resolvedPdfUrl).catch(() => showToast('Could not open download link.', 'error'));
+            }
+            showToast('Download started!', 'success');
+        } else {
+            showToast('Could not record download.', 'error');
+        }
     };
 
     const handleShare = async () => {
@@ -139,6 +153,10 @@ export default function NoteViewer() {
                 showToast('Rating submitted!', 'success');
                 setShowRatingModal(false);
                 setRatingValue(0);
+                if (res.data) {
+                    const { averageRating, ratingCount } = res.data as { averageRating: number; ratingCount: number };
+                    setNote((prev) => prev ? { ...prev, averageRating, ratingCount } : prev);
+                }
             } else {
                 showToast(res.message || 'Failed to submit rating.', 'error');
             }
@@ -148,14 +166,21 @@ export default function NoteViewer() {
     };
 
     const [liked, setLiked] = useState(false);
+    const [showLikePrompt, setShowLikePrompt] = useState(false);
     const [showHelpPrompt, setShowHelpPrompt] = useState(false);
-    const [helpFeedback, setHelpFeedback] = useState('');
-    const [showFeedbackInput, setShowFeedbackInput] = useState(false);
+
+
 
     useEffect(() => {
         const timer = setTimeout(() => setShowHelpPrompt(true), 15000);
         return () => clearTimeout(timer);
     }, []);
+
+    useEffect(() => {
+        if (user?.id && note?.likedBy?.includes(user.id)) {
+            setLiked(true);
+        }
+    }, [user, note?.likedBy]);
 
     const handleHelpYes = () => {
         setShowHelpPrompt(false);
@@ -163,30 +188,43 @@ export default function NoteViewer() {
     };
 
     const handleHelpNo = () => {
-        setShowFeedbackInput(true);
-    };
-
-    const handleFeedbackSubmit = () => {
-        showToast('Thanks for your feedback!', 'success');
-        setShowFeedbackInput(false);
-        setHelpFeedback('');
         setShowHelpPrompt(false);
+        showToast('Thanks for your feedback!', 'success');
     };
 
-    const handleLike = async () => {
+    const handleLike = () => {
         if (!user) {
             showToast('Sign in to like notes.', 'error');
             return;
         }
+        setShowLikePrompt(true);
+    };
+
+    const handleConfirmLike = async () => {
+        setShowLikePrompt(false);
         try {
             const res = await apiFetch(`/notes/${id}/like`, { method: 'POST' });
             if (res.success) {
-                setLiked(true);
-                setNote((prev) => prev ? { ...prev, likes: (prev.likes || 0) + 1 } : prev);
-                showToast('You liked this note!', 'success');
+                const newLiked = !(res as any).liked === false ? true : (res as any).liked;
+                if (typeof (res as any).liked === 'boolean') {
+                    setLiked((res as any).liked);
+                    setNote((prev) => {
+                        if (!prev) return prev;
+                        return {
+                            ...prev,
+                            likes: (res as any).data?.likes ?? prev.likes,
+                            likedBy: (res as any).data?.likedBy ?? prev.likedBy,
+                        };
+                    });
+                    showToast((res as any).liked ? 'You liked this note!' : 'Like removed.', 'success');
+                } else {
+                    setLiked(true);
+                    setNote((prev) => prev ? { ...prev, likes: (prev.likes || 0) + 1 } : prev);
+                    showToast('You liked this note!', 'success');
+                }
             }
         } catch {
-            showToast('Failed to like.', 'error');
+            showToast('Failed to update like.', 'error');
         }
     };
 
@@ -257,9 +295,27 @@ export default function NoteViewer() {
                     </View>
                 ) : (
                     <View>
-                        <View style={styles.pdfContainer}>
-                            <PdfViewer pdfUrl={resolvedPdfUrl} />
-                        </View>
+                        <TouchableOpacity
+                            style={styles.readPdfBtn}
+                            onPress={() => {
+                                if (!resolvedPdfUrl) {
+                                    showToast('No PDF available for this note.', 'error');
+                                    return;
+                                }
+                                router.push({
+                                    pathname: '/pdf-viewer',
+                                    params: { pdfUrl: resolvedPdfUrl, title: resolvedTitle, noteId: id },
+                                });
+                            }}
+                            activeOpacity={0.8}
+                        >
+                            <Ionicons name="document-text" size={28} color="#FFFFFF" />
+                            <View style={styles.readPdfInfo}>
+                                <Text style={styles.readPdfTitle}>Read PDF</Text>
+                                <Text style={styles.readPdfSub}>Tap to open full-screen viewer</Text>
+                            </View>
+                            <Ionicons name="open-outline" size={20} color="rgba(255,255,255,0.8)" />
+                        </TouchableOpacity>
 
                         <View style={styles.detailsCard}>
                             <Text style={styles.detailTitle}>{resolvedTitle}</Text>
@@ -294,14 +350,56 @@ export default function NoteViewer() {
                                 </View>
                             </View>
 
+                            <View style={styles.uploaderCard}>
+                                <View style={styles.uploaderHeader}>
+                                    {note?.uploaderAvatar ? (
+                                        <View style={styles.uploaderAvatar}>
+                                            <Text style={styles.uploaderAvatarText}>{(note.uploaderName || 'A').charAt(0).toUpperCase()}</Text>
+                                        </View>
+                                    ) : (
+                                        <View style={styles.uploaderAvatar}>
+                                            <Text style={styles.uploaderAvatarText}>{(note?.uploaderName || note?.uploadedBy?.name || 'A').charAt(0).toUpperCase()}</Text>
+                                        </View>
+                                    )}
+                                    <View style={styles.uploaderInfo}>
+                                        <Text style={styles.uploaderName}>{note?.uploaderName || note?.uploadedBy?.name || 'Anonymous'}</Text>
+                                        {note?.uploaderCollege ? (
+                                            <Text style={styles.uploaderCollege}>{note.uploaderCollege}</Text>
+                                        ) : null}
+                                    </View>
+                                    {note?.uploadedBy?.id && (
+                                        <View style={styles.contributorBadge}>
+                                            <Ionicons name="ribbon-outline" size={12} color={colors.primary} />
+                                            <Text style={styles.contributorBadgeText}>Contributor</Text>
+                                        </View>
+                                    )}
+                                </View>
+                                <View style={styles.uploaderMeta}>
+                                    {note?.course ? (
+                                        <View style={styles.uploaderMetaItem}>
+                                            <Ionicons name="school-outline" size={14} color={colors.textSecondary} />
+                                            <Text style={styles.uploaderMetaText}>{note.course}</Text>
+                                        </View>
+                                    ) : null}
+                                    {(note as any)?.uploaderBranch ? (
+                                        <View style={styles.uploaderMetaItem}>
+                                            <Ionicons name="git-branch-outline" size={14} color={colors.textSecondary} />
+                                            <Text style={styles.uploaderMetaText}>{(note as any).uploaderBranch}</Text>
+                                        </View>
+                                    ) : null}
+                                    {note?.createdAt ? (
+                                        <View style={styles.uploaderMetaItem}>
+                                            <Ionicons name="calendar-outline" size={14} color={colors.textSecondary} />
+                                            <Text style={styles.uploaderMetaText}>{formatDate(note.createdAt)}</Text>
+                                        </View>
+                                    ) : null}
+                                </View>
+                            </View>
+
                             <View style={styles.metaSection}>
-                                <MetaRow icon="school-outline" label="Course" value={note?.course || 'N/A'} />
                                 <MetaRow icon="layers-outline" label="Semester" value={note?.semester || 'N/A'} />
                                 <MetaRow icon="book-outline" label="Subject" value={note?.subject || 'N/A'} />
                                 {note?.unit ? <MetaRow icon="bookmark-outline" label="Unit" value={note.unit} /> : null}
-                                <MetaRow icon="person-outline" label="Uploaded by" value={note?.uploaderName || note?.uploadedBy?.name || 'Anonymous'} />
-                                {note?.uploaderCollege ? <MetaRow icon="business-outline" label="College" value={note.uploaderCollege} /> : null}
-                                <MetaRow icon="calendar-outline" label="Date" value={note?.createdAt ? formatDate(note.createdAt) : 'N/A'} />
                             </View>
 
                             {note?.description ? (
@@ -329,11 +427,11 @@ export default function NoteViewer() {
                                     <Ionicons name="download-outline" size={20} color={colors.textOnPrimary} />
                                     <Text style={styles.actionBtnText}>Download</Text>
                                 </TouchableOpacity>
-                                <TouchableOpacity style={styles.actionBtnSecondary} onPress={() => setShowRatingModal(true)} activeOpacity={0.7}>
+                                <TouchableOpacity style={styles.actionBtnSecondary} onPress={() => { if (!user) { showToast('Sign in to rate notes.', 'error'); return; } setShowRatingModal(true); }} activeOpacity={0.7}>
                                     <Ionicons name="star-outline" size={20} color={colors.primary} />
                                     <Text style={styles.actionBtnSecondaryText}>Rate</Text>
                                 </TouchableOpacity>
-                                <TouchableOpacity style={styles.actionBtnSecondary} onPress={() => setShowReportModal(true)} activeOpacity={0.7}>
+                                <TouchableOpacity style={styles.actionBtnSecondary} onPress={() => { if (!user) { showToast('Sign in to report notes.', 'error'); return; } setShowReportModal(true); }} activeOpacity={0.7}>
                                     <Ionicons name="flag-outline" size={20} color="#EF4444" />
                                     <Text style={[styles.actionBtnSecondaryText, { color: '#EF4444' }]}>Report</Text>
                                 </TouchableOpacity>
@@ -352,22 +450,7 @@ export default function NoteViewer() {
                                             <Text style={styles.helpBtnText}>No</Text>
                                         </TouchableOpacity>
                                     </View>
-                                    {showFeedbackInput && (
-                                        <View style={styles.helpFeedbackWrap}>
-                                            <TextInput
-                                                style={styles.helpFeedbackInput}
-                                                placeholder="Tell us what could be better..."
-                                                placeholderTextColor={colors.textLight}
-                                                value={helpFeedback}
-                                                onChangeText={setHelpFeedback}
-                                                multiline
-                                                textAlignVertical="top"
-                                            />
-                                            <TouchableOpacity style={styles.helpFeedbackSubmit} onPress={handleFeedbackSubmit} activeOpacity={0.7}>
-                                                <Text style={styles.helpFeedbackSubmitText}>Send</Text>
-                                            </TouchableOpacity>
-                                        </View>
-                                    )}
+
                                 </View>
                             )}
                         </View>
@@ -425,6 +508,27 @@ export default function NoteViewer() {
                 </View>
             )}
 
+            {showLikePrompt && (
+                <View style={styles.modalOverlay}>
+                    <View style={styles.likeModal}>
+                        <View style={styles.likeModalIcon}>
+                            <Ionicons name={liked ? 'heart-dislike' : 'heart'} size={40} color="#EF4444" />
+                        </View>
+                        <Text style={styles.likeModalTitle}>{liked ? 'Unlike this note?' : 'Like this note?'}</Text>
+                        <Text style={styles.likeModalSub}>{liked ? 'Remove your like from this note.' : 'Show the uploader some love for sharing helpful notes.'}</Text>
+                        <View style={styles.likeModalActions}>
+                            <TouchableOpacity style={styles.modalCancel} onPress={() => setShowLikePrompt(false)}>
+                                <Text style={styles.modalCancelText}>Cancel</Text>
+                            </TouchableOpacity>
+                            <TouchableOpacity style={styles.likeModalConfirm} onPress={handleConfirmLike}>
+                                <Ionicons name={liked ? 'heart-dislike' : 'heart'} size={18} color="#FFFFFF" />
+                                <Text style={styles.likeModalConfirmText}>{liked ? 'Unlike' : 'Like'}</Text>
+                            </TouchableOpacity>
+                        </View>
+                    </View>
+                </View>
+            )}
+
             {showReportModal && (
                 <View style={styles.modalOverlay}>
                     <View style={styles.modal}>
@@ -459,7 +563,34 @@ const styles = StyleSheet.create({
     container: { flex: 1 },
     headerActions: { flexDirection: 'row', alignItems: 'center', marginRight: spacing.sm },
     headerButton: { padding: spacing.sm, marginLeft: spacing.xs },
-    pdfContainer: { height: 300 },
+    readPdfBtn: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: spacing.md,
+        backgroundColor: colors.primary,
+        borderRadius: 16,
+        padding: spacing.lg,
+        marginHorizontal: spacing.screenPadding,
+        marginBottom: spacing.md,
+        shadowColor: colors.primary,
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.3,
+        shadowRadius: 12,
+        elevation: 6,
+    },
+    readPdfInfo: {
+        flex: 1,
+    },
+    readPdfTitle: {
+        fontSize: typography.fontSize.md,
+        fontWeight: typography.fontWeight.bold,
+        color: '#FFFFFF',
+    },
+    readPdfSub: {
+        fontSize: typography.fontSize.xs,
+        color: 'rgba(255,255,255,0.8)',
+        marginTop: 2,
+    },
     detailsCard: {
         backgroundColor: colors.cardBackground, borderTopLeftRadius: 24, borderTopRightRadius: 24,
         padding: spacing.lg, marginTop: -24,
@@ -471,6 +602,28 @@ const styles = StyleSheet.create({
     stat: { alignItems: 'center', gap: 4 },
     statValue: { fontSize: typography.fontSize.lg, fontWeight: typography.fontWeight.bold, color: colors.textPrimary },
     statLabel: { fontSize: typography.fontSize.xs, color: colors.textSecondary },
+    uploaderCard: {
+        backgroundColor: colors.cardBackground, borderRadius: 16, padding: spacing.lg,
+        marginBottom: spacing.lg, borderWidth: 1, borderColor: colors.border,
+    },
+    uploaderHeader: { flexDirection: 'row', alignItems: 'center', gap: spacing.md, marginBottom: spacing.md },
+    uploaderAvatar: {
+        width: 48, height: 48, borderRadius: 24, backgroundColor: colors.primary,
+        justifyContent: 'center', alignItems: 'center',
+    },
+    uploaderAvatarText: { fontSize: typography.fontSize.xl, fontWeight: typography.fontWeight.bold, color: '#FFFFFF' },
+    uploaderInfo: { flex: 1 },
+    uploaderName: { fontSize: typography.fontSize.md, fontWeight: typography.fontWeight.semibold, color: colors.textPrimary },
+    uploaderCollege: { fontSize: typography.fontSize.sm, color: colors.textSecondary, marginTop: 2 },
+    contributorBadge: {
+        flexDirection: 'row', alignItems: 'center', gap: 4,
+        backgroundColor: 'rgba(79, 70, 229, 0.1)', borderRadius: 999,
+        paddingHorizontal: 8, paddingVertical: 4,
+    },
+    contributorBadgeText: { fontSize: typography.fontSize.xs, color: colors.primary, fontWeight: typography.fontWeight.semibold },
+    uploaderMeta: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.md },
+    uploaderMetaItem: { flexDirection: 'row', alignItems: 'center', gap: 4 },
+    uploaderMetaText: { fontSize: typography.fontSize.sm, color: colors.textSecondary },
     metaSection: { gap: spacing.sm, marginBottom: spacing.lg },
     metaRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
     metaLabel: { fontSize: typography.fontSize.sm, color: colors.textSecondary, width: 80 },
@@ -514,6 +667,13 @@ const styles = StyleSheet.create({
     premiumLockBtn: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, backgroundColor: '#7C3AED', paddingHorizontal: 24, paddingVertical: 14, borderRadius: 14, marginTop: spacing.md },
     premiumLockBtnText: { fontSize: 16, fontWeight: '600', color: '#FFFFFF' },
     modalOverlay: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.6)', justifyContent: 'center', alignItems: 'center', zIndex: 1000 },
+    likeModal: { backgroundColor: '#1A1A2E', borderRadius: 24, padding: spacing.xl, width: '85%', maxWidth: 360, alignItems: 'center' },
+    likeModalIcon: { width: 72, height: 72, borderRadius: 36, backgroundColor: 'rgba(239, 68, 68, 0.12)', justifyContent: 'center', alignItems: 'center', marginBottom: spacing.md },
+    likeModalTitle: { fontSize: typography.fontSize.xl, fontWeight: typography.fontWeight.bold, color: colors.textPrimary, textAlign: 'center' },
+    likeModalSub: { fontSize: typography.fontSize.sm, color: colors.textSecondary, textAlign: 'center', marginTop: spacing.sm, lineHeight: 20, marginBottom: spacing.lg, paddingHorizontal: spacing.md },
+    likeModalActions: { flexDirection: 'row', gap: spacing.sm, justifyContent: 'center', width: '100%' },
+    likeModalConfirm: { flexDirection: 'row', alignItems: 'center', gap: spacing.xs, paddingHorizontal: 28, paddingVertical: 12, borderRadius: 12, backgroundColor: '#EF4444' },
+    likeModalConfirmText: { color: '#FFFFFF', fontWeight: typography.fontWeight.bold, fontSize: typography.fontSize.md },
     modal: { backgroundColor: '#1A1A2E', borderRadius: 24, padding: spacing.xl, width: '85%', maxWidth: 400 },
     modalTitle: { fontSize: typography.fontSize.xl, fontWeight: typography.fontWeight.bold, color: colors.textPrimary, marginBottom: spacing.lg, textAlign: 'center' },
     starsRow: { flexDirection: 'row', justifyContent: 'center', gap: spacing.sm, marginBottom: spacing.lg },
@@ -542,15 +702,4 @@ const styles = StyleSheet.create({
     },
     helpBtnIcon: { fontSize: 18 },
     helpBtnText: { fontSize: typography.fontSize.md, fontWeight: typography.fontWeight.semibold, color: colors.textPrimary },
-    helpFeedbackWrap: { marginTop: spacing.md, gap: spacing.sm },
-    helpFeedbackInput: {
-        backgroundColor: colors.background, borderRadius: 12, borderWidth: 1, borderColor: colors.border,
-        padding: spacing.md, color: colors.textPrimary, fontSize: typography.fontSize.sm,
-        minHeight: 80, textAlignVertical: 'top',
-    },
-    helpFeedbackSubmit: {
-        backgroundColor: colors.primary, borderRadius: 12, paddingVertical: 12,
-        alignItems: 'center',
-    },
-    helpFeedbackSubmitText: { color: colors.textOnPrimary, fontWeight: typography.fontWeight.bold, fontSize: typography.fontSize.md },
 });

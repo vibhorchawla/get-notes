@@ -17,7 +17,7 @@ export default function MyUploadsScreen() {
     const { notes, isLoading, loadNotes } = usePersonalNotes();
     const [refreshing, setRefreshing] = useState(false);
 
-    const uploadedNotes = notes.filter((n) => n.isPublished || true);
+    const uploadedNotes = notes.filter((n) => n.isPublished === true);
 
     const onRefresh = useCallback(async () => {
         setRefreshing(true);
@@ -43,10 +43,11 @@ export default function MyUploadsScreen() {
                             </View>
                         ) : uploadedNotes.length > 0 ? (
                             <View style={styles.notesList}>
-                                {uploadedNotes.map((note) => (
+                                {uploadedNotes.map((note, idx) => (
                                     <SearchNoteCard
                                         key={note.id}
                                         note={note}
+                                        index={idx}
                                         onPress={() => openNote(router, note)}
                                     />
                                 ))}

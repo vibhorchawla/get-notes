@@ -21,7 +21,7 @@ const noteViewSchema = new mongoose.Schema(
     }
 );
 
-noteViewSchema.index({ noteId: 1 });
 noteViewSchema.index({ noteId: 1, userId: 1 });
+noteViewSchema.index({ createdAt: 1 }, { expireAfterSeconds: 86400 * 30 });
 
 module.exports = mongoose.model('NoteView', noteViewSchema);

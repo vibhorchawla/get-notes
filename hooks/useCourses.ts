@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { apiFetch } from './useApi';
 import { Course } from '../types/note';
 
@@ -19,8 +19,10 @@ export function useCourses() {
     const [categories, setCategories] = useState<string[]>(['All']);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
+    const cancelledRef = useRef(false);
 
     const fetchAll = useCallback(async () => {
+        if (cancelledRef.current) return;
         setIsLoading(true);
         setError(null);
         try {
@@ -30,17 +32,21 @@ export function useCourses() {
                 apiFetch<string[]>('/courses/categories', { requiresAuth: false }),
             ]);
 
+            if (cancelledRef.current) return;
+
             if (coursesRes.success && coursesRes.data && coursesRes.data.length > 0) {
                 setCourses(coursesRes.data);
             } else {
                 setCourses(FALLBACK_COURSES);
             }
+            if (cancelledRef.current) return;
 
             if (featuredRes.success && featuredRes.data) {
                 setFeatured(featuredRes.data.notes || []);
             } else {
                 setFeatured([]);
             }
+            if (cancelledRef.current) return;
 
             if (categoriesRes.success && categoriesRes.data && categoriesRes.data.length > 0) {
                 const uniqueCats = Array.from(new Set(['All', ...categoriesRes.data]));
@@ -49,16 +55,19 @@ export function useCourses() {
                 setCategories(FALLBACK_CATEGORIES);
             }
         } catch (e) {
+            if (cancelledRef.current) return;
             console.warn('useCourses: API unavailable, using fallback data');
             setCourses(FALLBACK_COURSES);
             setCategories(FALLBACK_CATEGORIES);
         } finally {
-            setIsLoading(false);
+            if (!cancelledRef.current) setIsLoading(false);
         }
     }, []);
 
     useEffect(() => {
+        cancelledRef.current = false;
         fetchAll();
+        return () => { cancelledRef.current = true; };
     }, [fetchAll]);
 
     return { courses, featured, categories, isLoading, error, refetch: fetchAll };

@@ -63,6 +63,7 @@ const communityNoteSchema = new mongoose.Schema(
             id: { type: String, required: true },
             name: { type: String, required: true },
             course: { type: String },
+            branch: { type: String, default: '' },
             college: { type: String, default: '' },
             avatar: { type: String, default: '' },
         },
@@ -73,6 +74,10 @@ const communityNoteSchema = new mongoose.Schema(
             type: String,
         },
         uploaderCollege: {
+            type: String,
+            default: '',
+        },
+        uploaderBranch: {
             type: String,
             default: '',
         },
@@ -96,6 +101,9 @@ const communityNoteSchema = new mongoose.Schema(
             type: Number,
             default: 0,
         },
+        likedBy: [{
+            type: String,
+        }],
         averageRating: {
             type: Number,
             default: 0,

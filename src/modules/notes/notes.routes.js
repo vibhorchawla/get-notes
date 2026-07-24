@@ -35,7 +35,7 @@ router.get('/:noteId/related', getRelatedNotes);
 router.post('/publish', verifyToken, publishNote);
 router.post('/:noteId/rate', verifyToken, rateNote);
 router.post('/:noteId/report', verifyToken, reportNote);
-router.post('/:noteId/download', incrementDownloads);
+router.post('/:noteId/download', verifyToken, incrementDownloads);
 router.post('/:noteId/like', verifyToken, likeNote);
 
 module.exports = router;

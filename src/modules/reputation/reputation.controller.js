@@ -1,5 +1,6 @@
 const UserReputation = require('../../models/UserReputation');
 const CommunityNote = require('../../models/CommunityNote');
+const { getBadgeForPoints } = require('../../models/UserReputation');
 
 function cleanId(doc) {
     if (!doc) return doc;
@@ -29,12 +30,15 @@ async function getMyReputation(req, res) {
             },
         ]);
 
+        const points = rep?.points || 0;
+        const currentBadge = UserReputation.getBadgeForPoints ? UserReputation.getBadgeForPoints(points) : (rep?.currentBadge || { name: '🌟 Beginner' });
+
         res.json({
             success: true,
             data: {
                 ...cleanId(rep),
                 ...(uploadStats[0] || {}),
-                currentBadge: rep.currentBadge,
+                currentBadge,
             },
         });
     } catch (err) {
@@ -53,7 +57,7 @@ async function getLeaderboard(req, res) {
         const withBadges = leaders.map((l, i) => ({
             ...cleanId(l),
             rank: i + 1,
-            currentBadge: l.currentBadge,
+            currentBadge: getBadgeForPoints(l.points),
         }));
 
         res.json({ success: true, data: withBadges });

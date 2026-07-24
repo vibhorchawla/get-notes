@@ -121,7 +121,7 @@ async function getMyUploadedNotes(req, res) {
 
 async function publishNote(req, res) {
     try {
-        const { id: userId, name, course: userCourse } = req.user;
+        const { id: userId, name, course: userCourse, branch: userBranch, college: userCollege, avatar: userAvatar } = req.user;
         const {
             title,
             description,
@@ -159,19 +159,25 @@ async function publishNote(req, res) {
                 id: userId,
                 name,
                 course: userCourse || '',
-                college: req.body.uploaderCollege || '',
-                avatar: req.body.uploaderAvatar || '',
+                branch: userBranch || '',
+                college: userCollege || '',
+                avatar: userAvatar || '',
             },
             uploaderId: userId,
             uploaderName: name,
-            uploaderCollege: req.body.uploaderCollege || '',
-            uploaderAvatar: req.body.uploaderAvatar || '',
+            uploaderCollege: userCollege || '',
+            uploaderBranch: userBranch || '',
+            uploaderAvatar: userAvatar || '',
             isPublished: true,
             needsReview: req.body.needsReview === true,
         };
 
         let note;
         if (req.body.id) {
+            const existing = await CommunityNote.findById(req.body.id);
+            if (existing && existing.uploadedBy.id !== userId) {
+                return res.status(403).json({ success: false, message: 'You can only edit your own notes' });
+            }
             note = await CommunityNote.findByIdAndUpdate(req.body.id, noteData, {
                 new: true,
                 upsert: true,
@@ -182,9 +188,13 @@ async function publishNote(req, res) {
             note = doc.toObject();
         }
 
+        const subjectFilter = req.body.subjectId
+            ? { _id: req.body.subjectId }
+            : { name: subject };
         await Subject.updateOne(
-            { name: subject },
-            { $inc: { noteCount: 1 } }
+            subjectFilter,
+            { $inc: { noteCount: 1 } },
+            { upsert: false }
         );
 
         await updateReputation(userId, 'totalUploads', 1);
@@ -366,8 +376,10 @@ async function incrementDownloads(req, res) {
         const note = await CommunityNote.findByIdAndUpdate(noteId, { $inc: { downloads: 1 } }, { new: true }).lean();
         if (!note) return res.status(404).json({ success: false, message: 'Note not found' });
 
-        await updateReputation(note.uploadedBy.id, 'totalDownloads', 1);
-        await updateReputation(note.uploadedBy.id, 'points', REPUTATION_POINTS.DOWNLOAD);
+        if (note.uploadedBy?.id) {
+            await updateReputation(note.uploadedBy.id, 'totalDownloads', 1);
+            await updateReputation(note.uploadedBy.id, 'points', REPUTATION_POINTS.DOWNLOAD);
+        }
 
         res.json({ success: true, data: cleanId(note) });
     } catch (err) {
@@ -379,13 +391,31 @@ async function incrementDownloads(req, res) {
 async function likeNote(req, res) {
     try {
         const { noteId } = req.params;
-        const note = await CommunityNote.findByIdAndUpdate(noteId, { $inc: { likes: 1 } }, { new: true }).lean();
+        const userId = req.user.id;
+
+        const note = await CommunityNote.findById(noteId);
         if (!note) return res.status(404).json({ success: false, message: 'Note not found' });
 
-        await updateReputation(note.uploadedBy.id, 'totalLikes', 1);
-        await updateReputation(req.user.id, 'points', REPUTATION_POINTS.LIKE);
+        note.likedBy = note.likedBy || [];
+        const alreadyLiked = note.likedBy.includes(userId);
 
-        res.json({ success: true, data: cleanId(note) });
+        if (alreadyLiked) {
+            note.likes = Math.max((note.likes || 1) - 1, 0);
+            note.likedBy = note.likedBy.filter((id) => id !== userId);
+            await note.save();
+            return res.json({ success: true, data: cleanId(note.toObject()), liked: false });
+        }
+
+        note.likes = (note.likes || 0) + 1;
+        note.likedBy.push(userId);
+        await note.save();
+
+        if (note.uploadedBy?.id) {
+            await updateReputation(note.uploadedBy.id, 'totalLikes', 1);
+        }
+        await updateReputation(userId, 'points', REPUTATION_POINTS.LIKE);
+
+        res.json({ success: true, data: cleanId(note.toObject()), liked: true });
     } catch (err) {
         console.error('Like error:', err);
         res.status(500).json({ success: false, message: 'Server error' });

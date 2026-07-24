@@ -42,11 +42,15 @@ export default function NotesScreen() {
 
     const sortNotes = useCallback(<T extends { title: string; updatedAt?: string; createdAt?: string }>(notesList: T[]): T[] => {
         const sorted = [...notesList];
+        const parseDate = (d: string | undefined) => {
+            const t = d ? new Date(d).getTime() : 0;
+            return Number.isNaN(t) ? 0 : t;
+        };
         switch (sortBy) {
             case 'newest':
-                return sorted.sort((a, b) => new Date(b.updatedAt || b.createdAt || '').getTime() - new Date(a.updatedAt || a.createdAt || '').getTime());
+                return sorted.sort((a, b) => parseDate(b.updatedAt || b.createdAt) - parseDate(a.updatedAt || a.createdAt));
             case 'oldest':
-                return sorted.sort((a, b) => new Date(a.updatedAt || a.createdAt || '').getTime() - new Date(b.updatedAt || b.createdAt || '').getTime());
+                return sorted.sort((a, b) => parseDate(a.updatedAt || a.createdAt) - parseDate(b.updatedAt || b.createdAt));
             case 'title':
                 return sorted.sort((a, b) => a.title.localeCompare(b.title));
             default:

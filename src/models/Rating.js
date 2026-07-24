@@ -31,6 +31,5 @@ const ratingSchema = new mongoose.Schema(
 );
 
 ratingSchema.index({ noteId: 1, userId: 1 }, { unique: true });
-ratingSchema.index({ noteId: 1 });
 
 module.exports = mongoose.model('Rating', ratingSchema);

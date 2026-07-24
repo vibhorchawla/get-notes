@@ -2,6 +2,7 @@ export interface NoteUploader {
     id: string;
     name: string;
     course?: string;
+    branch?: string;
     college?: string;
     avatar?: string;
 }
@@ -30,6 +31,7 @@ export interface Note {
     uploaderName?: string;
     uploaderCollege?: string;
     uploaderAvatar?: string;
+    uploaderBranch?: string;
     source?: 'course' | 'community' | 'upload';
     isPublished?: boolean;
     isPremium?: boolean;
@@ -39,6 +41,7 @@ export interface Note {
     views?: number;
     saves?: number;
     likes?: number;
+    likedBy?: string[];
     averageRating?: number;
     ratingCount?: number;
     reportCount?: number;

@@ -33,6 +33,4 @@ const courseSchema = new mongoose.Schema(
     }
 );
 
-courseSchema.index({ name: 1 });
-
 module.exports = mongoose.model('Course', courseSchema);

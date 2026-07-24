@@ -25,6 +25,7 @@ export default function RootLayout() {
                     <Stack.Screen name="semester/[id]" options={{ headerShown: false }} />
                     <Stack.Screen name="subject/[id]" options={{ headerShown: false }} />
                     <Stack.Screen name="note/[id]" options={{ headerShown: false }} />
+                    <Stack.Screen name="pdf-viewer" options={{ headerShown: false, presentation: 'modal' }} />
                     <Stack.Screen name="personal-note/[id]" options={{ headerShown: false }} />
                     <Stack.Screen name="shared-note/[id]" options={{ headerShown: false }} />
                     <Stack.Screen name="coming-soon" options={{ headerShown: true, title: 'Coming Soon' }} />

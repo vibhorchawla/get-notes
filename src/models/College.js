@@ -41,7 +41,6 @@ const collegeSchema = new mongoose.Schema(
     }
 );
 
-collegeSchema.index({ name: 1 });
 collegeSchema.index({ noteCount: -1 });
 
 module.exports = mongoose.model('College', collegeSchema);

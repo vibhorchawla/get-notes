@@ -51,13 +51,13 @@ export default function LoginScreen() {
         }
 
         setIsLoading(true);
-        const success = await login(email, password);
+        const result = await login(email, password);
         setIsLoading(false);
 
-        if (success) {
+        if (result.success) {
             router.replace('/home');
         } else {
-            Alert.alert('Error', 'Login failed. Please try again.');
+            Alert.alert('Error', result.message || 'Login failed. Please try again.');
         }
     };
 

@@ -14,6 +14,7 @@ import LoadingSkeleton from '../../components/LoadingSkeleton';
 import { useAuth } from '../../context/AuthContext';
 import { useUserStats } from '../../hooks/useUserStats';
 import { useToast } from '../../context/ToastContext';
+import { apiFetch } from '../../hooks/useApi';
 import { useReputation } from '../../hooks/useReputation';
 import { colors } from '../../constants/colors';
 import { spacing } from '../../constants/spacing';
@@ -50,7 +51,7 @@ const BadgeCard = ({ name, earned }: { name: string; earned?: string }) => {
 };
 
 export default function ProfileScreen() {
-    const { user } = useAuth();
+    const { user, refreshUser } = useAuth();
     const { stats, isLoading: statsLoading, refetch: refetchStats } = useUserStats();
     const { reputation, isLoading: repLoading } = useReputation();
     const { showToast } = useToast();
@@ -59,6 +60,10 @@ export default function ProfileScreen() {
     const [editing, setEditing] = useState(false);
     const [editName, setEditName] = useState('');
     const [editCourse, setEditCourse] = useState('');
+    const [editBranch, setEditBranch] = useState('');
+    const [editCollege, setEditCollege] = useState('');
+    const [editSemester, setEditSemester] = useState('');
+    const [editGradYear, setEditGradYear] = useState('');
     const [refreshing, setRefreshing] = useState(false);
 
     const onRefresh = useCallback(async () => {
@@ -81,16 +86,42 @@ export default function ProfileScreen() {
     const handleEditStart = () => {
         setEditName(user?.name || '');
         setEditCourse(user?.course || '');
+        setEditBranch((user as any)?.branch || '');
+        setEditCollege((user as any)?.college || '');
+        setEditSemester((user as any)?.currentSemester ? String((user as any).currentSemester) : '');
+        setEditGradYear((user as any)?.graduationYear ? String((user as any).graduationYear) : '');
         setEditing(true);
     };
 
-    const handleEditSave = () => {
+    const handleEditSave = async () => {
         if (!editName.trim()) {
             showToast('Name cannot be empty.', 'error');
             return;
         }
-        showToast('Profile updated successfully!', 'success');
-        setEditing(false);
+        try {
+            const payload: Record<string, any> = {
+                name: editName.trim(),
+                course: editCourse.trim(),
+                branch: editBranch.trim(),
+                college: editCollege.trim(),
+            };
+            if (editSemester.trim()) payload.currentSemester = parseInt(editSemester.trim(), 10);
+            if (editGradYear.trim()) payload.graduationYear = parseInt(editGradYear.trim(), 10);
+
+            const res = await apiFetch('/user/profile', {
+                method: 'PUT',
+                body: JSON.stringify(payload),
+            });
+            if (res.success) {
+                showToast('Profile updated successfully!', 'success');
+                setEditing(false);
+                refreshUser();
+            } else {
+                showToast(res.message || 'Failed to update profile.', 'error');
+            }
+        } catch {
+            showToast('Could not reach the server.', 'error');
+        }
     };
 
     const handleEditCancel = () => setEditing(false);
@@ -112,8 +143,16 @@ export default function ProfileScreen() {
                                 <View style={styles.editForm}>
                                     <Text style={styles.fieldLabel}>Name</Text>
                                     <TextInput style={styles.editInput} value={editName} onChangeText={setEditName} placeholder="Your name" placeholderTextColor={colors.textLight} />
+                                    <Text style={styles.fieldLabel}>College / University</Text>
+                                    <TextInput style={styles.editInput} value={editCollege} onChangeText={setEditCollege} placeholder="e.g. IIT Delhi" placeholderTextColor={colors.textLight} />
                                     <Text style={styles.fieldLabel}>Course</Text>
-                                    <TextInput style={styles.editInput} value={editCourse} onChangeText={setEditCourse} placeholder="e.g. B.Tech CSE" placeholderTextColor={colors.textLight} />
+                                    <TextInput style={styles.editInput} value={editCourse} onChangeText={setEditCourse} placeholder="e.g. B.Tech" placeholderTextColor={colors.textLight} />
+                                    <Text style={styles.fieldLabel}>Branch / Stream</Text>
+                                    <TextInput style={styles.editInput} value={editBranch} onChangeText={setEditBranch} placeholder="e.g. Computer Science" placeholderTextColor={colors.textLight} />
+                                    <Text style={styles.fieldLabel}>Current Semester (optional)</Text>
+                                    <TextInput style={styles.editInput} value={editSemester} onChangeText={setEditSemester} placeholder="e.g. 5" keyboardType="numeric" placeholderTextColor={colors.textLight} />
+                                    <Text style={styles.fieldLabel}>Graduation Year (optional)</Text>
+                                    <TextInput style={styles.editInput} value={editGradYear} onChangeText={setEditGradYear} placeholder="e.g. 2027" keyboardType="numeric" placeholderTextColor={colors.textLight} />
                                     <View style={styles.editActions}>
                                         <Button title="Save" onPress={handleEditSave} size="sm" />
                                         <Button title="Cancel" onPress={handleEditCancel} variant="secondary" size="sm" />
@@ -138,6 +177,48 @@ export default function ProfileScreen() {
                         )}
 
                         {!isLoading && (
+                            <View style={styles.academicCard}>
+                                <View style={styles.academicHeader}>
+                                    <Ionicons name="school-outline" size={20} color={colors.primary} />
+                                    <Text style={styles.academicTitle}>Academic Information</Text>
+                                </View>
+                                {(user as any)?.college ? (
+                                    <View style={styles.academicRow}>
+                                        <Text style={styles.academicLabel}>College</Text>
+                                        <Text style={styles.academicValue}>{(user as any).college}</Text>
+                                    </View>
+                                ) : null}
+                                {user?.course ? (
+                                    <View style={styles.academicRow}>
+                                        <Text style={styles.academicLabel}>Course</Text>
+                                        <Text style={styles.academicValue}>{user.course}</Text>
+                                    </View>
+                                ) : null}
+                                {(user as any)?.branch ? (
+                                    <View style={styles.academicRow}>
+                                        <Text style={styles.academicLabel}>Branch</Text>
+                                        <Text style={styles.academicValue}>{(user as any).branch}</Text>
+                                    </View>
+                                ) : null}
+                                {(user as any)?.currentSemester ? (
+                                    <View style={styles.academicRow}>
+                                        <Text style={styles.academicLabel}>Semester</Text>
+                                        <Text style={styles.academicValue}>{(user as any).currentSemester}</Text>
+                                    </View>
+                                ) : null}
+                                {(user as any)?.graduationYear ? (
+                                    <View style={styles.academicRow}>
+                                        <Text style={styles.academicLabel}>Graduation</Text>
+                                        <Text style={styles.academicValue}>{(user as any).graduationYear}</Text>
+                                    </View>
+                                ) : null}
+                                {!user?.course && !(user as any)?.college && !(user as any)?.branch ? (
+                                    <Text style={styles.academicEmpty}>Complete your academic profile to enable uploads.</Text>
+                                ) : null}
+                            </View>
+                        )}
+
+                        {!isLoading && (
                             <TouchableOpacity style={styles.premiumCard} onPress={() => router.push('/(drawer)/subscription')} activeOpacity={0.8}>
                                 <View style={styles.premiumRow}>
                                     <Ionicons name={premiumActive ? 'diamond' : 'diamond-outline'} size={24} color={premiumActive ? '#10B981' : colors.primary} />
@@ -145,7 +226,7 @@ export default function ProfileScreen() {
                                         <Text style={styles.premiumTitle}>{premiumActive ? 'Premium Member' : 'Get Premium'}</Text>
                                         {premiumActive ? (
                                             <>
-                                                <Text style={styles.premiumSub}>Plan: {user?.premiumPlan ? user.premiumPlan.charAt(0).toUpperCase() + user.premiumPlan.slice(1) : ''}</Text>
+                                                <Text style={styles.premiumSub}>Plan: {user?.premiumPlan ? user.premiumPlan.charAt(0).toUpperCase() + user.premiumPlan.slice(1) : 'N/A'}</Text>
                                                 <Text style={styles.premiumSub}>Expires: {formatDate(user?.premiumEndDate)}</Text>
                                             </>
                                         ) : (
@@ -209,9 +290,7 @@ export default function ProfileScreen() {
                             <QuickLink icon="compass-outline" label="Explore" onPress={() => router.push('/community')} />
                         </View>
 
-                        <TouchableOpacity style={styles.logoutBtn} onPress={async () => {
-                            const { useAuth } = await import('../../context/AuthContext');
-                        }}>
+                        <TouchableOpacity style={styles.logoutBtn} onPress={() => router.push('/(drawer)/settings')}>
                             <Text style={styles.logoutBtnText}>Settings</Text>
                         </TouchableOpacity>
                     </View>
@@ -272,6 +351,16 @@ const styles = StyleSheet.create({
     badgeEmoji: { fontSize: 28 },
     badgeName: { fontSize: typography.fontSize.xs, fontWeight: typography.fontWeight.semibold, color: colors.textPrimary, marginTop: 4, textAlign: 'center' },
     badgeDate: { fontSize: 9, color: colors.textLight, marginTop: 2 },
+    academicCard: {
+        backgroundColor: colors.cardBackground, borderRadius: 16, padding: spacing.lg,
+        marginBottom: spacing.xl, borderWidth: 1, borderColor: colors.border,
+    },
+    academicHeader: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, marginBottom: spacing.md },
+    academicTitle: { fontSize: typography.fontSize.md, fontWeight: typography.fontWeight.semibold, color: colors.textPrimary },
+    academicRow: { flexDirection: 'row', justifyContent: 'space-between', paddingVertical: spacing.xs, borderBottomWidth: 1, borderBottomColor: colors.border },
+    academicLabel: { fontSize: typography.fontSize.sm, color: colors.textSecondary },
+    academicValue: { fontSize: typography.fontSize.sm, fontWeight: typography.fontWeight.medium, color: colors.textPrimary },
+    academicEmpty: { fontSize: typography.fontSize.sm, color: colors.textSecondary, fontStyle: 'italic' },
     quickLinks: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm, marginBottom: spacing.xl },
     quickLink: {
         width: '48%', backgroundColor: colors.cardBackground, borderRadius: 16, padding: spacing.md,

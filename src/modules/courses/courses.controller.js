@@ -39,7 +39,8 @@ async function getCategories(req, res) {
         const categories = [...new Set(courses.map(c => c.category || 'Other').filter(Boolean))];
         res.json({ success: true, data: ['All', ...categories] });
     } catch (err) {
-        res.json({ success: true, data: ['All'] });
+        console.error('GetCategories error:', err);
+        res.status(500).json({ success: false, data: ['All'], message: 'Failed to load categories' });
     }
 }
 

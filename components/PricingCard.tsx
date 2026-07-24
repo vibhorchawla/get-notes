@@ -34,12 +34,7 @@ export default function PricingCard({
     const btnLabel = buttonLabel || (highlighted ? 'Get Started' : 'Get Started');
 
     return (
-        <TouchableOpacity
-            style={[styles.card, highlighted && styles.cardHighlighted]}
-            onPress={onPress}
-            activeOpacity={0.85}
-            disabled={disabled || !onPress}
-        >
+        <View style={[styles.card, highlighted && styles.cardHighlighted]}>
             <View style={styles.header}>
                 <View style={styles.titleRow}>
                     <View style={[styles.dot, { backgroundColor: accentColor }]} />
@@ -89,7 +84,7 @@ export default function PricingCard({
                     </Text>
                 </View>
             ))}
-        </TouchableOpacity>
+        </View>
     );
 }
 

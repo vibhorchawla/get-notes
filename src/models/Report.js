@@ -45,6 +45,7 @@ const reportSchema = new mongoose.Schema(
     }
 );
 
-reportSchema.index({ noteId: 1 });
+reportSchema.index({ noteId: 1, reportedBy: 1 }, { unique: true });
+reportSchema.index({ status: 1, createdAt: -1 });
 
 module.exports = mongoose.model('Report', reportSchema);

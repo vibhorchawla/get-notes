@@ -47,7 +47,7 @@ export default function CommunityScreen() {
     const [refreshing, setRefreshing] = useState(false);
     const [sortBy, setSortBy] = useState<'newest' | 'popular' | 'rating'>('newest');
     const { data, isLoading, refetch } = useCommunity();
-    const { response: tabData, isLoading: tabLoading } = useCommunityNotes(activeTab, sortBy);
+    const { response: tabData, isLoading: tabLoading, error: tabError } = useCommunityNotes(activeTab, sortBy);
     const { results: searchResults, isSearching } = useNoteSearch(searchQuery);
 
     const onRefresh = async () => {
@@ -201,13 +201,15 @@ export default function CommunityScreen() {
                                             </View>
                                         ))}
                                     </>
+                                ) : tabError ? (
+                                    <EmptyState icon="alert-circle-outline" title="Something went wrong" message={tabError} />
                                 ) : isLoading || tabLoading ? (
                                     <View style={styles.skeletonWrap}>
                                         <LoadingSkeleton.Card lines={2} />
                                         <LoadingSkeleton.Card lines={2} />
                                         <LoadingSkeleton.Card lines={2} />
                                     </View>
-                                ) : currentNotes.length > 0 ? (
+                                ) : currentNotes && currentNotes.length > 0 ? (
                                     currentNotes.map((note, idx) => (
                                         <SearchNoteCard
                                             key={note.id}

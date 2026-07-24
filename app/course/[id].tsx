@@ -42,9 +42,6 @@ export default function CourseScreen() {
         loadCourse();
     }, [id]);
 
-    const now = new Date();
-    const isPremium = user?.isPremium && user?.premiumEndDate ? new Date(user.premiumEndDate) > now : false;
-
     return (
         <>
             <Stack.Screen

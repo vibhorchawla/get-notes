@@ -8,7 +8,6 @@ const userSchema = new mongoose.Schema(
             unique: true,
             lowercase: true,
             trim: true,
-            index: true,
         },
         passwordHash: {
             type: String,
@@ -19,10 +18,37 @@ const userSchema = new mongoose.Schema(
             required: [true, 'Name is required'],
             trim: true,
         },
+        role: {
+            type: String,
+            enum: ['user', 'admin'],
+            default: 'user',
+        },
         course: {
             type: String,
             default: '',
             trim: true,
+        },
+        branch: {
+            type: String,
+            default: '',
+            trim: true,
+        },
+        college: {
+            type: String,
+            default: '',
+            trim: true,
+        },
+        currentSemester: {
+            type: Number,
+            default: null,
+        },
+        graduationYear: {
+            type: Number,
+            default: null,
+        },
+        avatar: {
+            type: String,
+            default: '',
         },
         provider: {
             type: String,
@@ -39,7 +65,7 @@ const userSchema = new mongoose.Schema(
         },
         premiumPlan: {
             type: String,
-            enum: ['monthly', 'quarterly', 'yearly', null],
+            enum: ['monthly', 'quarterly', 'yearly'],
             default: null,
         },
         premiumStartDate: {

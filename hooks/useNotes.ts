@@ -17,24 +17,28 @@ export function useNotes(courseId: string) {
 
     useEffect(() => {
         if (!courseId) return;
+        let cancelled = false;
         async function fetchNotes() {
             setIsLoading(true);
             setError(null);
             try {
                 const res = await apiFetch<Note[]>(`/notes/${courseId}`, { requiresAuth: false });
+                if (cancelled) return;
                 if (res.success && res.data) {
                     setNotes(res.data);
                 } else {
                     setNotes([]);
                 }
             } catch (e) {
+                if (cancelled) return;
                 setError('Failed to load notes');
                 console.error('useNotes error:', e);
             } finally {
-                setIsLoading(false);
+                if (!cancelled) setIsLoading(false);
             }
         }
         fetchNotes();
+        return () => { cancelled = true; };
     }, [courseId]);
 
     return { notes, isLoading, error };
