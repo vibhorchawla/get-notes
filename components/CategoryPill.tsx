@@ -24,10 +24,10 @@ export default function CategoryPill({ label, icon, isActive, onPress }: Categor
         >
             <View style={styles.content}>
                 {icon && (
-                    <Ionicons 
-                        name={icon as any} 
-                        size={16} 
-                        color={isActive ? colors.textOnPrimary : colors.primary} 
+                    <Ionicons
+                        name={icon as any}
+                        size={15}
+                        color={isActive ? colors.textOnPrimary : colors.textSecondary}
                         style={styles.icon}
                     />
                 )}
@@ -39,24 +39,17 @@ export default function CategoryPill({ label, icon, isActive, onPress }: Categor
 
 const styles = StyleSheet.create({
     container: {
-        paddingHorizontal: spacing.lg || 24,
-        paddingVertical: spacing.sm || 8,
+        paddingHorizontal: spacing.lg,
+        paddingVertical: spacing.sm + 2,
         borderRadius: 24,
         backgroundColor: colors.cardBackground,
         marginRight: spacing.sm,
         borderWidth: 1,
         borderColor: colors.border,
-        shadowColor: colors.shadow,
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.05,
-        shadowRadius: 4,
-        elevation: 2,
     },
     activeContainer: {
         backgroundColor: colors.primary,
         borderColor: colors.primary,
-        elevation: 4,
-        shadowOpacity: 0.15,
     },
     content: {
         flexDirection: 'row',

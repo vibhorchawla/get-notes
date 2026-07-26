@@ -84,9 +84,17 @@ async function getSemesterSubjects(req, res) {
 async function getSubjectNotes(req, res) {
     try {
         const { subjectId } = req.params;
-        const { sort, college } = req.query;
+        const { sort, college, subjectName } = req.query;
 
-        let filter = { subjectId, isPublished: true };
+        let filter = { isPublished: true };
+        if (subjectName) {
+            filter.$or = [
+                { subjectId: subjectId },
+                { subject: subjectName },
+            ];
+        } else {
+            filter.subjectId = subjectId;
+        }
         if (college) filter.uploaderCollege = college;
 
         let sortOption = { createdAt: -1 };

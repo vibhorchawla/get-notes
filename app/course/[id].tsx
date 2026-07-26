@@ -47,8 +47,9 @@ export default function CourseScreen() {
             <Stack.Screen
                 options={{
                     title: course?.name || 'Course',
-                    headerStyle: { backgroundColor: colors.primary },
-                    headerTintColor: colors.white,
+                    headerStyle: { backgroundColor: colors.gradientStart },
+                    headerTintColor: colors.textPrimary,
+                    headerShadowVisible: false,
                 }}
             />
             <GradientBackground>
@@ -73,13 +74,13 @@ export default function CourseScreen() {
                                         activeOpacity={0.7}
                                     >
                                         <View style={styles.semesterIcon}>
-                                            <Ionicons name="layers-outline" size={28} color={colors.primary} />
+                                            <Ionicons name="layers-outline" size={26} color={colors.primary} />
                                         </View>
                                         <View style={styles.semesterInfo}>
                                             <Text style={styles.semesterName}>Semester {sem.number}</Text>
                                             <Text style={styles.semesterSub}>Browse all subjects and notes</Text>
                                         </View>
-                                        <Ionicons name="chevron-forward" size={20} color={colors.textLight} />
+                                        <Ionicons name="chevron-forward" size={18} color={colors.textLight} />
                                     </TouchableOpacity>
                                 ))}
                             </View>
@@ -100,16 +101,16 @@ export default function CourseScreen() {
 const styles = StyleSheet.create({
     container: { flex: 1 },
     content: { padding: spacing.screenPadding },
-    title: { fontSize: typography.fontSize.xxl, fontWeight: typography.fontWeight.bold, color: colors.textPrimary, marginBottom: spacing.xs },
+    title: { fontSize: typography.fontSize.xxl, fontWeight: typography.fontWeight.bold, color: colors.textPrimary, marginBottom: spacing.xs, letterSpacing: -0.3 },
     subtitle: { fontSize: typography.fontSize.sm, color: colors.textSecondary, marginBottom: spacing.lg },
     skeletonWrap: { gap: spacing.sm },
     semesterList: { gap: spacing.md },
     semesterCard: {
         flexDirection: 'row', alignItems: 'center', backgroundColor: colors.cardBackground,
-        borderRadius: 16, padding: spacing.lg, borderWidth: 1, borderColor: colors.border, gap: spacing.md,
+        borderRadius: 20, padding: spacing.lg, borderWidth: 1, borderColor: colors.border, gap: spacing.md,
     },
     semesterIcon: {
-        width: 52, height: 52, borderRadius: 16, backgroundColor: 'rgba(79, 70, 229, 0.1)',
+        width: 52, height: 52, borderRadius: 16, backgroundColor: 'rgba(91, 127, 255, 0.10)',
         justifyContent: 'center', alignItems: 'center',
     },
     semesterInfo: { flex: 1 },

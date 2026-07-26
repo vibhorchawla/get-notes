@@ -5,10 +5,10 @@ import { isDriveStoredUrl } from '../utils/driveLink';
 import { colors } from '../constants/colors';
 import { spacing } from '../constants/spacing';
 import { typography } from '../constants/typography';
-import Animated, { 
-    useSharedValue, 
-    useAnimatedStyle, 
-    withSpring, 
+import Animated, {
+    useSharedValue,
+    useAnimatedStyle,
+    withSpring,
     FadeInDown
 } from 'react-native-reanimated';
 
@@ -47,8 +47,8 @@ export default function PersonalNoteCard({ note, onPress, onShare, index = 0 }: 
     });
 
     return (
-        <AnimatedPressable 
-            style={[styles.card, animatedStyle]} 
+        <AnimatedPressable
+            style={[styles.card, animatedStyle]}
             onPress={onPress}
             onPressIn={handlePressIn}
             onPressOut={handlePressOut}
@@ -60,7 +60,7 @@ export default function PersonalNoteCard({ note, onPress, onShare, index = 0 }: 
                 <Text style={styles.title} numberOfLines={1}>{note.title}</Text>
                 {note.isPremium && (
                     <View style={styles.premiumBadgeSmall}>
-                        <Ionicons name="diamond" size={9} color="#FFFFFF" />
+                        <Ionicons name="diamond" size={8} color="#FFFFFF" />
                         <Text style={styles.premiumBadgeSmallText}>Premium</Text>
                     </View>
                 )}
@@ -90,7 +90,7 @@ export default function PersonalNoteCard({ note, onPress, onShare, index = 0 }: 
                 <Text style={styles.date}>{formattedDate}</Text>
                 {note.isPublished ? (
                     <View style={styles.sharedPill}>
-                        <Ionicons name="globe-outline" size={12} color={colors.accent} />
+                        <Ionicons name="globe-outline" size={12} color={colors.primary} />
                         <Text style={styles.sharedText}>Shared</Text>
                     </View>
                 ) : onShare ? (
@@ -108,14 +108,9 @@ const styles = StyleSheet.create({
     card: {
         backgroundColor: colors.cardBackground,
         borderRadius: 20,
-        padding: spacing.md,
+        padding: spacing.cardPadding,
         borderWidth: 1,
         borderColor: colors.border,
-        shadowColor: colors.shadow,
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.1,
-        shadowRadius: 12,
-        elevation: 3,
     },
     titleRow: {
         flexDirection: 'row',
@@ -127,7 +122,7 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         alignItems: 'center',
         gap: 2,
-        backgroundColor: '#7C3AED',
+        backgroundColor: 'rgba(245, 158, 11, 0.2)',
         borderRadius: 999,
         paddingHorizontal: 6,
         paddingVertical: 2,
@@ -135,7 +130,7 @@ const styles = StyleSheet.create({
     premiumBadgeSmallText: {
         fontSize: 9,
         fontWeight: typography.fontWeight.bold,
-        color: '#FFFFFF',
+        color: '#F59E0B',
     },
     title: {
         fontSize: typography.fontSize.md,
@@ -153,7 +148,7 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         alignItems: 'center',
         gap: 4,
-        backgroundColor: 'rgba(79, 70, 229, 0.08)',
+        backgroundColor: 'rgba(91, 127, 255, 0.08)',
         borderRadius: 999,
         paddingHorizontal: 8,
         paddingVertical: 4,
@@ -177,27 +172,27 @@ const styles = StyleSheet.create({
     },
     date: {
         fontSize: typography.fontSize.xs,
-        color: colors.textSecondary,
+        color: colors.textLight,
     },
     sharedPill: {
         flexDirection: 'row',
         alignItems: 'center',
         gap: 4,
-        backgroundColor: 'rgba(16, 185, 129, 0.12)',
+        backgroundColor: 'rgba(91, 127, 255, 0.10)',
         borderRadius: 999,
         paddingHorizontal: 8,
         paddingVertical: 4,
     },
     sharedText: {
         fontSize: typography.fontSize.xs,
-        color: colors.accent,
+        color: colors.primary,
         fontWeight: typography.fontWeight.semibold,
     },
     shareButton: {
         flexDirection: 'row',
         alignItems: 'center',
         gap: 4,
-        backgroundColor: 'rgba(79, 70, 229, 0.1)',
+        backgroundColor: 'rgba(91, 127, 255, 0.10)',
         borderRadius: 999,
         paddingHorizontal: 10,
         paddingVertical: 5,

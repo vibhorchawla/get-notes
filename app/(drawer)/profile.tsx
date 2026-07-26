@@ -14,7 +14,7 @@ import LoadingSkeleton from '../../components/LoadingSkeleton';
 import { useAuth } from '../../context/AuthContext';
 import { useUserStats } from '../../hooks/useUserStats';
 import { useToast } from '../../context/ToastContext';
-import { apiFetch } from '../../hooks/useApi';
+import { apiFetch, setToken } from '../../hooks/useApi';
 import { useReputation } from '../../hooks/useReputation';
 import { colors } from '../../constants/colors';
 import { spacing } from '../../constants/spacing';
@@ -27,7 +27,7 @@ function formatDate(dateStr: string | null | undefined): string {
 
 const StatCard = ({ icon, value, label, color }: { icon: any; value: string | number; label: string; color: string }) => (
     <View style={styles.statCard}>
-        <Ionicons name={icon} size={24} color={color} />
+        <Ionicons name={icon} size={22} color={color} />
         <Text style={styles.statValue}>{value}</Text>
         <Text style={styles.statLabel}>{label}</Text>
     </View>
@@ -35,7 +35,7 @@ const StatCard = ({ icon, value, label, color }: { icon: any; value: string | nu
 
 const BadgeCard = ({ name, earned }: { name: string; earned?: string }) => {
     const colors_map: Record<string, string> = {
-        '🌟': '#FFC107',
+        '🌟': '#F59E0B',
         '📘': '#3B82F6',
         '🏆': '#F59E0B',
         '👑': '#8B5CF6',
@@ -64,6 +64,10 @@ export default function ProfileScreen() {
     const [editCollege, setEditCollege] = useState('');
     const [editSemester, setEditSemester] = useState('');
     const [editGradYear, setEditGradYear] = useState('');
+    const [editBio, setEditBio] = useState('');
+    const [editLinkedin, setEditLinkedin] = useState('');
+    const [editGithub, setEditGithub] = useState('');
+    const [editPortfolio, setEditPortfolio] = useState('');
     const [refreshing, setRefreshing] = useState(false);
 
     const onRefresh = useCallback(async () => {
@@ -79,7 +83,7 @@ export default function ProfileScreen() {
     const premiumActive = isPremium && !isExpired;
 
     const isLoading = !user;
-    const badgeName = stats.badge || reputation?.currentBadge?.name || '🌟 Beginner';
+    const badgeName = stats.badge || reputation?.currentBadge?.name || 'Beginner';
     const totalPts = stats.reputationPoints || reputation?.points || 0;
     const userRank = stats.rank || reputation?.rank || 0;
 
@@ -90,6 +94,10 @@ export default function ProfileScreen() {
         setEditCollege((user as any)?.college || '');
         setEditSemester((user as any)?.currentSemester ? String((user as any).currentSemester) : '');
         setEditGradYear((user as any)?.graduationYear ? String((user as any).graduationYear) : '');
+        setEditBio((user as any)?.bio || '');
+        setEditLinkedin((user as any)?.socialLinks?.linkedin || '');
+        setEditGithub((user as any)?.socialLinks?.github || '');
+        setEditPortfolio((user as any)?.socialLinks?.portfolio || '');
         setEditing(true);
     };
 
@@ -104,15 +112,24 @@ export default function ProfileScreen() {
                 course: editCourse.trim(),
                 branch: editBranch.trim(),
                 college: editCollege.trim(),
+                bio: editBio.trim(),
+                socialLinks: {
+                    linkedin: editLinkedin.trim(),
+                    github: editGithub.trim(),
+                    portfolio: editPortfolio.trim(),
+                },
             };
             if (editSemester.trim()) payload.currentSemester = parseInt(editSemester.trim(), 10);
             if (editGradYear.trim()) payload.graduationYear = parseInt(editGradYear.trim(), 10);
 
-            const res = await apiFetch('/user/profile', {
+            const res = await apiFetch<{ token?: string }>('/user/profile', {
                 method: 'PUT',
                 body: JSON.stringify(payload),
             });
             if (res.success) {
+                if (res.data?.token) {
+                    await setToken(res.data.token);
+                }
                 showToast('Profile updated successfully!', 'success');
                 setEditing(false);
                 refreshUser();
@@ -179,7 +196,7 @@ export default function ProfileScreen() {
                         {!isLoading && (
                             <View style={styles.academicCard}>
                                 <View style={styles.academicHeader}>
-                                    <Ionicons name="school-outline" size={20} color={colors.primary} />
+                                    <Ionicons name="school-outline" size={18} color={colors.primary} />
                                     <Text style={styles.academicTitle}>Academic Information</Text>
                                 </View>
                                 {(user as any)?.college ? (
@@ -221,7 +238,7 @@ export default function ProfileScreen() {
                         {!isLoading && (
                             <TouchableOpacity style={styles.premiumCard} onPress={() => router.push('/(drawer)/subscription')} activeOpacity={0.8}>
                                 <View style={styles.premiumRow}>
-                                    <Ionicons name={premiumActive ? 'diamond' : 'diamond-outline'} size={24} color={premiumActive ? '#10B981' : colors.primary} />
+                                    <Ionicons name={premiumActive ? 'diamond' : 'diamond-outline'} size={22} color={premiumActive ? colors.success : colors.primary} />
                                     <View style={styles.premiumTextWrap}>
                                         <Text style={styles.premiumTitle}>{premiumActive ? 'Premium Member' : 'Get Premium'}</Text>
                                         {premiumActive ? (
@@ -233,7 +250,7 @@ export default function ProfileScreen() {
                                             <Text style={styles.premiumSub}>Unlock unlimited notes & AI summaries</Text>
                                         )}
                                     </View>
-                                    <Ionicons name="chevron-forward" size={20} color="rgba(255,255,255,0.4)" />
+                                    <Ionicons name="chevron-forward" size={18} color={colors.textLight} />
                                 </View>
                             </TouchableOpacity>
                         )}
@@ -255,7 +272,7 @@ export default function ProfileScreen() {
                             ) : (
                                 <View style={styles.statsGrid}>
                                     <StatCard icon="cloud-upload" value={stats.totalUploads} label="Uploads" color={colors.primary} />
-                                    <StatCard icon="download" value={stats.downloadsReceived} label="Downloads" color={colors.accent} />
+                                    <StatCard icon="download" value={stats.downloadsReceived} label="Downloads" color={colors.success} />
                                     <StatCard icon="eye" value={stats.totalViews} label="Views" color={colors.secondary} />
                                     <StatCard icon="heart" value={stats.totalLikes} label="Likes" color="#EF4444" />
                                 </View>
@@ -278,7 +295,7 @@ export default function ProfileScreen() {
                             <View style={styles.statsGrid}>
                                 <StatCard icon="bookmark" value={stats.saved} label="Saved" color="#3B82F6" />
                                 <StatCard icon="download-outline" value={stats.downloads} label="Downloaded" color="#8B5CF6" />
-                                <StatCard icon="star" value={stats.averageRating.toFixed(1)} label="Avg Rating" color="#FFC107" />
+                                <StatCard icon="star" value={stats.averageRating.toFixed(1)} label="Avg Rating" color="#F59E0B" />
                                 <StatCard icon="trophy" value={`#${stats.rank || '-'}`} label="Rank" color="#F59E0B" />
                             </View>
                         </View>
@@ -303,7 +320,7 @@ export default function ProfileScreen() {
 function QuickLink({ icon, label, onPress }: { icon: any; label: string; onPress: () => void }) {
     return (
         <TouchableOpacity style={styles.quickLink} onPress={onPress} activeOpacity={0.7}>
-            <Ionicons name={icon} size={22} color={colors.primary} />
+            <Ionicons name={icon} size={20} color={colors.primary} />
             <Text style={styles.quickLinkLabel}>{label}</Text>
         </TouchableOpacity>
     );
@@ -314,22 +331,22 @@ const styles = StyleSheet.create({
     content: { padding: spacing.screenPadding },
     profileHeader: {
         alignItems: 'center', paddingVertical: spacing.lg, paddingHorizontal: spacing.md,
-        marginBottom: spacing.sm, backgroundColor: colors.cardBackground, borderRadius: 24,
+        marginBottom: spacing.md, backgroundColor: colors.cardBackground, borderRadius: 24,
         borderWidth: 1, borderColor: colors.border,
     },
     name: { fontSize: typography.fontSize.xxl, fontWeight: typography.fontWeight.bold, color: colors.textPrimary, marginTop: spacing.md, marginBottom: spacing.xs },
     email: { fontSize: typography.fontSize.md, color: colors.textSecondary },
     badgeRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, marginTop: spacing.md },
-    badgeLabel: { fontSize: typography.fontSize.sm, color: colors.primary, fontWeight: typography.fontWeight.bold, backgroundColor: 'rgba(79,70,229,0.1)', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 999 },
-    pointsLabel: { fontSize: typography.fontSize.sm, color: colors.accent, fontWeight: typography.fontWeight.bold, backgroundColor: 'rgba(16,185,129,0.1)', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 999 },
-    rankLabel: { fontSize: typography.fontSize.sm, color: '#F59E0B', fontWeight: typography.fontWeight.bold, backgroundColor: 'rgba(245,158,11,0.1)', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 999 },
-    editProfileBtn: { flexDirection: 'row', alignItems: 'center', gap: spacing.xs, marginTop: spacing.md, paddingHorizontal: spacing.md, paddingVertical: spacing.sm, borderRadius: 999, backgroundColor: 'rgba(79, 70, 229, 0.1)' },
+    badgeLabel: { fontSize: typography.fontSize.sm, color: colors.primary, fontWeight: typography.fontWeight.bold, backgroundColor: 'rgba(91,127,255,0.10)', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 999 },
+    pointsLabel: { fontSize: typography.fontSize.sm, color: colors.success, fontWeight: typography.fontWeight.bold, backgroundColor: 'rgba(34,197,94,0.10)', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 999 },
+    rankLabel: { fontSize: typography.fontSize.sm, color: '#F59E0B', fontWeight: typography.fontWeight.bold, backgroundColor: 'rgba(245,158,11,0.10)', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 999 },
+    editProfileBtn: { flexDirection: 'row', alignItems: 'center', gap: spacing.xs, marginTop: spacing.md, paddingHorizontal: spacing.md, paddingVertical: spacing.sm, borderRadius: 999, backgroundColor: 'rgba(91, 127, 255, 0.10)' },
     editProfileText: { fontSize: typography.fontSize.sm, fontWeight: typography.fontWeight.semibold, color: colors.primary },
     editForm: { width: '100%', marginTop: spacing.md },
     fieldLabel: { fontSize: typography.fontSize.sm, fontWeight: typography.fontWeight.semibold, color: colors.textSecondary, marginTop: spacing.md, marginBottom: spacing.xs, alignSelf: 'flex-start' },
-    editInput: { width: '100%', backgroundColor: colors.background, borderRadius: 14, borderWidth: 1, borderColor: colors.border, paddingHorizontal: spacing.md, paddingVertical: 12, color: colors.textPrimary, fontSize: typography.fontSize.md },
+    editInput: { width: '100%', backgroundColor: colors.cardBackgroundSecondary, borderRadius: 14, borderWidth: 1, borderColor: colors.border, paddingHorizontal: spacing.md, paddingVertical: 12, color: colors.textPrimary, fontSize: typography.fontSize.md },
     editActions: { flexDirection: 'row', gap: spacing.sm, marginTop: spacing.lg },
-    premiumCard: { backgroundColor: colors.cardBackground, borderRadius: 16, padding: spacing.lg, marginBottom: spacing.xl, borderWidth: 1, borderColor: 'rgba(124, 58, 237, 0.2)' },
+    premiumCard: { backgroundColor: colors.cardBackground, borderRadius: 20, padding: spacing.lg, marginBottom: spacing.xl, borderWidth: 1, borderColor: 'rgba(91, 127, 255, 0.2)' },
     premiumRow: { flexDirection: 'row', alignItems: 'center' },
     premiumTextWrap: { flex: 1, marginLeft: spacing.md },
     premiumTitle: { fontSize: typography.fontSize.md, fontWeight: typography.fontWeight.semibold, color: colors.textPrimary },
@@ -352,12 +369,12 @@ const styles = StyleSheet.create({
     badgeName: { fontSize: typography.fontSize.xs, fontWeight: typography.fontWeight.semibold, color: colors.textPrimary, marginTop: 4, textAlign: 'center' },
     badgeDate: { fontSize: 9, color: colors.textLight, marginTop: 2 },
     academicCard: {
-        backgroundColor: colors.cardBackground, borderRadius: 16, padding: spacing.lg,
+        backgroundColor: colors.cardBackground, borderRadius: 20, padding: spacing.lg,
         marginBottom: spacing.xl, borderWidth: 1, borderColor: colors.border,
     },
     academicHeader: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, marginBottom: spacing.md },
     academicTitle: { fontSize: typography.fontSize.md, fontWeight: typography.fontWeight.semibold, color: colors.textPrimary },
-    academicRow: { flexDirection: 'row', justifyContent: 'space-between', paddingVertical: spacing.xs, borderBottomWidth: 1, borderBottomColor: colors.border },
+    academicRow: { flexDirection: 'row', justifyContent: 'space-between', paddingVertical: spacing.xs + 2, borderBottomWidth: 1, borderBottomColor: colors.border },
     academicLabel: { fontSize: typography.fontSize.sm, color: colors.textSecondary },
     academicValue: { fontSize: typography.fontSize.sm, fontWeight: typography.fontWeight.medium, color: colors.textPrimary },
     academicEmpty: { fontSize: typography.fontSize.sm, color: colors.textSecondary, fontStyle: 'italic' },

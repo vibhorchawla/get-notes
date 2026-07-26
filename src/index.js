@@ -12,6 +12,7 @@ const communityRoutes = require('./modules/community/community.routes');
 const collegesRoutes = require('./modules/colleges/colleges.routes');
 const reputationRoutes = require('./modules/reputation/reputation.routes');
 const adminRoutes = require('./modules/admin/admin.routes');
+const contributorRoutes = require('./modules/contributor/contributor.routes');
 const {
     searchNotesHandler,
     publishNote,
@@ -45,6 +46,7 @@ app.use('/api/community', communityRoutes);
 app.use('/api/colleges', collegesRoutes);
 app.use('/api/reputation', reputationRoutes);
 app.use('/api/admin', adminRoutes);
+app.use('/api/contributor', contributorRoutes);
 
 app.use((_req, res) => {
     res.status(404).json({ success: false, message: 'Route not found' });

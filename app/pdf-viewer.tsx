@@ -140,7 +140,7 @@ const styles = StyleSheet.create({
         marginHorizontal: 8,
     },
     pageBadge: {
-        backgroundColor: 'rgba(79, 70, 229, 0.1)',
+        backgroundColor: 'rgba(91, 127, 255, 0.1)',
         borderRadius: 12,
         paddingHorizontal: 10,
         paddingVertical: 4,

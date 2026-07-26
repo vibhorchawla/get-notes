@@ -249,6 +249,7 @@ export default function NotesScreen() {
                                         note={{ ...item.note, source: item.note.source || 'course' }}
                                         index={index}
                                         onPress={() => handleNotePress(item.note!)}
+                                        onUploaderPress={() => (item.note?.uploaderId || (item.note as any)?.uploadedBy?.id) ? router.push(`/contributor/${item.note?.uploaderId || (item.note as any)?.uploadedBy?.id}`) : undefined}
                                     />
                                 </View>
                             );
@@ -347,7 +348,7 @@ const styles = StyleSheet.create({
         paddingHorizontal: spacing.md,
         paddingVertical: spacing.sm,
         borderRadius: 999,
-        backgroundColor: 'rgba(79, 70, 229, 0.08)',
+        backgroundColor: 'rgba(91, 127, 255, 0.08)',
         alignSelf: 'flex-start',
     },
     sortButtonText: {
@@ -373,7 +374,7 @@ const styles = StyleSheet.create({
         borderRadius: 10,
     },
     sortOptionActive: {
-        backgroundColor: 'rgba(79, 70, 229, 0.08)',
+        backgroundColor: 'rgba(91, 127, 255, 0.08)',
     },
     sortOptionText: {
         fontSize: typography.fontSize.sm,

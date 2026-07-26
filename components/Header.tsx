@@ -24,19 +24,17 @@ export default function Header() {
                 accessibilityRole="button"
                 accessibilityLabel="Open navigation menu"
             >
-                <Ionicons name="menu" size={22} color={colors.textPrimary} />
+                <Ionicons name="menu" size={20} color={colors.textPrimary} />
             </TouchableOpacity>
 
             <Animated.View entering={FadeInDown.delay(40).springify().damping(14)} style={styles.brandCard}>
                 <View style={styles.logoRow}>
                     <View style={styles.logoBadge}>
-                        <Ionicons name="library" size={22} color={colors.textOnPrimary} />
+                        <Ionicons name="library" size={18} color={colors.textOnPrimary} />
                     </View>
                     <View>
                         <Text style={styles.appName}>GetNotes</Text>
-                        <View style={styles.taglinePill}>
-                            <Text style={styles.tagline}>Your Academic Companion</Text>
-                        </View>
+                        <Text style={styles.tagline}>Your Academic Companion</Text>
                     </View>
                 </View>
             </Animated.View>
@@ -63,11 +61,6 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         borderWidth: 1,
         borderColor: colors.border,
-        shadowColor: colors.shadow,
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.06,
-        shadowRadius: 8,
-        elevation: 2,
     },
     brandCard: {
         alignItems: 'center',
@@ -81,35 +74,28 @@ const styles = StyleSheet.create({
         gap: spacing.md,
     },
     logoBadge: {
-        width: 48,
-        height: 48,
-        borderRadius: 16,
+        width: 44,
+        height: 44,
+        borderRadius: 14,
         backgroundColor: colors.primary,
         justifyContent: 'center',
         alignItems: 'center',
         shadowColor: colors.primary,
         shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.25,
-        shadowRadius: 10,
-        elevation: 4,
+        shadowOpacity: 0.3,
+        shadowRadius: 12,
+        elevation: 6,
     },
     appName: {
-        fontSize: 26,
+        fontSize: 24,
         fontWeight: typography.fontWeight.bold,
         color: colors.textPrimary,
-        letterSpacing: -0.6,
-    },
-    taglinePill: {
-        marginTop: 4,
-        alignSelf: 'flex-start',
-        backgroundColor: 'rgba(124, 58, 237, 0.15)',
-        borderRadius: 999,
-        paddingHorizontal: 10,
-        paddingVertical: 3,
+        letterSpacing: -0.5,
     },
     tagline: {
         fontSize: typography.fontSize.xs,
-        color: colors.primary,
+        color: colors.textLight,
         fontWeight: typography.fontWeight.medium,
+        marginTop: 1,
     },
 });

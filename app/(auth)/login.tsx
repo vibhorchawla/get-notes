@@ -15,6 +15,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../../context/AuthContext';
 import { useGoogleAuth, useFacebookAuth } from '../../hooks/useSocialAuth';
 import { isGoogleConfigured, isFacebookConfigured } from '../../constants/oauth';
+import { colors } from '../../constants/colors';
 import { spacing } from '../../constants/spacing';
 import { typography } from '../../constants/typography';
 
@@ -81,7 +82,7 @@ export default function LoginScreen() {
                             <TextInput
                                 style={styles.input}
                                 placeholder="uixshamim68@gmail.com"
-                                placeholderTextColor="rgba(255,255,255,0.25)"
+                                placeholderTextColor={colors.textLight}
                                 value={email}
                                 onChangeText={setEmail}
                                 keyboardType="email-address"
@@ -95,7 +96,7 @@ export default function LoginScreen() {
                             <TextInput
                                 style={styles.input}
                                 placeholder="••••••••••••"
-                                placeholderTextColor="rgba(255,255,255,0.25)"
+                                placeholderTextColor={colors.textLight}
                                 value={password}
                                 onChangeText={setPassword}
                                 secureTextEntry={!showPassword}
@@ -109,7 +110,7 @@ export default function LoginScreen() {
                                 <Ionicons
                                     name={showPassword ? 'eye-off-outline' : 'eye-outline'}
                                     size={20}
-                                    color="rgba(255,255,255,0.4)"
+                                    color={colors.textLight}
                                 />
                             </TouchableOpacity>
                         </View>
@@ -191,7 +192,7 @@ export default function LoginScreen() {
 const styles = StyleSheet.create({
     root: {
         flex: 1,
-        backgroundColor: '#1A1A2E',
+        backgroundColor: '#121826',
     },
     container: {
         flex: 1,
@@ -214,12 +215,12 @@ const styles = StyleSheet.create({
     },
     label: {
         fontSize: typography.fontSize.sm,
-        color: 'rgba(255, 255, 255, 0.5)',
+        color: colors.textSecondary,
         marginBottom: spacing.sm,
     },
     inputContainer: {
-        backgroundColor: 'rgba(255, 255, 255, 0.06)',
-        borderRadius: 14,
+        backgroundColor: '#1A2235',
+        borderRadius: 16,
         borderWidth: 1,
         borderColor: 'rgba(255, 255, 255, 0.08)',
         marginBottom: spacing.md,
@@ -257,8 +258,8 @@ const styles = StyleSheet.create({
         justifyContent: 'center',
     },
     checkboxActive: {
-        backgroundColor: '#7C3AED',
-        borderColor: '#7C3AED',
+        backgroundColor: colors.primary,
+        borderColor: colors.primary,
     },
     rememberText: {
         fontSize: typography.fontSize.sm,
@@ -266,15 +267,15 @@ const styles = StyleSheet.create({
     },
     forgotText: {
         fontSize: typography.fontSize.sm,
-        color: '#7C3AED',
+        color: colors.primary,
         fontWeight: typography.fontWeight.medium,
     },
     loginButton: {
-        backgroundColor: '#7C3AED',
-        borderRadius: 14,
+        backgroundColor: colors.primary,
+        borderRadius: 16,
         paddingVertical: 17,
         alignItems: 'center',
-        shadowColor: '#7C3AED',
+        shadowColor: colors.primary,
         shadowOffset: { width: 0, height: 4 },
         shadowOpacity: 0.3,
         shadowRadius: 10,
@@ -309,7 +310,7 @@ const styles = StyleSheet.create({
         justifyContent: 'center',
         gap: spacing.sm,
         backgroundColor: 'rgba(255, 255, 255, 0.06)',
-        borderRadius: 14,
+        borderRadius: 16,
         borderWidth: 1,
         borderColor: 'rgba(255, 255, 255, 0.08)',
         paddingVertical: 15,
@@ -331,7 +332,7 @@ const styles = StyleSheet.create({
     },
     footerLink: {
         fontSize: typography.fontSize.sm,
-        color: '#7C3AED',
+        color: colors.primary,
         fontWeight: typography.fontWeight.semibold,
     },
 });

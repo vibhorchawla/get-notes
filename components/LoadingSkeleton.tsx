@@ -3,8 +3,8 @@ import { View, StyleSheet, Animated } from 'react-native';
 import { colors } from '../constants/colors';
 import { spacing } from '../constants/spacing';
 
-const SHIMMER_COLOR = '#E2E8F0';
-const HIGHLIGHT_COLOR = '#F1F5F9';
+const SHIMMER_COLOR = 'rgba(255, 255, 255, 0.04)';
+const HIGHLIGHT_COLOR = 'rgba(255, 255, 255, 0.06)';
 
 interface SkeletonBlockProps {
     width?: number | string;
@@ -61,11 +61,11 @@ function SkeletonCard({ lines = 3 }: SkeletonCardProps) {
 const cardStyles = StyleSheet.create({
     card: {
         backgroundColor: colors.cardBackground,
-        borderRadius: 16,
-        padding: spacing.md,
+        borderRadius: 20,
+        padding: spacing.cardPadding,
         marginBottom: spacing.sm,
         borderWidth: 1,
-        borderColor: SHIMMER_COLOR,
+        borderColor: colors.border,
     },
     row: {
         flexDirection: 'row',
@@ -81,7 +81,7 @@ const cardStyles = StyleSheet.create({
 function SkeletonCourseCard() {
     return (
         <View style={courseStyles.card}>
-            <SkeletonBlock width="100%" height={140} borderRadius={16} />
+            <SkeletonBlock width="100%" height={140} borderRadius={20} />
             <View style={courseStyles.body}>
                 <SkeletonBlock width="90%" height={16} />
                 <View style={{ height: spacing.xs }} />
@@ -96,14 +96,14 @@ function SkeletonCourseCard() {
 const courseStyles = StyleSheet.create({
     card: {
         backgroundColor: colors.cardBackground,
-        borderRadius: 16,
+        borderRadius: 20,
         marginBottom: spacing.md,
         overflow: 'hidden',
         borderWidth: 1,
-        borderColor: SHIMMER_COLOR,
+        borderColor: colors.border,
     },
     body: {
-        padding: spacing.md,
+        padding: spacing.cardPadding,
     },
 });
 
@@ -127,7 +127,7 @@ const profileStyles = StyleSheet.create({
         alignItems: 'center',
         marginBottom: spacing.md,
         borderWidth: 1,
-        borderColor: SHIMMER_COLOR,
+        borderColor: colors.border,
     },
 });
 

@@ -160,13 +160,10 @@ const styles = StyleSheet.create({
     },
     settingsCard: {
         backgroundColor: colors.cardBackground,
-        borderRadius: 16,
+        borderRadius: 20,
         paddingHorizontal: spacing.md,
-        shadowColor: colors.shadow,
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.1,
-        shadowRadius: 8,
-        elevation: 3,
+        borderWidth: 1,
+        borderColor: colors.border,
     },
     divider: {
         height: 1,

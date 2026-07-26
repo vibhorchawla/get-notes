@@ -25,6 +25,21 @@ const REPUTATION_POINTS = {
     REPORT_PENALTY: -20,
 };
 
+const BADGE_LEVELS = [
+    { name: 'Beginner', minPoints: 0 },
+    { name: 'Contributor', minPoints: 100 },
+    { name: 'Top Contributor', minPoints: 500 },
+    { name: 'Elite Contributor', minPoints: 2000 },
+];
+
+function getBadgeForPoints(points) {
+    let badge = BADGE_LEVELS[0];
+    for (const level of BADGE_LEVELS) {
+        if (points >= level.minPoints) badge = level;
+    }
+    return badge.name;
+}
+
 async function updateReputation(userId, field, increment) {
     try {
         const update = {};
@@ -87,6 +102,9 @@ async function searchNotesHandler(req, res) {
 async function getNoteById(req, res) {
     try {
         const { noteId } = req.params;
+        if (!mongoose.Types.ObjectId.isValid(noteId)) {
+            return res.status(400).json({ success: false, message: 'Invalid note ID' });
+        }
         const note = await CommunityNote.findById(noteId).lean();
         if (!note) {
             return res.status(404).json({ success: false, message: 'Note not found' });
@@ -121,15 +139,31 @@ async function getMyUploadedNotes(req, res) {
 
 async function publishNote(req, res) {
     try {
-        const { id: userId, name, course: userCourse, branch: userBranch, college: userCollege, avatar: userAvatar } = req.user;
+        const { id: userId } = req.user;
+        const User = require('../../models/User');
+        const freshUser = await User.findById(userId).lean();
+        if (!freshUser) {
+            return res.status(404).json({ success: false, message: 'User not found' });
+        }
+
+        const userName = freshUser.name || '';
+        const userCourse = freshUser.course || '';
+        const userBranch = freshUser.branch || '';
+        const userCollege = freshUser.college || '';
+        const userAvatar = freshUser.avatar || '';
+        const userSemester = freshUser.currentSemester || null;
+
         const {
             title,
             description,
             pdfUrl,
             thumbnail,
             course,
+            courseId,
             semester,
+            semesterId,
             subject,
+            subjectId,
             unit,
             tags,
             noteType,
@@ -143,37 +177,61 @@ async function publishNote(req, res) {
             return res.status(400).json({ success: false, message: 'Course, semester, and subject are required' });
         }
 
+        if (!userName || !userCourse || !userCollege || !userSemester) {
+            return res.status(400).json({
+                success: false,
+                message: 'Please complete your academic profile before uploading notes.',
+            });
+        }
+
+        let uploaderBadge = 'Beginner';
+        let uploaderReputation = 0;
+        try {
+            const rep = await UserReputation.findOne({ userId }).lean();
+            uploaderReputation = rep ? rep.points : 0;
+            uploaderBadge = getBadgeForPoints(uploaderReputation);
+        } catch (_) {}
+
         const noteData = {
             title: String(title).trim(),
             description: description || '',
             pdfUrl: pdfUrl || undefined,
             thumbnail: thumbnail || undefined,
             course: String(course).trim(),
+            courseId: courseId || undefined,
             semester: parseInt(semester),
+            semesterId: semesterId || undefined,
             subject: String(subject).trim(),
+            subjectId: subjectId || undefined,
             unit: unit || undefined,
             tags: Array.isArray(tags) ? tags : [],
             noteType: noteType || 'pdf',
             playlistUrl: playlistUrl || undefined,
             uploadedBy: {
                 id: userId,
-                name,
-                course: userCourse || '',
-                branch: userBranch || '',
-                college: userCollege || '',
-                avatar: userAvatar || '',
+                name: userName,
+                course: userCourse,
+                branch: userBranch,
+                college: userCollege,
+                avatar: userAvatar,
+                semester: userSemester,
             },
             uploaderId: userId,
-            uploaderName: name,
-            uploaderCollege: userCollege || '',
-            uploaderBranch: userBranch || '',
-            uploaderAvatar: userAvatar || '',
+            uploaderName: userName,
+            uploaderCollege: userCollege,
+            uploaderCourse: userCourse,
+            uploaderBranch: userBranch,
+            uploaderAvatar: userAvatar,
+            uploaderBadge,
+            uploaderReputation,
+            uploaderSemester: userSemester,
+            uploadedAt: new Date(),
             isPublished: true,
             needsReview: req.body.needsReview === true,
         };
 
         let note;
-        if (req.body.id) {
+        if (req.body.id && mongoose.Types.ObjectId.isValid(req.body.id)) {
             const existing = await CommunityNote.findById(req.body.id);
             if (existing && existing.uploadedBy.id !== userId) {
                 return res.status(403).json({ success: false, message: 'You can only edit your own notes' });
@@ -188,7 +246,7 @@ async function publishNote(req, res) {
             note = doc.toObject();
         }
 
-        const subjectFilter = req.body.subjectId
+        const subjectFilter = req.body.subjectId && mongoose.Types.ObjectId.isValid(req.body.subjectId)
             ? { _id: req.body.subjectId }
             : { name: subject };
         await Subject.updateOne(
@@ -199,6 +257,26 @@ async function publishNote(req, res) {
 
         await updateReputation(userId, 'totalUploads', 1);
         await updateReputation(userId, 'points', REPUTATION_POINTS.UPLOAD);
+
+        try {
+            await UserReputation.findOneAndUpdate(
+                { userId },
+                {
+                    $push: {
+                        activityLog: {
+                            $each: [{
+                                type: 'upload',
+                                noteId: String(note._id),
+                                noteTitle: note.title,
+                                timestamp: new Date(),
+                            }],
+                            $slice: -100,
+                        },
+                    },
+                },
+                { upsert: true }
+            );
+        } catch (_) {}
 
         res.status(201).json({ success: true, data: cleanId(note) });
     } catch (err) {
@@ -282,6 +360,9 @@ async function getNotesBySubject(req, res) {
 async function getRelatedNotes(req, res) {
     try {
         const { noteId } = req.params;
+        if (!mongoose.Types.ObjectId.isValid(noteId)) {
+            return res.json({ success: true, data: [] });
+        }
         const note = await CommunityNote.findById(noteId).lean();
         if (!note) return res.json({ success: true, data: [] });
 
@@ -339,6 +420,30 @@ async function rateNote(req, res) {
         else if (rating >= 4) points = REPUTATION_POINTS.RATING_4;
         await updateReputation(userId, 'points', points);
 
+        try {
+            const ratingNote = await CommunityNote.findById(noteId).lean();
+            if (ratingNote?.uploadedBy?.id) {
+                await UserReputation.findOneAndUpdate(
+                    { userId: ratingNote.uploadedBy.id },
+                    {
+                        $push: {
+                            activityLog: {
+                                $each: [{
+                                    type: 'rating',
+                                    noteId: String(noteId),
+                                    noteTitle: ratingNote.title,
+                                    value: rating,
+                                    timestamp: new Date(),
+                                }],
+                                $slice: -100,
+                            },
+                        },
+                    },
+                    { upsert: true }
+                );
+            }
+        } catch (_) {}
+
         res.json({ success: true, data: { averageRating: avg, ratingCount: count } });
     } catch (err) {
         console.error('Rate error:', err);
@@ -352,6 +457,9 @@ async function rateNote(req, res) {
 async function reportNote(req, res) {
     try {
         const { noteId } = req.params;
+        if (!mongoose.Types.ObjectId.isValid(noteId)) {
+            return res.status(400).json({ success: false, message: 'Invalid note ID' });
+        }
         const { reason, description } = req.body;
         const userId = req.user.id;
 
@@ -373,12 +481,43 @@ async function reportNote(req, res) {
 async function incrementDownloads(req, res) {
     try {
         const { noteId } = req.params;
+        if (!mongoose.Types.ObjectId.isValid(noteId)) {
+            return res.status(400).json({ success: false, message: 'Invalid note ID' });
+        }
+        const userId = req.user?.id;
+        if (!userId) {
+            return res.status(401).json({ success: false, message: 'Authentication required' });
+        }
+        const Download = require('../../models/Download');
+        const existing = await Download.findOne({ userId, noteId });
+        if (existing) {
+            return res.json({ success: true, message: 'Already downloaded' });
+        }
         const note = await CommunityNote.findByIdAndUpdate(noteId, { $inc: { downloads: 1 } }, { new: true }).lean();
         if (!note) return res.status(404).json({ success: false, message: 'Note not found' });
 
         if (note.uploadedBy?.id) {
             await updateReputation(note.uploadedBy.id, 'totalDownloads', 1);
             await updateReputation(note.uploadedBy.id, 'points', REPUTATION_POINTS.DOWNLOAD);
+            try {
+                await UserReputation.findOneAndUpdate(
+                    { userId: note.uploadedBy.id },
+                    {
+                        $push: {
+                            activityLog: {
+                                $each: [{
+                                    type: 'download',
+                                    noteId: String(note._id),
+                                    noteTitle: note.title,
+                                    timestamp: new Date(),
+                                }],
+                                $slice: -100,
+                            },
+                        },
+                    },
+                    { upsert: true }
+                );
+            } catch (_) {}
         }
 
         res.json({ success: true, data: cleanId(note) });
@@ -391,6 +530,9 @@ async function incrementDownloads(req, res) {
 async function likeNote(req, res) {
     try {
         const { noteId } = req.params;
+        if (!mongoose.Types.ObjectId.isValid(noteId)) {
+            return res.status(400).json({ success: false, message: 'Invalid note ID' });
+        }
         const userId = req.user.id;
 
         const note = await CommunityNote.findById(noteId);
@@ -412,6 +554,25 @@ async function likeNote(req, res) {
 
         if (note.uploadedBy?.id) {
             await updateReputation(note.uploadedBy.id, 'totalLikes', 1);
+            try {
+                await UserReputation.findOneAndUpdate(
+                    { userId: note.uploadedBy.id },
+                    {
+                        $push: {
+                            activityLog: {
+                                $each: [{
+                                    type: 'like',
+                                    noteId: String(note._id),
+                                    noteTitle: note.title,
+                                    timestamp: new Date(),
+                                }],
+                                $slice: -100,
+                            },
+                        },
+                    },
+                    { upsert: true }
+                );
+            } catch (_) {}
         }
         await updateReputation(userId, 'points', REPUTATION_POINTS.LIKE);
 

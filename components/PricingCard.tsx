@@ -3,6 +3,7 @@ import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator } from 'rea
 import { Ionicons } from '@expo/vector-icons';
 import { spacing } from '../constants/spacing';
 import { typography } from '../constants/typography';
+import { colors } from '../constants/colors';
 
 interface PricingCardProps {
     title: string;
@@ -25,7 +26,7 @@ export default function PricingCard({
     description,
     features,
     highlighted = false,
-    accentColor = '#7C3AED',
+    accentColor = colors.primary,
     onPress,
     loading = false,
     disabled = false,
@@ -77,7 +78,7 @@ export default function PricingCard({
                     <Ionicons
                         name={feature.included ? 'checkmark-circle' : 'close-circle'}
                         size={16}
-                        color={feature.included ? accentColor : 'rgba(255,255,255,0.25)'}
+                        color={feature.included ? accentColor : 'rgba(255,255,255,0.2)'}
                     />
                     <Text style={[styles.featureLabel, !feature.included && styles.featureLabelDisabled]}>
                         {feature.label}
@@ -90,15 +91,15 @@ export default function PricingCard({
 
 const styles = StyleSheet.create({
     card: {
-        backgroundColor: 'rgba(255, 255, 255, 0.06)',
+        backgroundColor: colors.cardBackground,
         borderRadius: 20,
         padding: spacing.lg,
         borderWidth: 1,
-        borderColor: 'rgba(255, 255, 255, 0.08)',
+        borderColor: colors.border,
     },
     cardHighlighted: {
-        borderColor: 'rgba(124, 58, 237, 0.35)',
-        backgroundColor: 'rgba(124, 58, 237, 0.08)',
+        borderColor: 'rgba(91, 127, 255, 0.3)',
+        backgroundColor: 'rgba(91, 127, 255, 0.06)',
     },
     header: {
         marginBottom: spacing.md,
@@ -116,7 +117,7 @@ const styles = StyleSheet.create({
     title: {
         fontSize: typography.fontSize.md,
         fontWeight: typography.fontWeight.bold,
-        color: 'rgba(255, 255, 255, 0.9)',
+        color: colors.textPrimary,
         letterSpacing: 0.5,
     },
     priceSection: {
@@ -141,7 +142,7 @@ const styles = StyleSheet.create({
     },
     button: {
         backgroundColor: 'transparent',
-        borderRadius: 12,
+        borderRadius: 16,
         paddingVertical: 13,
         alignItems: 'center',
         borderWidth: 1,

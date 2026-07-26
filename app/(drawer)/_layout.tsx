@@ -14,7 +14,7 @@ export default function DrawerLayout() {
                 drawerActiveTintColor: colors.primary,
                 drawerInactiveTintColor: colors.textSecondary,
                 drawerStyle: {
-                    backgroundColor: '#1A1A2E',
+                    backgroundColor: '#121826',
                     borderRightWidth: 1,
                     borderRightColor: 'rgba(255, 255, 255, 0.08)',
                 },

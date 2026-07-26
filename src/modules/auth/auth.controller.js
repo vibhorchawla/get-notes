@@ -97,10 +97,28 @@ async function me(req, res) {
 }
 
 // POST /api/auth/refresh  (protected)
-function refresh(req, res) {
+async function refresh(req, res) {
     try {
+        const User = require('../../models/User');
+        const user = await User.findById(req.user.id).lean();
+        if (!user) {
+            return res.status(404).json({ success: false, message: 'User not found' });
+        }
         const token = jwt.sign(
-            { id: req.user.id, email: req.user.email, name: req.user.name, course: req.user.course, branch: req.user.branch || '', college: req.user.college || '', avatar: req.user.avatar || '', isPremium: req.user.isPremium, premiumPlan: req.user.premiumPlan, premiumStartDate: req.user.premiumStartDate, premiumEndDate: req.user.premiumEndDate, createdAt: req.user.createdAt },
+            {
+                id: user._id,
+                email: user.email,
+                name: user.name,
+                course: user.course,
+                branch: user.branch || '',
+                college: user.college || '',
+                avatar: user.avatar || '',
+                isPremium: user.isPremium,
+                premiumPlan: user.premiumPlan,
+                premiumStartDate: user.premiumStartDate,
+                premiumEndDate: user.premiumEndDate,
+                createdAt: user.createdAt,
+            },
             JWT_SECRET,
             { expiresIn: '7d' }
         );

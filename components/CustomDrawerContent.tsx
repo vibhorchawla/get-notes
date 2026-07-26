@@ -46,7 +46,7 @@ export default function CustomDrawerContent(props: DrawerContentComponentProps) 
             {/* Logout Button */}
             <View style={styles.footer}>
                 <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
-                    <Ionicons name="log-out-outline" size={24} color={colors.error} />
+                    <Ionicons name="log-out-outline" size={22} color={colors.error} />
                     <Text style={styles.logoutText}>Logout</Text>
                 </TouchableOpacity>
             </View>
@@ -57,17 +57,19 @@ export default function CustomDrawerContent(props: DrawerContentComponentProps) 
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: '#1A1A2E',
+        backgroundColor: '#121826',
     },
     scrollView: {
         paddingTop: 0,
     },
     profileSection: {
         padding: spacing.lg,
-        backgroundColor: colors.primary,
+        backgroundColor: 'rgba(91, 127, 255, 0.10)',
         alignItems: 'center',
         paddingTop: spacing.xxl,
         paddingBottom: spacing.xl,
+        borderBottomWidth: 1,
+        borderBottomColor: colors.border,
     },
     avatarWrap: {
         marginBottom: spacing.md,
@@ -75,17 +77,17 @@ const styles = StyleSheet.create({
     userName: {
         fontSize: typography.fontSize.lg,
         fontWeight: typography.fontWeight.bold,
-        color: '#FFFFFF',
+        color: colors.textPrimary,
         marginBottom: spacing.xs,
     },
     userEmail: {
         fontSize: typography.fontSize.sm,
-        color: 'rgba(255, 255, 255, 0.75)',
+        color: colors.textSecondary,
         marginBottom: spacing.xs,
     },
     userCourse: {
         fontSize: typography.fontSize.sm,
-        color: 'rgba(255, 255, 255, 0.6)',
+        color: colors.primary,
         fontWeight: typography.fontWeight.medium,
     },
     drawerItems: {
@@ -102,7 +104,7 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         padding: spacing.md,
         borderRadius: 12,
-        backgroundColor: colors.background,
+        backgroundColor: 'rgba(239, 68, 68, 0.08)',
     },
     logoutText: {
         marginLeft: spacing.md,

@@ -82,6 +82,21 @@ const userSchema = new mongoose.Schema(
                 ref: 'Payment',
             },
         ],
+        bio: {
+            type: String,
+            default: '',
+            trim: true,
+            maxlength: 500,
+        },
+        socialLinks: {
+            linkedin: { type: String, default: '' },
+            github: { type: String, default: '' },
+            portfolio: { type: String, default: '' },
+        },
+        isVerifiedContributor: {
+            type: Boolean,
+            default: false,
+        },
     },
     {
         timestamps: true,

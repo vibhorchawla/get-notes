@@ -4,6 +4,7 @@ import { Note } from '../types/note';
 export type PublishResult = {
     ok: boolean;
     message?: string;
+    note?: Note;
 };
 
 export async function publishCommunityNote(note: Note): Promise<PublishResult> {
@@ -15,22 +16,22 @@ export async function publishCommunityNote(note: Note): Promise<PublishResult> {
         };
     }
 
+    const isServerId = /^[0-9a-fA-F]{24}$/.test(note.id || '');
     const payload = {
-        id: note.id,
+        id: isServerId ? note.id : undefined,
         title: note.title,
         content: note.content,
         course: note.course,
+        courseId: (note as any).courseId,
         semester: note.semester,
+        semesterId: (note as any).semesterId,
         subject: note.subject,
+        subjectId: (note as any).subjectId,
         unit: note.unit,
         pdfUrl: note.pdfUrl,
         playlistUrl: note.playlistUrl,
         noteType: note.noteType,
         tags: note.tags,
-        uploadedBy: note.uploadedBy,
-        uploaderName: note.uploaderName,
-        uploaderCollege: note.uploaderCollege,
-        uploaderAvatar: note.uploaderAvatar,
         createdAt: note.createdAt,
         updatedAt: note.updatedAt,
         needsReview: (note as any).needsReview === true,
@@ -43,8 +44,8 @@ export async function publishCommunityNote(note: Note): Promise<PublishResult> {
             requiresAuth: true,
         });
 
-        if (res.success) {
-            return { ok: true };
+        if (res.success && res.data) {
+            return { ok: true, note: res.data };
         }
 
         res = await apiFetch<Note>('/notes/publish', {
@@ -53,8 +54,8 @@ export async function publishCommunityNote(note: Note): Promise<PublishResult> {
             requiresAuth: true,
         });
 
-        if (res.success) {
-            return { ok: true };
+        if (res.success && res.data) {
+            return { ok: true, note: res.data };
         }
 
         return {
@@ -62,7 +63,6 @@ export async function publishCommunityNote(note: Note): Promise<PublishResult> {
             message: res.message || 'Server could not publish your note.',
         };
     } catch (error) {
-        console.error('publishCommunityNote error:', error);
         return {
             ok: false,
             message: 'Cannot reach the server. Start it with npm run server and try again.',

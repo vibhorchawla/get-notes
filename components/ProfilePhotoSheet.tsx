@@ -130,7 +130,7 @@ export default function ProfilePhotoSheet({
                             <View style={styles.optionsCard}>
                                 <OptionRow
                                     icon="camera"
-                                    iconBg="#EEF2FF"
+                                    iconBg="rgba(91, 127, 255, 0.10)"
                                     iconColor={colors.primary}
                                     title="Take a Photo"
                                     subtitle="Use your camera"
@@ -142,7 +142,7 @@ export default function ProfilePhotoSheet({
                                 <View style={styles.optionDivider} />
                                 <OptionRow
                                     icon="images"
-                                    iconBg="#FDF2F8"
+                                    iconBg="rgba(124, 147, 255, 0.10)"
                                     iconColor={colors.secondary}
                                     title="Choose from Gallery"
                                     subtitle="Pick an existing picture"
@@ -156,7 +156,7 @@ export default function ProfilePhotoSheet({
                                         <View style={styles.optionDivider} />
                                         <OptionRow
                                             icon="trash-outline"
-                                            iconBg="#FEF2F2"
+                                            iconBg="rgba(239, 68, 68, 0.10)"
                                             iconColor={colors.error}
                                             title="Remove Photo"
                                             subtitle="Revert to default avatar"
@@ -262,7 +262,7 @@ const styles = StyleSheet.create({
         width: '100%',
         height: '100%',
         borderRadius: 40,
-        backgroundColor: 'rgba(124, 58, 237, 0.15)',
+        backgroundColor: 'rgba(91, 127, 255, 0.12)',
         justifyContent: 'center',
         alignItems: 'center',
     },
@@ -342,7 +342,7 @@ const styles = StyleSheet.create({
         width: 64,
         height: 64,
         borderRadius: 32,
-        backgroundColor: '#FEF2F2',
+        backgroundColor: 'rgba(239, 68, 68, 0.10)',
         justifyContent: 'center',
         alignItems: 'center',
         marginBottom: spacing.md,

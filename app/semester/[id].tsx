@@ -79,10 +79,10 @@ const styles = StyleSheet.create({
     subjectList: { gap: spacing.md },
     subjectCard: {
         flexDirection: 'row', alignItems: 'center', backgroundColor: colors.cardBackground,
-        borderRadius: 16, padding: spacing.lg, borderWidth: 1, borderColor: colors.border, gap: spacing.md,
+        borderRadius: 20, padding: spacing.lg, borderWidth: 1, borderColor: colors.border, gap: spacing.md,
     },
     subjectIcon: {
-        width: 48, height: 48, borderRadius: 14, backgroundColor: 'rgba(79, 70, 229, 0.1)',
+        width: 48, height: 48, borderRadius: 14, backgroundColor: 'rgba(91, 127, 255, 0.10)',
         justifyContent: 'center', alignItems: 'center',
     },
     subjectInfo: { flex: 1 },

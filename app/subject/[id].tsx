@@ -31,7 +31,7 @@ export default function SubjectScreen() {
     const { id, name, semester } = useLocalSearchParams<{ id: string; name: string; semester: string }>();
     const router = useRouter();
     const [sortBy, setSortBy] = useState<SortOption>('newest');
-    const { notes, isLoading } = useSubjectNotes(id, sortBy);
+    const { notes, isLoading } = useSubjectNotes(id, sortBy, name);
 
     return (
         <>
@@ -80,6 +80,7 @@ export default function SubjectScreen() {
                                         note={note}
                                         index={idx}
                                         onPress={() => openNote(router, note)}
+                                        onUploaderPress={() => (note.uploaderId || note.uploadedBy?.id) ? router.push(`/contributor/${note.uploaderId || note.uploadedBy?.id}`) : undefined}
                                     />
                                 ))
                             ) : (
@@ -107,7 +108,7 @@ const styles = StyleSheet.create({
     subtitle: { fontSize: typography.fontSize.sm, color: colors.textSecondary, marginTop: 2 },
     sortRow: { flexDirection: 'row', paddingHorizontal: spacing.screenPadding, gap: spacing.sm, marginBottom: spacing.md },
     sortChip: { paddingHorizontal: spacing.md, paddingVertical: spacing.xs + 2, borderRadius: 999, backgroundColor: colors.cardBackground, borderWidth: 1, borderColor: colors.border },
-    sortChipActive: { backgroundColor: 'rgba(79, 70, 229, 0.1)', borderColor: colors.primary },
+    sortChipActive: { backgroundColor: 'rgba(91, 127, 255, 0.10)', borderColor: colors.primary },
     sortChipText: { fontSize: typography.fontSize.xs, color: colors.textSecondary, fontWeight: typography.fontWeight.medium },
     sortChipTextActive: { color: colors.primary, fontWeight: typography.fontWeight.semibold },
     content: { padding: spacing.screenPadding, paddingTop: 0 },

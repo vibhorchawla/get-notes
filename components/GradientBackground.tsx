@@ -5,6 +5,7 @@ import { colors } from '../constants/colors';
 
 interface GradientBackgroundProps {
     children: React.ReactNode;
+    dark?: boolean;
 }
 
 export default function GradientBackground({ children }: GradientBackgroundProps) {
@@ -15,11 +16,10 @@ export default function GradientBackground({ children }: GradientBackgroundProps
                     colors={[colors.gradientStart, colors.gradientMid, colors.gradientEnd]}
                     locations={[0, 0.55, 1]}
                     start={{ x: 0, y: 0 }}
-                    end={{ x: 1, y: 1 }}
+                    end={{ x: 0, y: 1 }}
                     style={StyleSheet.absoluteFill}
                 />
             </View>
-
             <View style={styles.content}>{children}</View>
         </View>
     );

@@ -20,21 +20,21 @@ export default function TopHeader({ title, showMenu = true }: TopHeaderProps) {
     return (
         <View style={[styles.header, { paddingTop: insets.top + spacing.sm }]}>
             {showMenu ? (
-                <TouchableOpacity 
-                    onPress={() => navigation.openDrawer()} 
+                <TouchableOpacity
+                    onPress={() => navigation.openDrawer()}
                     style={styles.btn}
                     activeOpacity={0.7}
                     accessibilityRole="button"
                     accessibilityLabel="Open navigation menu"
                 >
-                    <Ionicons name="menu" size={24} color={colors.textPrimary} />
+                    <Ionicons name="menu" size={22} color={colors.textPrimary} />
                 </TouchableOpacity>
             ) : (
                 <View style={styles.placeholder} />
             )}
-            
+
             <Text style={styles.title}>{title}</Text>
-            
+
             <View style={styles.placeholder} />
         </View>
     );
@@ -50,19 +50,14 @@ const styles = StyleSheet.create({
         backgroundColor: 'transparent',
     },
     btn: {
-        width: 44,
-        height: 44,
+        width: 42,
+        height: 42,
         borderRadius: 14,
         backgroundColor: colors.cardBackground,
         justifyContent: 'center',
         alignItems: 'center',
         borderWidth: 1,
         borderColor: colors.border,
-        shadowColor: colors.shadow,
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.06,
-        shadowRadius: 6,
-        elevation: 2,
     },
     title: {
         fontSize: typography.fontSize.lg,
@@ -71,6 +66,6 @@ const styles = StyleSheet.create({
         letterSpacing: -0.3,
     },
     placeholder: {
-        width: 40,
+        width: 42,
     },
 });

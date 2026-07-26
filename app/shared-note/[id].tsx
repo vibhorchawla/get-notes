@@ -94,40 +94,51 @@ export default function SharedNoteScreen() {
 
             <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
                 <View style={styles.card}>
-                    {note.uploadedBy?.name ? (
-                        <View style={styles.uploaderCard}>
+                    {(note.uploaderName || note.uploadedBy?.name) ? (
+                        <TouchableOpacity
+                            style={styles.uploaderCard}
+                            onPress={() => {
+                                const uploaderId = note.uploaderId || note.uploadedBy?.id;
+                                if (uploaderId) router.push(`/contributor/${uploaderId}`);
+                            }}
+                            activeOpacity={0.7}
+                        >
                             <View style={styles.uploaderRow}>
                                 <View style={styles.uploaderAvatar}>
-                                    <Text style={styles.uploaderAvatarText}>{note.uploadedBy.name.charAt(0).toUpperCase()}</Text>
+                                    {note.uploaderAvatar ? (
+                                        <Text style={styles.uploaderAvatarText}>{note.uploaderName?.charAt(0).toUpperCase() || note.uploadedBy?.name?.charAt(0).toUpperCase() || 'A'}</Text>
+                                    ) : (
+                                        <Text style={styles.uploaderAvatarText}>{(note.uploaderName || note.uploadedBy?.name || 'A').charAt(0).toUpperCase()}</Text>
+                                    )}
                                 </View>
                                 <View style={styles.uploaderInfo}>
-                                    <Text style={styles.uploaderName}>{note.uploadedBy.name}</Text>
-                                    {note.uploadedBy.college ? (
-                                        <Text style={styles.uploaderCollege}>{note.uploadedBy.college}</Text>
+                                    <Text style={styles.uploaderName}>{note.uploaderName || note.uploadedBy?.name}</Text>
+                                    {(note.uploaderCollege || note.uploadedBy?.college) ? (
+                                        <Text style={styles.uploaderCollege}>{note.uploaderCollege || note.uploadedBy?.college}</Text>
                                     ) : null}
                                 </View>
-                                {note.uploadedBy.id && (
+                                {(note.uploaderId || note.uploadedBy?.id) && (
                                     <View style={styles.contributorBadge}>
                                         <Ionicons name="ribbon-outline" size={12} color={colors.primary} />
-                                        <Text style={styles.contributorBadgeText}>Contributor</Text>
+                                        <Text style={styles.contributorBadgeText}>{note.uploaderBadge || 'Contributor'}</Text>
                                     </View>
                                 )}
                             </View>
                             <View style={styles.uploaderMeta}>
-                                {note.uploadedBy.branch ? (
+                                {(note.uploaderBranch || note.uploadedBy?.branch) ? (
                                     <View style={styles.uploaderMetaItem}>
                                         <Ionicons name="git-branch-outline" size={14} color={colors.textSecondary} />
-                                        <Text style={styles.uploaderMetaText}>{note.uploadedBy.branch}</Text>
+                                        <Text style={styles.uploaderMetaText}>{note.uploaderBranch || note.uploadedBy?.branch}</Text>
                                     </View>
                                 ) : null}
-                                {note.createdAt ? (
+                                {(note.uploadedAt || note.createdAt) ? (
                                     <View style={styles.uploaderMetaItem}>
                                         <Ionicons name="calendar-outline" size={14} color={colors.textSecondary} />
-                                        <Text style={styles.uploaderMetaText}>{new Date(note.createdAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}</Text>
+                                        <Text style={styles.uploaderMetaText}>{new Date(note.uploadedAt || note.createdAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}</Text>
                                     </View>
                                 ) : null}
                             </View>
-                        </View>
+                        </TouchableOpacity>
                     ) : null}
                     <Text style={styles.title}>{note.title}</Text>
 
@@ -203,7 +214,7 @@ const styles = StyleSheet.create({
     uploaderCollege: { fontSize: typography.fontSize.sm, color: colors.textSecondary, marginTop: 2 },
     contributorBadge: {
         flexDirection: 'row', alignItems: 'center', gap: 4,
-        backgroundColor: 'rgba(79, 70, 229, 0.1)', borderRadius: 999,
+        backgroundColor: 'rgba(91, 127, 255, 0.1)', borderRadius: 999,
         paddingHorizontal: 8, paddingVertical: 4,
     },
     contributorBadgeText: { fontSize: typography.fontSize.xs, color: colors.primary, fontWeight: typography.fontWeight.semibold },
@@ -223,7 +234,7 @@ const styles = StyleSheet.create({
         marginBottom: spacing.lg,
     },
     metaPill: {
-        backgroundColor: 'rgba(79, 70, 229, 0.08)',
+        backgroundColor: 'rgba(91, 127, 255, 0.08)',
         borderRadius: 999,
         paddingHorizontal: 10,
         paddingVertical: 6,

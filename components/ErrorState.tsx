@@ -21,7 +21,7 @@ export default function ErrorState({
     return (
         <View style={styles.container}>
             <View style={styles.iconWrap}>
-                <Ionicons name="alert-circle-outline" size={48} color={colors.error} />
+                <Ionicons name="alert-circle-outline" size={44} color={colors.error} />
             </View>
             <Text style={styles.title}>{title}</Text>
             <Text style={styles.message}>{message}</Text>
@@ -49,10 +49,10 @@ const styles = StyleSheet.create({
         paddingHorizontal: spacing.xl,
     },
     iconWrap: {
-        width: 96,
-        height: 96,
-        borderRadius: 48,
-        backgroundColor: 'rgba(239, 68, 68, 0.1)',
+        width: 88,
+        height: 88,
+        borderRadius: 44,
+        backgroundColor: 'rgba(239, 68, 68, 0.08)',
         justifyContent: 'center',
         alignItems: 'center',
         marginBottom: spacing.lg,
@@ -79,8 +79,13 @@ const styles = StyleSheet.create({
         backgroundColor: colors.primary,
         paddingHorizontal: spacing.xl,
         paddingVertical: 14,
-        borderRadius: 14,
+        borderRadius: 16,
         minHeight: 50,
+        shadowColor: colors.primary,
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.3,
+        shadowRadius: 12,
+        elevation: 6,
     },
     retryButtonText: {
         color: colors.textOnPrimary,

@@ -28,6 +28,7 @@ export default function RootLayout() {
                     <Stack.Screen name="pdf-viewer" options={{ headerShown: false, presentation: 'modal' }} />
                     <Stack.Screen name="personal-note/[id]" options={{ headerShown: false }} />
                     <Stack.Screen name="shared-note/[id]" options={{ headerShown: false }} />
+                    <Stack.Screen name="contributor/[id]" options={{ headerShown: false }} />
                     <Stack.Screen name="coming-soon" options={{ headerShown: true, title: 'Coming Soon' }} />
                     <Stack.Screen name="settings/about" options={{ headerShown: true, title: 'About GetNotes' }} />
                     <Stack.Screen name="settings/contact" options={{ headerShown: true, title: 'Contact Us' }} />

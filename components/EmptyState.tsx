@@ -27,7 +27,7 @@ export default function EmptyState({
     return (
         <View style={styles.container}>
             <View style={styles.iconWrap}>
-                <Ionicons name={icon as any} size={48} color={colors.primary} />
+                <Ionicons name={icon as any} size={44} color={colors.primary} />
             </View>
             <Text style={styles.title}>{title}</Text>
             {message ? <Text style={styles.message}>{message}</Text> : null}
@@ -67,10 +67,10 @@ const styles = StyleSheet.create({
         paddingHorizontal: spacing.xl,
     },
     iconWrap: {
-        width: 96,
-        height: 96,
-        borderRadius: 48,
-        backgroundColor: 'rgba(79, 70, 229, 0.1)',
+        width: 88,
+        height: 88,
+        borderRadius: 44,
+        backgroundColor: 'rgba(91, 127, 255, 0.08)',
         justifyContent: 'center',
         alignItems: 'center',
         marginBottom: spacing.lg,
@@ -97,8 +97,13 @@ const styles = StyleSheet.create({
         backgroundColor: colors.primary,
         paddingHorizontal: spacing.xl,
         paddingVertical: 14,
-        borderRadius: 14,
+        borderRadius: 16,
         minHeight: 50,
+        shadowColor: colors.primary,
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.3,
+        shadowRadius: 12,
+        elevation: 6,
     },
     primaryButtonText: {
         color: colors.textOnPrimary,
@@ -109,10 +114,10 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         alignItems: 'center',
         gap: spacing.sm,
-        backgroundColor: 'rgba(79, 70, 229, 0.1)',
+        backgroundColor: 'rgba(91, 127, 255, 0.08)',
         paddingHorizontal: spacing.xl,
         paddingVertical: 12,
-        borderRadius: 14,
+        borderRadius: 16,
         marginTop: spacing.sm,
         minHeight: 48,
     },

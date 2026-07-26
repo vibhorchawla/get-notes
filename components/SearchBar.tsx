@@ -21,7 +21,7 @@ export default function SearchBar({
     return (
         <View style={styles.container}>
             <View style={styles.searchBar}>
-                <Ionicons name="search-outline" size={20} color={colors.textLight} style={styles.icon} />
+                <Ionicons name="search-outline" size={18} color={colors.textLight} style={styles.icon} />
                 <TextInput
                     style={styles.input}
                     placeholder={placeholder}
@@ -58,17 +58,12 @@ const styles = StyleSheet.create({
         flex: 1,
         flexDirection: 'row',
         alignItems: 'center',
-        backgroundColor: colors.cardBackground,
-        borderRadius: 14,
+        backgroundColor: colors.cardBackgroundSecondary,
+        borderRadius: 16,
         borderWidth: 1,
         borderColor: colors.border,
         paddingHorizontal: spacing.md,
-        height: 50,
-        shadowColor: colors.shadow,
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.06,
-        shadowRadius: 6,
-        elevation: 2,
+        height: 48,
     },
     icon: {
         marginRight: spacing.sm,

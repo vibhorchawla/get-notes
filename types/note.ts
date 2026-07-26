@@ -5,6 +5,7 @@ export interface NoteUploader {
     branch?: string;
     college?: string;
     avatar?: string;
+    badge?: string;
 }
 
 export interface Note {
@@ -30,8 +31,13 @@ export interface Note {
     uploaderId?: string;
     uploaderName?: string;
     uploaderCollege?: string;
+    uploaderCourse?: string;
     uploaderAvatar?: string;
     uploaderBranch?: string;
+    uploaderBadge?: string;
+    uploaderReputation?: number;
+    uploaderSemester?: number;
+    uploadedAt?: string;
     source?: 'course' | 'community' | 'upload';
     isPublished?: boolean;
     isPremium?: boolean;

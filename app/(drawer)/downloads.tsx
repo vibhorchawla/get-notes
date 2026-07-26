@@ -49,6 +49,7 @@ export default function MyUploadsScreen() {
                                         note={note}
                                         index={idx}
                                         onPress={() => openNote(router, note)}
+                                        onUploaderPress={() => (note.uploaderId || note.uploadedBy?.id) ? router.push(`/contributor/${note.uploaderId || note.uploadedBy?.id}`) : undefined}
                                     />
                                 ))}
                             </View>

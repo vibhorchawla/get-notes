@@ -3,6 +3,7 @@ import { Redirect } from 'expo-router';
 import { ActivityIndicator, StyleSheet, View } from 'react-native';
 import { useAuth } from '../context/AuthContext';
 import { colors } from '../constants/colors';
+import { LinearGradient } from 'expo-linear-gradient';
 
 export default function IndexScreen() {
     const { user, isLoading } = useAuth();

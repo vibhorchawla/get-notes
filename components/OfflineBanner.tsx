@@ -12,7 +12,7 @@ export default function OfflineBanner() {
 
     return (
         <View style={styles.banner}>
-            <Ionicons name="cloud-offline-outline" size={18} color="#FFFFFF" />
+            <Ionicons name="cloud-offline-outline" size={16} color="#FFFFFF" />
             <Text style={styles.text}>You are offline. Some features may be unavailable.</Text>
         </View>
     );
@@ -23,9 +23,11 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         alignItems: 'center',
         gap: spacing.sm,
-        backgroundColor: '#991B1B',
+        backgroundColor: 'rgba(153, 27, 27, 0.9)',
         paddingHorizontal: spacing.screenPadding,
         paddingVertical: spacing.sm,
+        borderBottomWidth: 1,
+        borderBottomColor: 'rgba(239, 68, 68, 0.3)',
     },
     text: {
         color: '#FFFFFF',

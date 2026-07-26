@@ -35,8 +35,8 @@ export default function Button({
     const isDisabled = disabled || loading;
 
     const sizeStyles = {
-        sm: { paddingVertical: 8, paddingHorizontal: spacing.md, borderRadius: 10 },
-        md: { paddingVertical: 14, paddingHorizontal: spacing.xl, borderRadius: 14 },
+        sm: { paddingVertical: 10, paddingHorizontal: spacing.md, borderRadius: 12 },
+        md: { paddingVertical: 14, paddingHorizontal: spacing.xl, borderRadius: 16 },
         lg: { paddingVertical: 16, paddingHorizontal: spacing.xxl, borderRadius: 16 },
     };
 
@@ -49,8 +49,8 @@ export default function Button({
         ? secondaryStyles
         : ghostStyles;
 
-    const iconColor = variant === 'primary' ? colors.textOnPrimary : disabled ? colors.textLight : colors.primary;
-    const textColor = disabled ? (variant === 'primary' ? 'rgba(255,255,255,0.5)' : colors.textLight) : variantStyle.text.color;
+    const iconColor = variant === 'primary' ? colors.textOnPrimary : disabled ? colors.textLight : colors.textPrimary;
+    const textColor = disabled ? colors.textLight : variantStyle.text.color;
 
     return (
         <TouchableOpacity
@@ -69,7 +69,7 @@ export default function Button({
             accessibilityState={{ disabled: isDisabled }}
         >
             {loading ? (
-                <ActivityIndicator size="small" color={variant === 'primary' ? colors.textOnPrimary : colors.primary} />
+                <ActivityIndicator size="small" color={variant === 'primary' ? colors.textOnPrimary : colors.textPrimary} />
             ) : (
                 <View style={baseStyles.content}>
                     {icon && iconPosition === 'left' ? (
@@ -97,7 +97,7 @@ const baseStyles = StyleSheet.create({
         width: '100%',
     },
     disabled: {
-        opacity: 0.5,
+        opacity: 0.4,
     },
     content: {
         flexDirection: 'row',
@@ -114,9 +114,9 @@ const primaryStyles = StyleSheet.create({
         backgroundColor: colors.primary,
         shadowColor: colors.primary,
         shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.25,
-        shadowRadius: 10,
-        elevation: 4,
+        shadowOpacity: 0.3,
+        shadowRadius: 12,
+        elevation: 6,
     },
     text: {
         color: colors.textOnPrimary,
@@ -125,9 +125,9 @@ const primaryStyles = StyleSheet.create({
 
 const secondaryStyles = StyleSheet.create({
     button: {
-        backgroundColor: colors.cardBackground,
+        backgroundColor: 'transparent',
         borderWidth: 1,
-        borderColor: colors.border,
+        borderColor: 'rgba(255, 255, 255, 0.12)',
     },
     text: {
         color: colors.textPrimary,
@@ -139,6 +139,6 @@ const ghostStyles = StyleSheet.create({
         backgroundColor: 'transparent',
     },
     text: {
-        color: colors.primary,
+        color: colors.textPrimary,
     },
 });

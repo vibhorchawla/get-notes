@@ -18,7 +18,7 @@ export default function FloatingActionButton({ onPress, iconName = 'add' }: Floa
             accessibilityLabel="Add new note"
             activeOpacity={0.8}
         >
-            <Ionicons name={iconName} size={28} color={colors.textPrimary} />
+            <Ionicons name={iconName} size={28} color={colors.textOnPrimary} />
         </TouchableOpacity>
     );
 }
@@ -29,16 +29,16 @@ const styles = StyleSheet.create({
         bottom: spacing.xxl,
         right: spacing.xl,
         backgroundColor: colors.primary,
-        width: 60,
-        height: 60,
-        borderRadius: 30,
+        width: 56,
+        height: 56,
+        borderRadius: 28,
         justifyContent: 'center',
         alignItems: 'center',
-        shadowColor: '#000',
+        shadowColor: colors.primary,
         shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.3,
-        shadowRadius: 4,
-        elevation: 8,
-        zIndex: 100, // Ensure it sits on top
+        shadowOpacity: 0.4,
+        shadowRadius: 14,
+        elevation: 10,
+        zIndex: 100,
     },
 });

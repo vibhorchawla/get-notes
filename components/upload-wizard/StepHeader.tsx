@@ -10,6 +10,7 @@ interface StepHeaderProps {
     title: string;
     subtitle?: string;
     delay?: number;
+    dark?: boolean;
 }
 
 export default function StepHeader({
@@ -17,15 +18,18 @@ export default function StepHeader({
     title,
     subtitle,
     delay = 80,
+    dark = false,
 }: StepHeaderProps) {
+    const d = colors.dark;
+
     return (
         <View style={styles.container}>
-            <View style={styles.iconWrap}>
-                <Ionicons name={icon} size={22} color={colors.primary} />
+            <View style={[styles.iconWrap, dark && styles.iconWrapDark]}>
+                <Ionicons name={icon} size={22} color={dark ? d.primary : colors.primary} />
             </View>
             <View style={styles.textWrap}>
-                <Text style={styles.title}>{title}</Text>
-                {subtitle ? <Text style={styles.subtitle}>{subtitle}</Text> : null}
+                <Text style={[styles.title, dark && styles.titleDark]}>{title}</Text>
+                {subtitle ? <Text style={[styles.subtitle, dark && styles.subtitleDark]}>{subtitle}</Text> : null}
             </View>
         </View>
     );
@@ -42,9 +46,12 @@ const styles = StyleSheet.create({
         width: 44,
         height: 44,
         borderRadius: 14,
-        backgroundColor: 'rgba(79, 70, 229, 0.08)',
+        backgroundColor: 'rgba(91, 127, 255, 0.08)',
         justifyContent: 'center',
         alignItems: 'center',
+    },
+    iconWrapDark: {
+        backgroundColor: 'rgba(91, 127, 255, 0.10)',
     },
     textWrap: {
         flex: 1,
@@ -54,9 +61,15 @@ const styles = StyleSheet.create({
         fontWeight: typography.fontWeight.bold,
         color: colors.textPrimary,
     },
+    titleDark: {
+        color: colors.dark.text,
+    },
     subtitle: {
         fontSize: typography.fontSize.sm,
         color: colors.textSecondary,
         marginTop: 2,
+    },
+    subtitleDark: {
+        color: colors.dark.textSecondary,
     },
 });

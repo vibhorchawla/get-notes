@@ -1,17 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { apiFetch } from './useApi';
-
-interface Note {
-    id: string;
-    title: string;
-    subject?: string;
-    unit?: string;
-    content?: string;
-    pdfUrl?: string;
-    playlistUrl?: string;
-    source?: 'course' | 'community';
-    isPremium?: boolean;
-}
+import { Note } from '../types/note';
 
 export function useSaved() {
     const [savedNotes, setSavedNotes] = useState<Note[]>([]);

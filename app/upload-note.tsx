@@ -39,7 +39,11 @@ import StepHeader from '../components/upload-wizard/StepHeader';
 import GlassCard from '../components/upload-wizard/GlassCard';
 import ProgressIndicator from '../components/upload-wizard/ProgressIndicator';
 
-// ─── Picker Modal (unchanged) ────────────────────────────────────────────────
+// ─── Dark theme shorthand ────────────────────────────────────────────────────
+
+const D = colors.dark;
+
+// ─── Picker Modal ────────────────────────────────────────────────────────────
 
 interface PickerOption {
     id: string;
@@ -69,11 +73,11 @@ function PickerModal({
                     <View style={pickerStyles.header}>
                         <Text style={pickerStyles.title}>{title}</Text>
                         <TouchableOpacity onPress={onClose} hitSlop={8}>
-                            <Ionicons name="close" size={24} color={colors.textPrimary} />
+                            <Ionicons name="close" size={24} color={D.text} />
                         </TouchableOpacity>
                     </View>
                     {loading ? (
-                        <ActivityIndicator size="large" color={colors.primary} style={{ marginTop: 40 }} />
+                        <ActivityIndicator size="large" color={D.primary} style={{ marginTop: 40 }} />
                     ) : (
                         <FlatList
                             data={options}
@@ -100,14 +104,14 @@ function PickerModal({
 }
 
 const pickerStyles = StyleSheet.create({
-    overlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.6)', justifyContent: 'flex-end' },
-    container: { backgroundColor: '#1A1A2E', borderTopLeftRadius: 24, borderTopRightRadius: 24, maxHeight: '70%', paddingBottom: 40 },
-    header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: spacing.lg, borderBottomWidth: 1, borderBottomColor: colors.border },
-    title: { fontSize: typography.fontSize.lg, fontWeight: typography.fontWeight.bold, color: colors.textPrimary },
+    overlay: { flex: 1, backgroundColor: D.overlay, justifyContent: 'flex-end' },
+    container: { backgroundColor: D.surface, borderTopLeftRadius: 24, borderTopRightRadius: 24, maxHeight: '70%', paddingBottom: 40 },
+    header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: spacing.lg, borderBottomWidth: 1, borderBottomColor: D.border },
+    title: { fontSize: typography.fontSize.lg, fontWeight: typography.fontWeight.bold, color: D.text },
     list: { padding: spacing.md },
-    option: { padding: spacing.md, borderRadius: 12, backgroundColor: colors.cardBackground, marginBottom: spacing.sm, borderWidth: 1, borderColor: colors.border },
-    optionName: { fontSize: typography.fontSize.md, fontWeight: typography.fontWeight.semibold, color: colors.textPrimary },
-    optionSub: { fontSize: typography.fontSize.sm, color: colors.textSecondary, marginTop: 4 },
+    option: { padding: spacing.md, borderRadius: 12, backgroundColor: D.surfaceElevated, marginBottom: spacing.sm, borderWidth: 1, borderColor: D.border },
+    optionName: { fontSize: typography.fontSize.md, fontWeight: typography.fontWeight.semibold, color: D.text },
+    optionSub: { fontSize: typography.fontSize.sm, color: D.textSecondary, marginTop: 4 },
 });
 
 // ─── Constants ────────────────────────────────────────────────────────────────
@@ -213,7 +217,7 @@ export default function UploadNoteScreen() {
         }
     }, [step, goToStep, router]);
 
-    // ── Handlers (unchanged logic) ──────────────────────────────────────────
+    // ── Handlers ────────────────────────────────────────────────────────────
 
     const handleSelectCourse = async (course: PickerOption) => {
         setSelectedCourse(course);
@@ -334,7 +338,9 @@ export default function UploadNoteScreen() {
                 title: trimmedTitle,
                 description: trimmedDesc,
                 course: selectedCourse?.name || '',
+                courseId: selectedCourse?.id || undefined,
                 semester: selectedSemester ? parseInt(selectedSemester.name.replace('Semester ', '')) : undefined,
+                semesterId: selectedSemester?.id || undefined,
                 subject: resolvedSubjectName,
                 subjectId: selectedSubject?.id === '__custom__' ? undefined : selectedSubject?.id,
                 unit: trimmedUnit || undefined,
@@ -357,8 +363,11 @@ export default function UploadNoteScreen() {
             const publishResult = await publishCommunityNote({
                 ...newNote,
                 course: selectedCourse?.name || '',
+                courseId: selectedCourse?.id || undefined,
                 semester: selectedSemester ? parseInt(selectedSemester.name.replace('Semester ', '')) : undefined,
+                semesterId: selectedSemester?.id || undefined,
                 subject: resolvedSubjectName,
+                subjectId: selectedSubject?.id === '__custom__' ? undefined : selectedSubject?.id,
             });
             if (publishResult.ok) {
                 await markPublished(newNote.id);
@@ -384,19 +393,20 @@ export default function UploadNoteScreen() {
             case 0:
                 return (
                     <WizardStep stepKey="course" stepIndex={0} previousStep={previousStep}>
-                        <GlassCard delay={120}>
+                        <GlassCard delay={120} dark>
                             <StepHeader
                                 icon="school-outline"
                                 title="Choose Your Course"
                                 subtitle="Select the course this note belongs to"
+                                dark
                             />
 
                             <View style={styles.searchWrap}>
-                                <Ionicons name="search" size={18} color={colors.textLight} style={styles.searchIcon} />
+                                <Ionicons name="search" size={18} color={D.textMuted} style={styles.searchIcon} />
                                 <TextInput
                                     style={styles.searchInput}
                                     placeholder="Search courses..."
-                                    placeholderTextColor={colors.textLight}
+                                    placeholderTextColor={D.textMuted}
                                     value={courseSearch}
                                     onChangeText={setCourseSearch}
                                     autoCapitalize="none"
@@ -405,13 +415,13 @@ export default function UploadNoteScreen() {
                                 />
                                 {courseSearch.length > 0 && (
                                     <TouchableOpacity onPress={() => setCourseSearch('')} hitSlop={8}>
-                                        <Ionicons name="close-circle" size={18} color={colors.textLight} />
+                                        <Ionicons name="close-circle" size={18} color={D.textMuted} />
                                     </TouchableOpacity>
                                 )}
                             </View>
 
                             {courses.length === 0 ? (
-                                <ActivityIndicator size="large" color={colors.primary} style={{ marginVertical: 40 }} />
+                                <ActivityIndicator size="large" color={D.primary} style={{ marginVertical: 40 }} />
                             ) : (
                                 filteredCourses.map((course, idx) => (
                                     <SelectionCard
@@ -423,6 +433,7 @@ export default function UploadNoteScreen() {
                                         isCompleted={selectedCourse?.id === course.id}
                                         onPress={() => handleSelectCourse(course)}
                                         index={idx}
+                                        dark
                                     />
                                 ))
                             )}
@@ -435,19 +446,20 @@ export default function UploadNoteScreen() {
                 return (
                     <WizardStep stepKey="semester" stepIndex={1} previousStep={previousStep}>
                         <TouchableOpacity style={styles.backBtn} onPress={handleBack}>
-                            <Ionicons name="arrow-back" size={20} color={colors.primary} />
+                            <Ionicons name="arrow-back" size={20} color={D.primary} />
                             <Text style={styles.backBtnText}>{selectedCourse?.name || 'Back'}</Text>
                         </TouchableOpacity>
 
-                        <GlassCard delay={120}>
+                        <GlassCard delay={120} dark>
                             <StepHeader
                                 icon="layers-outline"
                                 title="Select Semester"
                                 subtitle={`For ${selectedCourse?.name || ''}`}
+                                dark
                             />
 
                             {loadingSemesters ? (
-                                <ActivityIndicator size="large" color={colors.primary} style={{ marginVertical: 40 }} />
+                                <ActivityIndicator size="large" color={D.primary} style={{ marginVertical: 40 }} />
                             ) : semesters.length === 0 ? (
                                 <Text style={styles.emptyText}>No semesters available.</Text>
                             ) : (
@@ -462,6 +474,7 @@ export default function UploadNoteScreen() {
                                         isCompleted={selectedSemester?.id === sem.id}
                                         onPress={() => handleSelectSemester(sem)}
                                         index={idx}
+                                        dark
                                     />
                                 ))
                             )}
@@ -474,19 +487,20 @@ export default function UploadNoteScreen() {
                 return (
                     <WizardStep stepKey="subject" stepIndex={2} previousStep={previousStep}>
                         <TouchableOpacity style={styles.backBtn} onPress={handleBack}>
-                            <Ionicons name="arrow-back" size={20} color={colors.primary} />
+                            <Ionicons name="arrow-back" size={20} color={D.primary} />
                             <Text style={styles.backBtnText}>{selectedSemester?.name || 'Back'}</Text>
                         </TouchableOpacity>
 
-                        <GlassCard delay={120}>
+                        <GlassCard delay={120} dark>
                             <StepHeader
                                 icon="book-outline"
                                 title="Select Subject"
                                 subtitle={`${selectedSemester?.name || ''} — ${selectedCourse?.name || ''}`}
+                                dark
                             />
 
                             {loadingSubjects ? (
-                                <ActivityIndicator size="large" color={colors.primary} style={{ marginVertical: 40 }} />
+                                <ActivityIndicator size="large" color={D.primary} style={{ marginVertical: 40 }} />
                             ) : showCustomSubjectInput ? (
                                 <View>
                                     <FormField
@@ -496,6 +510,7 @@ export default function UploadNoteScreen() {
                                         value={customSubject}
                                         onChangeText={setCustomSubject}
                                         autoFocus
+                                        dark
                                     />
                                     <Text style={styles.hint}>
                                         This will be marked as "Pending Review" until an admin approves it.
@@ -509,11 +524,13 @@ export default function UploadNoteScreen() {
                                             }}
                                             disabled={false}
                                             style={{ flex: 1, shadowOpacity: 0, elevation: 0 }}
+                                            dark
                                         />
                                         <GradientButton
                                             label="Continue"
                                             onPress={proceedFromCustomSubject}
                                             style={{ flex: 1 }}
+                                            dark
                                         />
                                     </View>
                                 </View>
@@ -529,6 +546,7 @@ export default function UploadNoteScreen() {
                                         isCompleted={selectedSubject?.id === subj.id && subj.id !== '__custom__'}
                                         onPress={() => handleSelectSubject(subj)}
                                         index={idx}
+                                        dark
                                     />
                                 ))
                             )}
@@ -541,7 +559,7 @@ export default function UploadNoteScreen() {
                 return (
                     <WizardStep stepKey="upload" stepIndex={3} previousStep={previousStep}>
                         <TouchableOpacity style={styles.backBtn} onPress={handleBack}>
-                            <Ionicons name="arrow-back" size={20} color={colors.primary} />
+                            <Ionicons name="arrow-back" size={20} color={D.primary} />
                             <Text style={styles.backBtnText}>Subject Selection</Text>
                         </TouchableOpacity>
 
@@ -553,14 +571,16 @@ export default function UploadNoteScreen() {
                                 { label: 'Subject', value: resolvedSubjectName, onEdit: () => goToStep(2) },
                             ]}
                             fileName={pickedFile?.name}
+                            dark
                         />
 
                         {/* Note Details */}
-                        <GlassCard delay={180} style={styles.mt}>
+                        <GlassCard delay={180} style={styles.mt} dark>
                             <StepHeader
                                 icon="document-text-outline"
                                 title="Note Details"
                                 subtitle="Add details about your note"
+                                dark
                             />
 
                             <FormField
@@ -569,6 +589,7 @@ export default function UploadNoteScreen() {
                                 placeholder="e.g. Graph Algorithms Notes"
                                 value={title}
                                 onChangeText={setTitle}
+                                dark
                             />
 
                             <FormField
@@ -576,6 +597,7 @@ export default function UploadNoteScreen() {
                                 placeholder="e.g. Unit 3"
                                 value={unit}
                                 onChangeText={setUnit}
+                                dark
                             />
 
                             <FormField
@@ -583,6 +605,7 @@ export default function UploadNoteScreen() {
                                 placeholder="e.g. graphs, BFS, DFS, algorithms"
                                 value={tags}
                                 onChangeText={setTags}
+                                dark
                             />
 
                             <FormField
@@ -594,21 +617,23 @@ export default function UploadNoteScreen() {
                                 numberOfLines={4}
                                 textAlignVertical="top"
                                 style={styles.textArea}
+                                dark
                             />
                         </GlassCard>
 
                         {/* File Selection */}
-                        <GlassCard delay={240} style={styles.mt}>
+                        <GlassCard delay={240} style={styles.mt} dark>
                             <StepHeader
                                 icon="attach-outline"
                                 title="Attach File"
                                 subtitle="Upload a PDF or document"
+                                dark
                             />
 
                             {pickedFile ? (
                                 <View style={styles.selectedFileCard}>
                                     <View style={styles.selectedFileIcon}>
-                                        <Ionicons name="document-text" size={22} color={colors.primary} />
+                                        <Ionicons name="document-text" size={22} color={D.primary} />
                                     </View>
                                     <View style={styles.selectedFileInfo}>
                                         <Text style={styles.selectedFileName} numberOfLines={2}>
@@ -617,7 +642,7 @@ export default function UploadNoteScreen() {
                                         <Text style={styles.selectedFileMeta}>Ready to upload</Text>
                                     </View>
                                     <TouchableOpacity onPress={() => setPickedFile(null)} hitSlop={8}>
-                                        <Ionicons name="close-circle" size={22} color={colors.textLight} />
+                                        <Ionicons name="close-circle" size={22} color={D.textMuted} />
                                     </TouchableOpacity>
                                 </View>
                             ) : (
@@ -628,7 +653,7 @@ export default function UploadNoteScreen() {
                                     accessibilityRole="button"
                                     accessibilityLabel="Choose file to upload"
                                 >
-                                    <Ionicons name="cloud-upload-outline" size={26} color={colors.primary} />
+                                    <Ionicons name="cloud-upload-outline" size={26} color={D.primary} />
                                     <Text style={styles.fileButtonText}>Choose PDF File</Text>
                                     <Text style={styles.fileButtonSubtext}>Tap to browse your files</Text>
                                 </TouchableOpacity>
@@ -640,7 +665,7 @@ export default function UploadNoteScreen() {
                                     onPress={() => setPickerVisible(true)}
                                     accessibilityLabel="Choose a different file"
                                 >
-                                    <Ionicons name="swap-horizontal" size={16} color={colors.primary} />
+                                    <Ionicons name="swap-horizontal" size={16} color={D.primary} />
                                     <Text style={styles.changeFileText}>Choose a different file</Text>
                                 </TouchableOpacity>
                             ) : null}
@@ -657,6 +682,7 @@ export default function UploadNoteScreen() {
                                             ? 'Encrypting and transmitting...'
                                             : 'Almost there...'
                                         : 'Finalizing your note...'}
+                                    dark
                                 />
                             </View>
                         )}
@@ -670,6 +696,7 @@ export default function UploadNoteScreen() {
                                 onPress={handleSubmit}
                                 disabled={!title.trim() || !resolvedSubjectName}
                                 icon={!isSaving ? 'rocket-outline' : undefined}
+                                dark
                             />
                         </View>
                     </WizardStep>
@@ -683,14 +710,15 @@ export default function UploadNoteScreen() {
     // ── Render ──────────────────────────────────────────────────────────────
 
     return (
-        <GradientBackground>
+        <GradientBackground dark>
             <Stack.Screen
                 options={{
                     title: 'Upload Note',
                     headerShown: true,
-                    headerStyle: { backgroundColor: colors.gradientStart },
+                    headerStyle: { backgroundColor: D.background },
                     headerShadowVisible: false,
-                    headerTintColor: colors.textPrimary,
+                    headerTintColor: D.text,
+                    headerTitleStyle: { color: D.text, fontWeight: '700' },
                 }}
             />
 
@@ -698,16 +726,16 @@ export default function UploadNoteScreen() {
                 <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
                     <View style={[styles.headerSpacer, { height: insets.top + spacing.sm }]} />
 
-                    {/* Header area with gradient */}
+                    {/* Hero section */}
                     <View style={styles.heroSection}>
                         <LinearGradient
-                            colors={['#4F46E5', '#6D28D9']}
+                            colors={[D.primary, D.primaryDark]}
                             start={{ x: 0, y: 0 }}
                             end={{ x: 1, y: 1 }}
                             style={styles.heroGradient}
                         >
                             <View style={styles.heroIconWrap}>
-                                <Ionicons name="cloud-upload" size={28} color={colors.textOnPrimary} />
+                                <Ionicons name="cloud-upload" size={28} color="#FFFFFF" />
                             </View>
                             <Text style={styles.heroTitle}>Upload Note</Text>
                             <Text style={styles.heroSubtitle}>
@@ -719,7 +747,7 @@ export default function UploadNoteScreen() {
                     {/* Profile Incomplete Banner */}
                     {!hasAcademicProfile && (
                         <View style={styles.profileBanner}>
-                            <Ionicons name="alert-circle-outline" size={20} color="#F59E0B" />
+                            <Ionicons name="alert-circle-outline" size={20} color={D.primary} />
                             <View style={styles.profileBannerText}>
                                 <Text style={styles.profileBannerTitle}>Complete your profile</Text>
                                 <Text style={styles.profileBannerSub}>Academic info is required before uploading.</Text>
@@ -735,6 +763,7 @@ export default function UploadNoteScreen() {
                         currentStep={step}
                         completedSteps={completedSteps}
                         onStepPress={goToStep}
+                        dark
                     />
 
                     {/* Step Content */}
@@ -752,6 +781,7 @@ export default function UploadNoteScreen() {
                         setTitle(baseName);
                     }
                 }}
+                dark
             />
         </GradientBackground>
     );
@@ -785,7 +815,7 @@ const styles = StyleSheet.create({
     heroTitle: {
         fontSize: typography.fontSize.xl,
         fontWeight: typography.fontWeight.bold,
-        color: colors.textOnPrimary,
+        color: '#FFFFFF',
         marginBottom: spacing.xs,
         letterSpacing: -0.5,
     },
@@ -799,10 +829,10 @@ const styles = StyleSheet.create({
     searchWrap: {
         flexDirection: 'row',
         alignItems: 'center',
-        backgroundColor: colors.background,
+        backgroundColor: D.inputBg,
         borderRadius: 14,
         borderWidth: 1,
-        borderColor: colors.border,
+        borderColor: D.inputBorder,
         paddingHorizontal: spacing.md,
         marginBottom: spacing.md,
     },
@@ -811,7 +841,7 @@ const styles = StyleSheet.create({
         flex: 1,
         paddingVertical: 12,
         fontSize: typography.fontSize.md,
-        color: colors.textPrimary,
+        color: D.text,
     },
 
     // Back button
@@ -824,19 +854,19 @@ const styles = StyleSheet.create({
     },
     backBtnText: {
         fontSize: typography.fontSize.md,
-        color: colors.primary,
+        color: D.primary,
         fontWeight: typography.fontWeight.semibold,
     },
 
     // Empty
     emptyText: {
-        color: colors.textSecondary,
+        color: D.textSecondary,
         textAlign: 'center',
         marginVertical: spacing.xl,
     },
     hint: {
         fontSize: typography.fontSize.xs,
-        color: colors.textSecondary,
+        color: D.textSecondary,
         fontStyle: 'italic',
         marginBottom: spacing.md,
         lineHeight: 18,
@@ -855,37 +885,37 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         justifyContent: 'center',
         gap: spacing.xs,
-        backgroundColor: 'rgba(79, 70, 229, 0.06)',
+        backgroundColor: D.chipBg,
         borderRadius: 16,
         paddingVertical: spacing.xl,
         borderWidth: 1.5,
-        borderColor: 'rgba(79, 70, 229, 0.15)',
+        borderColor: D.chipBorder,
         borderStyle: 'dashed',
     },
     fileButtonText: {
-        color: colors.primary,
+        color: D.primary,
         fontSize: typography.fontSize.md,
         fontWeight: typography.fontWeight.semibold,
     },
     fileButtonSubtext: {
-        color: colors.textLight,
+        color: D.textMuted,
         fontSize: typography.fontSize.xs,
     },
     selectedFileCard: {
         flexDirection: 'row',
         alignItems: 'center',
         gap: spacing.md,
-        backgroundColor: 'rgba(16, 185, 129, 0.06)',
+        backgroundColor: 'rgba(0, 230, 118, 0.06)',
         borderRadius: 14,
         padding: spacing.md,
         borderWidth: 1,
-        borderColor: 'rgba(16, 185, 129, 0.2)',
+        borderColor: 'rgba(0, 230, 118, 0.2)',
     },
     selectedFileIcon: {
         width: 44,
         height: 44,
         borderRadius: 12,
-        backgroundColor: 'rgba(16, 185, 129, 0.12)',
+        backgroundColor: 'rgba(0, 230, 118, 0.12)',
         justifyContent: 'center',
         alignItems: 'center',
     },
@@ -893,11 +923,11 @@ const styles = StyleSheet.create({
     selectedFileName: {
         fontSize: typography.fontSize.md,
         fontWeight: typography.fontWeight.semibold,
-        color: colors.textPrimary,
+        color: D.text,
     },
     selectedFileMeta: {
         fontSize: typography.fontSize.xs,
-        color: colors.accent,
+        color: D.accent,
         marginTop: 2,
         fontWeight: typography.fontWeight.medium,
     },
@@ -910,7 +940,7 @@ const styles = StyleSheet.create({
         paddingVertical: spacing.sm,
     },
     changeFileText: {
-        color: colors.primary,
+        color: D.primary,
         fontSize: typography.fontSize.sm,
         fontWeight: typography.fontWeight.medium,
     },
@@ -921,16 +951,16 @@ const styles = StyleSheet.create({
     // Profile incomplete banner
     profileBanner: {
         flexDirection: 'row', alignItems: 'center', gap: spacing.sm,
-        backgroundColor: 'rgba(245, 158, 11, 0.1)', borderRadius: 14,
+        backgroundColor: D.chipBg, borderRadius: 14,
         padding: spacing.md, marginBottom: spacing.lg,
-        borderWidth: 1, borderColor: 'rgba(245, 158, 11, 0.3)',
+        borderWidth: 1, borderColor: D.chipBorder,
     },
     profileBannerText: { flex: 1 },
-    profileBannerTitle: { fontSize: typography.fontSize.sm, fontWeight: typography.fontWeight.semibold, color: colors.textPrimary },
-    profileBannerSub: { fontSize: typography.fontSize.xs, color: colors.textSecondary, marginTop: 2 },
+    profileBannerTitle: { fontSize: typography.fontSize.sm, fontWeight: typography.fontWeight.semibold, color: D.text },
+    profileBannerSub: { fontSize: typography.fontSize.xs, color: D.textSecondary, marginTop: 2 },
     profileBannerBtn: {
-        backgroundColor: '#F59E0B', borderRadius: 8,
+        backgroundColor: D.primary, borderRadius: 8,
         paddingHorizontal: spacing.md, paddingVertical: spacing.sm,
     },
-    profileBannerBtnText: { fontSize: typography.fontSize.sm, fontWeight: typography.fontWeight.semibold, color: '#000' },
+    profileBannerBtnText: { fontSize: typography.fontSize.sm, fontWeight: typography.fontWeight.semibold, color: D.textOnAccent },
 });

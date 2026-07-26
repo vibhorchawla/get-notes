@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, StyleSheet, Pressable } from 'react-native';
+import { View, Text, StyleSheet, Pressable, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import Animated, { useSharedValue, useAnimatedStyle, withSpring, FadeInDown } from 'react-native-reanimated';
 import { Note } from '../types/note';
@@ -11,6 +11,7 @@ interface SearchNoteCardProps {
     note: Note;
     onPress: () => void;
     onRemove?: () => void;
+    onUploaderPress?: () => void;
     index?: number;
 }
 
@@ -22,7 +23,7 @@ function getBadgeStyle(source?: Note['source']) {
 
 const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
 
-export default function SearchNoteCard({ note, onPress, onRemove, index = 0 }: SearchNoteCardProps) {
+export default function SearchNoteCard({ note, onPress, onRemove, onUploaderPress, index = 0 }: SearchNoteCardProps) {
     const badge = getBadgeStyle(note.source);
     const scale = useSharedValue(1);
 
@@ -46,7 +47,7 @@ export default function SearchNoteCard({ note, onPress, onRemove, index = 0 }: S
             <View style={styles.iconWrap}>
                 <Ionicons
                     name={note.isPremium ? 'lock-closed' : note.pdfUrl ? 'document-text' : note.playlistUrl ? 'play-circle' : 'document-outline'}
-                    size={22}
+                    size={20}
                     color={note.isPremium ? '#F59E0B' : colors.primary}
                 />
             </View>
@@ -59,20 +60,22 @@ export default function SearchNoteCard({ note, onPress, onRemove, index = 0 }: S
                     {note.subject ? <Text style={styles.meta}>{note.subject}</Text> : null}
                     {note.unit ? (
                         <>
-                            <Text style={styles.dot}>•</Text>
+                            <Text style={styles.dot}>·</Text>
                             <Text style={styles.meta}>{note.unit}</Text>
                         </>
                     ) : null}
                 </View>
-                {note.uploadedBy?.name ? (
-                    <Text style={styles.uploader}>by {note.uploadedBy.name}</Text>
+                {(note.uploaderName || note.uploadedBy?.name) ? (
+                    <TouchableOpacity onPress={(e) => { e.stopPropagation(); onUploaderPress?.(); }} activeOpacity={0.7}>
+                        <Text style={styles.uploader}>by {note.uploaderName || note.uploadedBy?.name}</Text>
+                    </TouchableOpacity>
                 ) : null}
             </View>
 
             <View style={styles.trailing}>
                 {note.isPremium && (
                     <View style={styles.premiumBadgeSmall}>
-                        <Ionicons name="diamond" size={9} color="#FFFFFF" />
+                        <Ionicons name="diamond" size={8} color="#FFFFFF" />
                         <Text style={styles.premiumBadgeSmallText}>Premium</Text>
                     </View>
                 )}
@@ -81,7 +84,7 @@ export default function SearchNoteCard({ note, onPress, onRemove, index = 0 }: S
                 </View>
                 {onRemove ? (
                     <Pressable style={styles.removeBtn} onPress={onRemove} hitSlop={8} accessibilityRole="button" accessibilityLabel="Remove bookmark">
-                        <Ionicons name="bookmark" size={18} color={colors.primary} />
+                        <Ionicons name="bookmark" size={16} color={colors.primary} />
                     </Pressable>
                 ) : null}
             </View>
@@ -94,22 +97,17 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         alignItems: 'center',
         backgroundColor: colors.cardBackground,
-        borderRadius: 16,
-        padding: spacing.md,
+        borderRadius: 20,
+        padding: spacing.cardPadding,
         borderWidth: 1,
         borderColor: colors.border,
         marginBottom: spacing.sm,
-        shadowColor: colors.shadow,
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.06,
-        shadowRadius: 8,
-        elevation: 2,
     },
     iconWrap: {
         width: 44,
         height: 44,
         borderRadius: 14,
-        backgroundColor: 'rgba(124, 58, 237, 0.15)',
+        backgroundColor: 'rgba(91, 127, 255, 0.10)',
         justifyContent: 'center',
         alignItems: 'center',
         marginRight: spacing.md,
@@ -156,7 +154,7 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         alignItems: 'center',
         gap: 2,
-        backgroundColor: '#7C3AED',
+        backgroundColor: 'rgba(245, 158, 11, 0.2)',
         borderRadius: 999,
         paddingHorizontal: 6,
         paddingVertical: 2,
@@ -165,19 +163,19 @@ const styles = StyleSheet.create({
     premiumBadgeSmallText: {
         fontSize: 9,
         fontWeight: typography.fontWeight.bold,
-        color: '#FFFFFF',
+        color: '#F59E0B',
     },
     removeBtn: {
         padding: 4,
     },
     badgeUpload: {
-        backgroundColor: 'rgba(245, 158, 11, 0.14)',
+        backgroundColor: 'rgba(245, 158, 11, 0.12)',
     },
     badgeCommunity: {
-        backgroundColor: 'rgba(16, 185, 129, 0.12)',
+        backgroundColor: 'rgba(34, 197, 94, 0.12)',
     },
     badgeCourse: {
-        backgroundColor: 'rgba(79, 70, 229, 0.1)',
+        backgroundColor: 'rgba(91, 127, 255, 0.10)',
     },
     badgeText: {
         fontSize: 10,
@@ -187,7 +185,7 @@ const styles = StyleSheet.create({
         color: colors.warning,
     },
     badgeTextCommunity: {
-        color: colors.accent,
+        color: colors.success,
     },
     badgeTextCourse: {
         color: colors.primary,

@@ -88,6 +88,7 @@ export default function SavedScreen() {
                                             })
                                         }
                                         onRemove={() => unsaveNote(note.id)}
+                                        onUploaderPress={() => (note.uploaderId || (note as any).uploadedBy?.id) ? router.push(`/contributor/${note.uploaderId || (note as any).uploadedBy?.id}`) : undefined}
                                     />
                                 ))}
                             </View>

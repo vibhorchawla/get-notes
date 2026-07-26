@@ -23,6 +23,7 @@ import { Note } from '../../types/note';
 import { colors } from '../../constants/colors';
 import { spacing } from '../../constants/spacing';
 import { typography } from '../../constants/typography';
+import { useCourses } from '../../hooks/useCourses';
 
 type CommunityTab = 'trending' | 'newest' | 'top-rated' | 'verified' | 'previous-year' | 'assignment' | 'lab-manual' | 'question-bank';
 
@@ -47,6 +48,7 @@ export default function CommunityScreen() {
     const [refreshing, setRefreshing] = useState(false);
     const [sortBy, setSortBy] = useState<'newest' | 'popular' | 'rating'>('newest');
     const { data, isLoading, refetch } = useCommunity();
+    const { courses } = useCourses();
     const { response: tabData, isLoading: tabLoading, error: tabError } = useCommunityNotes(activeTab, sortBy);
     const { results: searchResults, isSearching } = useNoteSearch(searchQuery);
 
@@ -105,6 +107,25 @@ export default function CommunityScreen() {
 
                 {!searchQuery.trim() ? (
                     <>
+                        {courses.length > 0 && (
+                            <View style={styles.coursesWrap}>
+                                <Text style={styles.coursesLabel}>Explore by Course</Text>
+                                <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.coursesScroll}>
+                                    {courses.map((course) => (
+                                        <TouchableOpacity
+                                            key={course.id}
+                                            style={styles.courseCard}
+                                            onPress={() => router.push(`/course/${course.id}`)}
+                                            activeOpacity={0.7}
+                                        >
+                                            <Ionicons name={(course.icon as any) || 'school-outline'} size={20} color={colors.primary} />
+                                            <Text style={styles.courseCardName} numberOfLines={1}>{course.name}</Text>
+                                        </TouchableOpacity>
+                                    ))}
+                                </ScrollView>
+                            </View>
+                        )}
+
                         <View style={styles.primaryTabsRow}>
                             {PRIMARY_TABS.map((tab) => {
                                 const isActive = activeTab === tab.key;
@@ -117,7 +138,7 @@ export default function CommunityScreen() {
                                     >
                                         <Ionicons
                                             name={tab.icon as any}
-                                            size={16}
+                                            size={15}
                                             color={isActive ? colors.textOnPrimary : colors.textSecondary}
                                         />
                                         <Text style={[styles.tabLabel, isActive && styles.tabLabelActive]}>
@@ -144,7 +165,7 @@ export default function CommunityScreen() {
                                     >
                                         <Ionicons
                                             name={tab.icon as any}
-                                            size={16}
+                                            size={15}
                                             color={isActive ? colors.textOnPrimary : colors.textSecondary}
                                         />
                                         <Text style={[styles.tabLabel, isActive && styles.tabLabelActive]}>
@@ -194,6 +215,7 @@ export default function CommunityScreen() {
                                                                 note={note}
                                                                 index={idx}
                                                                 onPress={() => openNote(router, note)}
+                                                                onUploaderPress={() => (note.uploaderId || note.uploadedBy?.id) ? router.push(`/contributor/${note.uploaderId || note.uploadedBy?.id}`) : undefined}
                                                             />
                                                         ))}
                                                     </View>
@@ -216,6 +238,7 @@ export default function CommunityScreen() {
                                             note={note}
                                             index={idx}
                                             onPress={() => openNote(router, note)}
+                                            onUploaderPress={() => (note.uploaderId || note.uploadedBy?.id) ? router.push(`/contributor/${note.uploaderId || note.uploadedBy?.id}`) : undefined}
                                         />
                                     ))
                                 ) : (
@@ -242,6 +265,7 @@ export default function CommunityScreen() {
                                         note={note}
                                         index={idx}
                                         onPress={() => openNote(router, note)}
+                                        onUploaderPress={() => (note.uploaderId || note.uploadedBy?.id) ? router.push(`/contributor/${note.uploaderId || note.uploadedBy?.id}`) : undefined}
                                     />
                                 ))
                             ) : (
@@ -258,6 +282,16 @@ export default function CommunityScreen() {
 const styles = StyleSheet.create({
     container: { flex: 1 },
     searchContainer: { paddingHorizontal: spacing.screenPadding, paddingTop: spacing.sm, paddingBottom: spacing.sm },
+    coursesWrap: { paddingHorizontal: spacing.screenPadding, marginBottom: spacing.sm },
+    coursesLabel: { fontSize: typography.fontSize.sm, fontWeight: typography.fontWeight.semibold, color: colors.textSecondary, marginBottom: spacing.xs, textTransform: 'uppercase', letterSpacing: 0.5 },
+    coursesScroll: { gap: spacing.sm },
+    courseCard: {
+        flexDirection: 'row', alignItems: 'center', gap: spacing.sm,
+        paddingHorizontal: spacing.md, paddingVertical: spacing.sm + 2,
+        borderRadius: 12, backgroundColor: colors.cardBackground,
+        borderWidth: 1, borderColor: colors.border,
+    },
+    courseCardName: { fontSize: typography.fontSize.sm, fontWeight: typography.fontWeight.medium, color: colors.textPrimary, maxWidth: 120 },
     primaryTabsRow: {
         flexDirection: 'row', paddingHorizontal: spacing.screenPadding,
         gap: spacing.sm, marginBottom: spacing.sm,
@@ -285,7 +319,7 @@ const styles = StyleSheet.create({
         paddingHorizontal: spacing.md, paddingVertical: spacing.xs + 2,
         borderRadius: 999, backgroundColor: colors.cardBackground, borderWidth: 1, borderColor: colors.border,
     },
-    sortChipActive: { backgroundColor: 'rgba(79, 70, 229, 0.1)', borderColor: colors.primary },
+    sortChipActive: { backgroundColor: 'rgba(91, 127, 255, 0.10)', borderColor: colors.primary },
     sortChipText: { fontSize: typography.fontSize.xs, color: colors.textSecondary, fontWeight: typography.fontWeight.medium },
     sortChipTextActive: { color: colors.primary, fontWeight: typography.fontWeight.semibold },
     content: { padding: spacing.screenPadding, paddingTop: 0 },

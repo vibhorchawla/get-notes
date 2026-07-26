@@ -45,9 +45,9 @@ export default function NoteItem({
         >
             <View style={styles.iconContainer}>
                 {isPremium ? (
-                    <Ionicons name="lock-closed" size={20} color="#F59E0B" />
+                    <Ionicons name="lock-closed" size={18} color="#F59E0B" />
                 ) : (
-                    <Ionicons name="document-text" size={24} color={colors.primary} />
+                    <Ionicons name="document-text" size={22} color={colors.primary} />
                 )}
             </View>
 
@@ -58,7 +58,7 @@ export default function NoteItem({
                     </Text>
                     {isPremium && (
                         <View style={styles.premiumBadge}>
-                            <Ionicons name="diamond" size={10} color="#FFFFFF" />
+                            <Ionicons name="diamond" size={9} color="#FFFFFF" />
                             <Text style={styles.premiumBadgeText}>Premium</Text>
                         </View>
                     )}
@@ -67,7 +67,7 @@ export default function NoteItem({
                     <Text style={styles.subject}>{subject}</Text>
                     {unit && (
                         <>
-                            <Text style={styles.separator}>•</Text>
+                            <Text style={styles.separator}>·</Text>
                             <Text style={styles.unit}>{unit}</Text>
                         </>
                     )}
@@ -85,7 +85,7 @@ export default function NoteItem({
                     accessibilityRole="button"
                     accessibilityLabel="Download"
                 >
-                    <Ionicons name="download-outline" size={20} color={colors.primary} />
+                    <Ionicons name="download-outline" size={18} color={colors.primary} />
                 </Pressable>
             )}
         </AnimatedPressable>
@@ -97,22 +97,17 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         alignItems: 'center',
         backgroundColor: colors.cardBackground,
-        borderRadius: 16,
-        padding: spacing.md,
+        borderRadius: 20,
+        padding: spacing.cardPadding,
         marginBottom: spacing.sm,
         borderWidth: 1,
         borderColor: colors.border,
-        shadowColor: colors.shadow,
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.1,
-        shadowRadius: 12,
-        elevation: 3,
     },
     iconContainer: {
         width: 44,
         height: 44,
         borderRadius: 14,
-        backgroundColor: colors.background,
+        backgroundColor: 'rgba(91, 127, 255, 0.10)',
         justifyContent: 'center',
         alignItems: 'center',
         marginRight: spacing.md,
@@ -136,7 +131,7 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         alignItems: 'center',
         gap: 3,
-        backgroundColor: '#7C3AED',
+        backgroundColor: 'rgba(245, 158, 11, 0.2)',
         paddingHorizontal: 6,
         paddingVertical: 2,
         borderRadius: 6,
@@ -144,7 +139,7 @@ const styles = StyleSheet.create({
     premiumBadgeText: {
         fontSize: 9,
         fontWeight: typography.fontWeight.bold,
-        color: '#FFFFFF',
+        color: '#F59E0B',
     },
     meta: {
         flexDirection: 'row',

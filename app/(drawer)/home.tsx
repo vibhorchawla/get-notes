@@ -50,37 +50,46 @@ const CATEGORY_ICONS: Record<string, any> = {
     Science: 'flask-outline',
 };
 
-function NoteCard({ note, onPress }: { note: any; onPress: () => void }) {
+function NoteCard({ note, onPress, onUploaderPress }: { note: any; onPress: () => void; onUploaderPress?: () => void }) {
     return (
         <TouchableOpacity style={styles.noteCard} onPress={onPress} activeOpacity={0.8}>
             <View style={styles.noteCardHeader}>
                 <View style={styles.noteIcon}>
-                    <Ionicons name="document-text" size={18} color={colors.primary} />
+                    <Ionicons name="document-text" size={16} color={colors.primary} />
                 </View>
                 <Text style={styles.noteCardSubject} numberOfLines={1}>{note.subject}</Text>
             </View>
             <Text style={styles.noteCardTitle} numberOfLines={2}>{note.title}</Text>
             <View style={styles.noteCardFooter}>
                 <View style={styles.noteStat}>
-                    <Ionicons name="download-outline" size={12} color={colors.textLight} />
+                    <Ionicons name="download-outline" size={11} color={colors.textLight} />
                     <Text style={styles.noteStatText}>{note.downloads || 0}</Text>
                 </View>
                 <View style={styles.noteStat}>
-                    <Ionicons name="star" size={12} color="#FFC107" />
+                    <Ionicons name="star" size={11} color="#F59E0B" />
                     <Text style={styles.noteStatText}>{(note.averageRating || 0).toFixed(1)}</Text>
                 </View>
                 {note.uploaderName ? (
-                    <View style={styles.noteCardUploaderRow}>
+                    <TouchableOpacity
+                        style={styles.noteCardUploaderRow}
+                        onPress={(e) => { e.stopPropagation(); onUploaderPress?.(); }}
+                        activeOpacity={0.7}
+                    >
                         <View style={styles.noteCardAvatar}>
                             <Text style={styles.noteCardAvatarText}>{note.uploaderName.charAt(0).toUpperCase()}</Text>
                         </View>
-                        <Text style={styles.noteCardUploader} numberOfLines={1}>{note.uploaderName}</Text>
+                        <View style={styles.noteCardUploaderInfo}>
+                            <Text style={styles.noteCardUploader} numberOfLines={1}>{note.uploaderName}</Text>
+                            {note.uploaderCollege ? (
+                                <Text style={styles.noteCardCollege} numberOfLines={1}>{note.uploaderCollege}</Text>
+                            ) : null}
+                        </View>
                         {note.uploaderBranch ? (
                             <View style={styles.noteCardBranchBadge}>
                                 <Text style={styles.noteCardBranchText}>{note.uploaderBranch}</Text>
                             </View>
                         ) : null}
-                    </View>
+                    </TouchableOpacity>
                 ) : null}
             </View>
         </TouchableOpacity>
@@ -149,7 +158,7 @@ export default function HomeScreen() {
                                     <EmptyState icon="alert-circle-outline" title="Search failed" message={searchError} />
                                 ) : noteResults.length > 0 ? (
                                     noteResults.map((note, idx) => (
-                                        <SearchNoteCard key={note.id} note={note} index={idx} onPress={() => openNote(router, note)} />
+                                        <SearchNoteCard key={note.id} note={note} index={idx} onPress={() => openNote(router, note)} onUploaderPress={() => (note.uploaderId || note.uploadedBy?.id) ? router.push(`/contributor/${note.uploaderId || note.uploadedBy?.id}`) : undefined} />
                                     ))
                                 ) : (
                                     <EmptyState icon="document-outline" title="No notes found" message="Try a different search query." />
@@ -162,12 +171,15 @@ export default function HomeScreen() {
                                 {community != null && community.trending.length > 0 && (
                                     <View style={styles.section}>
                                         <View style={styles.sectionHeader}>
-                                            <View style={styles.sectionTitleRow}><Ionicons name="flame" size={20} color="#FF6B35" /><Text style={styles.sectionTitle}> Trending Notes</Text></View>
+                                            <View style={styles.sectionTitleRow}>
+                                                <View style={[styles.glowDot, { backgroundColor: '#F97316' }]} />
+                                                <Text style={styles.sectionTitle}>Trending Notes</Text>
+                                            </View>
                                             <TouchableOpacity onPress={() => router.push('/community')}><Text style={styles.seeAll}>See All</Text></TouchableOpacity>
                                         </View>
                                         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.horizontalScroll}>
                                             {community!.trending!.slice(0, 10).map((note) => (
-                                                <NoteCard key={note.id} note={note} onPress={() => openNote(router, note)} />
+                                                <NoteCard key={note.id} note={note} onPress={() => openNote(router, note)} onUploaderPress={() => note.uploaderId ? router.push(`/contributor/${note.uploaderId}`) : undefined} />
                                             ))}
                                         </ScrollView>
                                     </View>
@@ -176,12 +188,15 @@ export default function HomeScreen() {
                                 {community != null && community.topRated.length > 0 && (
                                     <View style={styles.section}>
                                         <View style={styles.sectionHeader}>
-                                            <View style={styles.sectionTitleRow}><Ionicons name="star" size={20} color="#FFC107" /><Text style={styles.sectionTitle}> Top Rated</Text></View>
+                                            <View style={styles.sectionTitleRow}>
+                                                <View style={[styles.glowDot, { backgroundColor: '#F59E0B' }]} />
+                                                <Text style={styles.sectionTitle}>Top Rated</Text>
+                                            </View>
                                             <TouchableOpacity onPress={() => router.push('/community')}><Text style={styles.seeAll}>See All</Text></TouchableOpacity>
                                         </View>
                                         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.horizontalScroll}>
                                             {community!.topRated!.slice(0, 10).map((note) => (
-                                                <NoteCard key={note.id} note={note} onPress={() => openNote(router, note)} />
+                                                <NoteCard key={note.id} note={note} onPress={() => openNote(router, note)} onUploaderPress={() => note.uploaderId ? router.push(`/contributor/${note.uploaderId}`) : undefined} />
                                             ))}
                                         </ScrollView>
                                     </View>
@@ -190,12 +205,15 @@ export default function HomeScreen() {
                                 {community != null && community.subjects.length > 0 && (
                                     <View style={styles.section}>
                                         <View style={styles.sectionHeader}>
-                                            <View style={styles.sectionTitleRow}><Ionicons name="book" size={20} color={colors.primary} /><Text style={styles.sectionTitle}> Popular Subjects</Text></View>
+                                            <View style={styles.sectionTitleRow}>
+                                                <View style={[styles.glowDot, { backgroundColor: colors.primary }]} />
+                                                <Text style={styles.sectionTitle}>Popular Subjects</Text>
+                                            </View>
                                         </View>
                                         <View style={styles.subjectGrid}>
                                             {community!.subjects!.slice(0, 6).map((subject) => (
                                                 <TouchableOpacity key={subject.id} style={styles.subjectCard} onPress={() => router.push('/community')} activeOpacity={0.7}>
-                                                    <Ionicons name="document-text-outline" size={24} color={colors.primary} />
+                                                    <Ionicons name="document-text-outline" size={22} color={colors.primary} />
                                                     <Text style={styles.subjectName} numberOfLines={2}>{subject.name}</Text>
                                                     <Text style={styles.subjectCount}>{subject.noteCount} notes</Text>
                                                 </TouchableOpacity>
@@ -207,12 +225,15 @@ export default function HomeScreen() {
                                 {community != null && community.recent.length > 0 && (
                                     <View style={styles.section}>
                                         <View style={styles.sectionHeader}>
-                                            <View style={styles.sectionTitleRow}><Ionicons name="time-outline" size={20} color={colors.secondary} /><Text style={styles.sectionTitle}> Recent Uploads</Text></View>
+                                            <View style={styles.sectionTitleRow}>
+                                                <View style={[styles.glowDot, { backgroundColor: colors.secondary }]} />
+                                                <Text style={styles.sectionTitle}>Recent Uploads</Text>
+                                            </View>
                                             <TouchableOpacity onPress={() => router.push('/community')}><Text style={styles.seeAll}>See All</Text></TouchableOpacity>
                                         </View>
                                         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.horizontalScroll}>
                                             {community!.recent!.slice(0, 10).map((note) => (
-                                                <NoteCard key={note.id} note={note} onPress={() => openNote(router, note)} />
+                                                <NoteCard key={note.id} note={note} onPress={() => openNote(router, note)} onUploaderPress={() => note.uploaderId ? router.push(`/contributor/${note.uploaderId}`) : undefined} />
                                             ))}
                                         </ScrollView>
                                     </View>
@@ -221,7 +242,10 @@ export default function HomeScreen() {
                                 {community != null && community.contributors.length > 0 && (
                                     <View style={styles.section}>
                                         <View style={styles.sectionHeader}>
-                                            <View style={styles.sectionTitleRow}><Ionicons name="trophy" size={20} color="#FFC107" /><Text style={styles.sectionTitle}> Top Contributors</Text></View>
+                                            <View style={styles.sectionTitleRow}>
+                                                <View style={[styles.glowDot, { backgroundColor: '#F59E0B' }]} />
+                                                <Text style={styles.sectionTitle}>Top Contributors</Text>
+                                            </View>
                                             <TouchableOpacity onPress={() => router.push('/community')}><Text style={styles.seeAll}>See All</Text></TouchableOpacity>
                                         </View>
                                         <View style={styles.contributorList}>
@@ -230,7 +254,7 @@ export default function HomeScreen() {
                                                     <View style={styles.contributorRank}><Text style={styles.rankText}>{idx + 1}</Text></View>
                                                     <View style={styles.contributorInfo}>
                                                         <Text style={styles.contributorName}>User {c.userId.slice(-4)}</Text>
-                                                        <Text style={styles.contributorBadge}>{c.currentBadge?.name || '🌟 Beginner'}</Text>
+                                                        <Text style={styles.contributorBadge}>{c.currentBadge?.name || 'Beginner'}</Text>
                                                     </View>
                                                     <Text style={styles.contributorPoints}>{c.points} pts</Text>
                                                 </View>
@@ -242,11 +266,14 @@ export default function HomeScreen() {
                                 {featured?.length > 0 && (
                                     <View style={styles.section}>
                                         <View style={styles.sectionHeader}>
-                                            <View style={styles.sectionTitleRow}><Ionicons name="star" size={20} color="#FFC107" /><Text style={styles.sectionTitle}> Featured Courses</Text></View>
+                                            <View style={styles.sectionTitleRow}>
+                                                <View style={[styles.glowDot, { backgroundColor: '#F59E0B' }]} />
+                                                <Text style={styles.sectionTitle}>Featured Courses</Text>
+                                            </View>
                                         </View>
                                         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.horizontalScroll}>
                                             {featured.slice(0, 10).map((note: any) => (
-                                                <NoteCard key={note.id} note={note} onPress={() => openNote(router, note)} />
+                                                <NoteCard key={note.id} note={note} onPress={() => openNote(router, note)} onUploaderPress={() => note.uploaderId ? router.push(`/contributor/${note.uploaderId}`) : undefined} />
                                             ))}
                                         </ScrollView>
                                     </View>
@@ -255,12 +282,15 @@ export default function HomeScreen() {
                                 {savedNotes.length > 0 && (
                                     <View style={styles.section}>
                                         <View style={styles.sectionHeader}>
-                                            <View style={styles.sectionTitleRow}><Ionicons name="bookmark" size={20} color={colors.primary} /><Text style={styles.sectionTitle}> Saved Notes</Text></View>
+                                            <View style={styles.sectionTitleRow}>
+                                                <View style={[styles.glowDot, { backgroundColor: colors.primary }]} />
+                                                <Text style={styles.sectionTitle}>Saved Notes</Text>
+                                            </View>
                                             <TouchableOpacity onPress={() => router.push('/(drawer)/saved')}><Text style={styles.seeAll}>See All</Text></TouchableOpacity>
                                         </View>
                                         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.horizontalScroll}>
                                             {savedNotes.slice(0, 10).map((note) => (
-                                                <NoteCard key={note.id} note={note} onPress={() => openNote(router, note)} />
+                                                <NoteCard key={note.id} note={note} onPress={() => openNote(router, note)} onUploaderPress={() => note.uploaderId ? router.push(`/contributor/${note.uploaderId}`) : undefined} />
                                             ))}
                                         </ScrollView>
                                     </View>
@@ -269,12 +299,15 @@ export default function HomeScreen() {
                                 {continueReading.length > 0 && (
                                     <View style={styles.section}>
                                         <View style={styles.sectionHeader}>
-                                            <View style={styles.sectionTitleRow}><Ionicons name="time-outline" size={20} color={colors.secondary} /><Text style={styles.sectionTitle}> Continue Reading</Text></View>
+                                            <View style={styles.sectionTitleRow}>
+                                                <View style={[styles.glowDot, { backgroundColor: colors.secondary }]} />
+                                                <Text style={styles.sectionTitle}>Continue Reading</Text>
+                                            </View>
                                             <TouchableOpacity onPress={() => router.push('/(drawer)/notes')}><Text style={styles.seeAll}>See All</Text></TouchableOpacity>
                                         </View>
                                         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.horizontalScroll}>
                                             {continueReading.map((note) => (
-                                                <NoteCard key={note.id} note={note} onPress={() => openNote(router, note)} />
+                                                <NoteCard key={note.id} note={note} onPress={() => openNote(router, note)} onUploaderPress={() => note.uploaderId ? router.push(`/contributor/${note.uploaderId}`) : undefined} />
                                             ))}
                                         </ScrollView>
                                     </View>
@@ -283,12 +316,15 @@ export default function HomeScreen() {
                                 {community != null && community.colleges.length > 0 && (
                                     <View style={styles.section}>
                                         <View style={styles.sectionHeader}>
-                                            <View style={styles.sectionTitleRow}><Ionicons name="business" size={20} color={colors.accent} /><Text style={styles.sectionTitle}> Popular Colleges</Text></View>
+                                            <View style={styles.sectionTitleRow}>
+                                                <View style={[styles.glowDot, { backgroundColor: colors.primary }]} />
+                                                <Text style={styles.sectionTitle}>Popular Colleges</Text>
+                                            </View>
                                         </View>
                                         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.horizontalScroll}>
                                             {community!.colleges!.slice(0, 10).map((college) => (
                                                 <TouchableOpacity key={college.id} style={styles.collegeCard} onPress={() => router.push('/community')} activeOpacity={0.7}>
-                                                    <Ionicons name="school" size={28} color={colors.primary} />
+                                                    <Ionicons name="school" size={26} color={colors.primary} />
                                                     <Text style={styles.collegeName} numberOfLines={2}>{college.name}</Text>
                                                     <Text style={styles.collegeStat}>{college.noteCount} notes</Text>
                                                 </TouchableOpacity>
@@ -298,7 +334,12 @@ export default function HomeScreen() {
                                 )}
 
                                 <View style={styles.section}>
-                                    <Text style={styles.sectionTitle}>Explore Courses</Text>
+                                    <View style={styles.sectionHeader}>
+                                        <View style={styles.sectionTitleRow}>
+                                            <View style={styles.glowDot} />
+                                            <Text style={styles.sectionTitle}>Explore Courses</Text>
+                                        </View>
+                                    </View>
                                     <Text style={styles.sectionSubtitle}>Browse notes by your course</Text>
                                     <View style={styles.grid}>
                                         {filteredCourses.map((course, idx) => (
@@ -342,16 +383,27 @@ const styles = StyleSheet.create({
     categoriesContainer: { marginBottom: spacing.xl },
     categoriesContent: { paddingRight: spacing.screenPadding },
     skeletonWrap: { marginTop: spacing.md },
-    section: { marginBottom: spacing.xxl },
+    section: { marginBottom: spacing.sectionGap },
     sectionHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: spacing.md },
-    sectionTitleRow: { flexDirection: 'row', alignItems: 'center' },
-    sectionTitle: { fontSize: typography.fontSize.xl, fontWeight: typography.fontWeight.bold, color: colors.textPrimary },
+    sectionTitleRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
+    sectionTitle: { fontSize: typography.fontSize.xl, fontWeight: typography.fontWeight.bold, color: colors.textPrimary, letterSpacing: -0.3 },
     sectionSubtitle: { fontSize: typography.fontSize.sm, color: colors.textSecondary, marginTop: 4, marginBottom: spacing.md },
     seeAll: { fontSize: typography.fontSize.sm, color: colors.primary, fontWeight: typography.fontWeight.semibold },
+    glowDot: {
+        width: 8,
+        height: 8,
+        borderRadius: 4,
+        backgroundColor: colors.primary,
+        shadowColor: colors.primary,
+        shadowOffset: { width: 0, height: 0 },
+        shadowOpacity: 0.6,
+        shadowRadius: 6,
+        elevation: 4,
+    },
     horizontalScroll: { paddingRight: spacing.screenPadding, gap: spacing.sm },
-    noteCard: { width: 200, backgroundColor: colors.cardBackground, borderRadius: 16, padding: spacing.md, borderWidth: 1, borderColor: colors.border, marginRight: spacing.sm },
+    noteCard: { width: 200, backgroundColor: colors.cardBackground, borderRadius: 20, padding: spacing.cardPadding, borderWidth: 1, borderColor: colors.border, marginRight: spacing.sm },
     noteCardHeader: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, marginBottom: spacing.sm },
-    noteIcon: { width: 32, height: 32, borderRadius: 10, backgroundColor: 'rgba(79, 70, 229, 0.1)', justifyContent: 'center', alignItems: 'center' },
+    noteIcon: { width: 30, height: 30, borderRadius: 10, backgroundColor: 'rgba(91, 127, 255, 0.10)', justifyContent: 'center', alignItems: 'center' },
     noteCardSubject: { fontSize: typography.fontSize.xs, color: colors.primary, fontWeight: typography.fontWeight.semibold, flex: 1 },
     noteCardTitle: { fontSize: typography.fontSize.sm, fontWeight: typography.fontWeight.semibold, color: colors.textPrimary, marginBottom: spacing.sm, lineHeight: 18 },
     noteCardUploaderRow: { flexDirection: 'row', alignItems: 'center', gap: 4, flex: 1 },
@@ -360,27 +412,29 @@ const styles = StyleSheet.create({
         justifyContent: 'center', alignItems: 'center',
     },
     noteCardAvatarText: { fontSize: 8, fontWeight: '700', color: '#FFF' },
-    noteCardUploader: { fontSize: 10, color: colors.textLight, flex: 1 },
+    noteCardUploaderInfo: { flex: 1, minWidth: 0 },
+    noteCardUploader: { fontSize: 10, color: colors.textLight },
+    noteCardCollege: { fontSize: 8, color: colors.textLight, opacity: 0.7 },
     noteCardBranchBadge: {
-        backgroundColor: 'rgba(79, 70, 229, 0.1)', borderRadius: 999, paddingHorizontal: 4, paddingVertical: 1,
+        backgroundColor: 'rgba(91, 127, 255, 0.10)', borderRadius: 999, paddingHorizontal: 4, paddingVertical: 1,
     },
     noteCardBranchText: { fontSize: 8, color: colors.primary, fontWeight: '600' },
     noteCardFooter: { flexDirection: 'row', gap: spacing.sm, alignItems: 'center' },
     noteStat: { flexDirection: 'row', alignItems: 'center', gap: 3 },
     noteStatText: { fontSize: 10, color: colors.textLight },
     subjectGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
-    subjectCard: { width: '31%', backgroundColor: colors.cardBackground, borderRadius: 16, padding: spacing.md, alignItems: 'center', borderWidth: 1, borderColor: colors.border },
-    subjectName: { fontSize: typography.fontSize.xs, fontWeight: typography.fontWeight.semibold, color: colors.textPrimary, textAlign: 'center', marginTop: spacing.xs },
-    subjectCount: { fontSize: 10, color: colors.textLight, marginTop: 2 },
+    subjectCard: { width: '31%', backgroundColor: colors.cardBackground, borderRadius: 20, padding: spacing.md, alignItems: 'center', borderWidth: 1, borderColor: colors.border },
+        subjectName: { fontSize: typography.fontSize.sm, fontWeight: typography.fontWeight.semibold, color: colors.textPrimary, textAlign: 'center', marginTop: spacing.sm },
+    subjectCount: { fontSize: typography.fontSize.xs, color: colors.textLight, marginTop: 4 },
     contributorList: { gap: spacing.sm },
-    contributorRow: { flexDirection: 'row', alignItems: 'center', backgroundColor: colors.cardBackground, borderRadius: 12, padding: spacing.md, borderWidth: 1, borderColor: colors.border, gap: spacing.md },
-    contributorRank: { width: 28, height: 28, borderRadius: 14, backgroundColor: 'rgba(79, 70, 229, 0.1)', justifyContent: 'center', alignItems: 'center' },
+    contributorRow: { flexDirection: 'row', alignItems: 'center', backgroundColor: colors.cardBackground, borderRadius: 16, padding: spacing.cardPadding, borderWidth: 1, borderColor: colors.border, gap: spacing.md },
+    contributorRank: { width: 28, height: 28, borderRadius: 14, backgroundColor: 'rgba(91, 127, 255, 0.10)', justifyContent: 'center', alignItems: 'center' },
     rankText: { fontSize: typography.fontSize.sm, fontWeight: typography.fontWeight.bold, color: colors.primary },
     contributorInfo: { flex: 1 },
     contributorName: { fontSize: typography.fontSize.sm, fontWeight: typography.fontWeight.semibold, color: colors.textPrimary },
     contributorBadge: { fontSize: typography.fontSize.xs, color: colors.textSecondary, marginTop: 2 },
     contributorPoints: { fontSize: typography.fontSize.sm, fontWeight: typography.fontWeight.bold, color: colors.primary },
-    collegeCard: { width: 140, backgroundColor: colors.cardBackground, borderRadius: 16, padding: spacing.md, alignItems: 'center', borderWidth: 1, borderColor: colors.border, marginRight: spacing.sm },
+    collegeCard: { width: 140, backgroundColor: colors.cardBackground, borderRadius: 20, padding: spacing.cardPadding, alignItems: 'center', borderWidth: 1, borderColor: colors.border, marginRight: spacing.sm },
     collegeName: { fontSize: typography.fontSize.xs, fontWeight: typography.fontWeight.semibold, color: colors.textPrimary, textAlign: 'center', marginTop: spacing.xs },
     collegeStat: { fontSize: 10, color: colors.textLight, marginTop: 2 },
     grid: { gap: spacing.md },

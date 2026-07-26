@@ -66,7 +66,7 @@ export function useSubjects(semesterId: string) {
     return { subjects, isLoading, refetch: fetchSubjects };
 }
 
-export function useSubjectNotes(subjectId: string, sort: string = 'newest') {
+export function useSubjectNotes(subjectId: string, sort: string = 'newest', subjectName?: string) {
     const [notes, setNotes] = useState<Note[]>([]);
     const [isLoading, setIsLoading] = useState(true);
 
@@ -76,8 +76,9 @@ export function useSubjectNotes(subjectId: string, sort: string = 'newest') {
         async function fetchNotes() {
             setIsLoading(true);
             try {
+                const nameParam = subjectName ? `&subjectName=${encodeURIComponent(subjectName)}` : '';
                 const res = await apiFetch<Note[]>(
-                    `/courses/subject/${subjectId}/notes?sort=${sort}`,
+                    `/courses/subject/${subjectId}/notes?sort=${sort}${nameParam}`,
                     { requiresAuth: false }
                 );
                 if (cancelled) return;
@@ -93,7 +94,7 @@ export function useSubjectNotes(subjectId: string, sort: string = 'newest') {
         }
         fetchNotes();
         return () => { cancelled = true; };
-    }, [subjectId, sort]);
+    }, [subjectId, sort, subjectName]);
 
     return { notes, isLoading };
 }

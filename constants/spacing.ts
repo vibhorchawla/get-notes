@@ -7,8 +7,8 @@ export const spacing = {
     xxl: 48,
 
     // Specific use cases
-    cardPadding: 16,
+    cardPadding: 20,
     screenPadding: 20,
-    sectionGap: 24,
+    sectionGap: 28,
     itemGap: 12,
 };

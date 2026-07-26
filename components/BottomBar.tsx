@@ -1,9 +1,8 @@
 import React from 'react';
-import { View, TouchableOpacity, Text, StyleSheet } from 'react-native';
+import { View, TouchableOpacity, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { colors } from '../constants/colors';
 import { spacing } from '../constants/spacing';
-import { typography } from '../constants/typography';
+import { colors } from '../constants/colors';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 interface BottomBarProps {
@@ -12,53 +11,36 @@ interface BottomBarProps {
     onAddPress: () => void;
 }
 
-const TABS: { key: string; label: string; icon: string; activeIcon: string }[] = [
-    { key: 'home', label: 'Home', icon: 'home-outline', activeIcon: 'home' },
-    { key: 'community', label: 'Explore', icon: 'compass-outline', activeIcon: 'compass' },
-    { key: 'add', label: '', icon: 'add', activeIcon: 'add' },
-    { key: 'save', label: 'Saved', icon: 'bookmark-outline', activeIcon: 'bookmark' },
-    { key: 'more', label: 'More', icon: 'grid-outline', activeIcon: 'grid' },
-];
-
 export default function BottomBar({ activeTab, onTabPress, onAddPress }: BottomBarProps) {
     const insets = useSafeAreaInsets();
-    const bottomOffset = insets.bottom;
 
     return (
-        <View style={[styles.container, { paddingBottom: bottomOffset + spacing.xs }]}>
-            <View style={styles.tabBar}>
-                {TABS.map((tab) => {
-                    const isActive = activeTab === tab.key;
-                    const isAdd = tab.key === 'add';
+        <View style={[styles.container, { paddingBottom: insets.bottom + 8 }]}>
+            <View style={styles.pill}>
+                {/* Home */}
+                <TouchableOpacity style={styles.tab} onPress={() => onTabPress('home')} activeOpacity={0.7}>
+                    <Ionicons name="home" size={24} color={activeTab === 'home' ? colors.primary : colors.textLight} />
+                </TouchableOpacity>
 
-                    if (isAdd) {
-                        return (
-                            <View key={tab.key} style={styles.addWrapper}>
-                                <TouchableOpacity style={styles.addButton} onPress={onAddPress} activeOpacity={0.7}>
-                                    <Ionicons name="add" size={28} color="#FFFFFF" />
-                                </TouchableOpacity>
-                            </View>
-                        );
-                    }
+                {/* Explore */}
+                <TouchableOpacity style={styles.tab} onPress={() => onTabPress('community')} activeOpacity={0.7}>
+                    <Ionicons name="compass-outline" size={24} color={activeTab === 'community' ? colors.primary : colors.textLight} />
+                </TouchableOpacity>
 
-                    return (
-                        <TouchableOpacity
-                            key={tab.key}
-                            style={[styles.tab, isActive && styles.tabActive]}
-                            onPress={() => onTabPress(tab.key)}
-                            activeOpacity={0.7}
-                        >
-                            <Ionicons
-                                name={isActive ? tab.activeIcon as any : tab.icon as any}
-                                size={24}
-                                color={isActive ? '#7C3AED' : 'rgba(255, 255, 255, 0.55)'}
-                            />
-                            <Text style={[styles.tabLabel, isActive && styles.tabLabelActive]}>
-                                {tab.label}
-                            </Text>
-                        </TouchableOpacity>
-                    );
-                })}
+                {/* Add */}
+                <TouchableOpacity style={styles.tabAdd} onPress={onAddPress} activeOpacity={0.7}>
+                    <Ionicons name="add" size={28} color={colors.textOnPrimary} />
+                </TouchableOpacity>
+
+                {/* Saved */}
+                <TouchableOpacity style={styles.tab} onPress={() => onTabPress('save')} activeOpacity={0.7}>
+                    <Ionicons name="bookmark-outline" size={24} color={activeTab === 'save' ? colors.primary : colors.textLight} />
+                </TouchableOpacity>
+
+                {/* Grid */}
+                <TouchableOpacity style={styles.tab} onPress={() => onTabPress('more')} activeOpacity={0.7}>
+                    <Ionicons name="grid-outline" size={24} color={colors.textLight} />
+                </TouchableOpacity>
             </View>
         </View>
     );
@@ -66,28 +48,47 @@ export default function BottomBar({ activeTab, onTabPress, onAddPress }: BottomB
 
 const styles = StyleSheet.create({
     container: {
-        position: 'absolute', left: 0, right: 0, bottom: 0,
-        backgroundColor: '#1A1A2E',
-        borderTopWidth: 1, borderTopColor: 'rgba(124, 58, 237, 0.2)',
-        shadowColor: '#000', shadowOffset: { width: 0, height: -4 },
-        shadowOpacity: 0.25, shadowRadius: 16, elevation: 12, zIndex: 100,
+        position: 'absolute',
+        left: 0,
+        right: 0,
+        bottom: 0,
+        alignItems: 'center',
     },
-    tabBar: {
-        flexDirection: 'row', alignItems: 'center', justifyContent: 'space-around',
-        paddingTop: spacing.sm, height: 70,
+    pill: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-around',
+        backgroundColor: 'rgba(26, 34, 53, 0.95)',
+        borderRadius: 28,
+        paddingHorizontal: 8,
+        height: 60,
+        width: '85%',
+        borderWidth: 1,
+        borderColor: 'rgba(255, 255, 255, 0.08)',
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 8 },
+        shadowOpacity: 0.5,
+        shadowRadius: 24,
+        elevation: 20,
     },
-    tab: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 3, paddingTop: spacing.xs },
-    tabActive: {},
-    tabLabel: {
-        fontSize: typography.fontSize.xs, fontWeight: typography.fontWeight.semibold,
-        color: 'rgba(255, 255, 255, 0.55)', letterSpacing: 0.3,
+    tab: {
+        alignItems: 'center',
+        justifyContent: 'center',
+        width: 44,
+        height: 44,
+        borderRadius: 22,
     },
-    tabLabelActive: { color: '#7C3AED', fontWeight: typography.fontWeight.bold },
-    addWrapper: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-    addButton: {
-        width: 48, height: 48, borderRadius: 24, backgroundColor: '#7C3AED',
-        justifyContent: 'center', alignItems: 'center',
-        shadowColor: '#7C3AED', shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.35, shadowRadius: 10, elevation: 6,
+    tabAdd: {
+        alignItems: 'center',
+        justifyContent: 'center',
+        width: 50,
+        height: 50,
+        borderRadius: 25,
+        backgroundColor: colors.primary,
+        shadowColor: colors.primary,
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.35,
+        shadowRadius: 12,
+        elevation: 8,
     },
 });

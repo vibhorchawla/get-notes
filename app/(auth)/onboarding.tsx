@@ -97,7 +97,7 @@ export default function OnboardingScreen() {
 const styles = StyleSheet.create({
     root: {
         flex: 1,
-        backgroundColor: '#1A1A2E',
+        backgroundColor: '#121826',
     },
     container: {
         flex: 1,
@@ -161,7 +161,7 @@ const styles = StyleSheet.create({
     cupBody: {
         width: 24,
         height: 28,
-        backgroundColor: 'rgba(139, 92, 246, 0.4)',
+        backgroundColor: 'rgba(91, 127, 255, 0.35)',
         borderRadius: 4,
         borderBottomLeftRadius: 8,
         borderBottomRightRadius: 8,
@@ -173,7 +173,7 @@ const styles = StyleSheet.create({
         width: 10,
         height: 14,
         borderWidth: 2,
-        borderColor: 'rgba(139, 92, 246, 0.35)',
+        borderColor: 'rgba(91, 127, 255, 0.30)',
         borderLeftWidth: 0,
         borderTopRightRadius: 8,
         borderBottomRightRadius: 8,
@@ -241,7 +241,7 @@ const styles = StyleSheet.create({
     pencilBody: {
         width: 40,
         height: 5,
-        backgroundColor: 'rgba(249, 115, 22, 0.5)',
+        backgroundColor: 'rgba(245, 158, 11, 0.45)',
         borderRadius: 1,
     },
     pencilTip: {
@@ -250,7 +250,7 @@ const styles = StyleSheet.create({
         borderLeftWidth: 8,
         borderTopWidth: 3,
         borderBottomWidth: 3,
-        borderLeftColor: 'rgba(249, 115, 22, 0.7)',
+        borderLeftColor: 'rgba(245, 158, 11, 0.6)',
         borderTopColor: 'transparent',
         borderBottomColor: 'transparent',
     },
@@ -279,7 +279,7 @@ const styles = StyleSheet.create({
         left: 35,
         width: 22,
         height: 22,
-        backgroundColor: 'rgba(139, 92, 246, 0.25)',
+        backgroundColor: 'rgba(91, 127, 255, 0.25)',
         borderRadius: 3,
         transform: [{ rotate: '8deg' }],
     },
@@ -289,7 +289,7 @@ const styles = StyleSheet.create({
         left: 60,
         width: 18,
         height: 18,
-        backgroundColor: 'rgba(59, 130, 246, 0.2)',
+        backgroundColor: 'rgba(124, 147, 255, 0.20)',
         borderRadius: 3,
         transform: [{ rotate: '-5deg' }],
     },
@@ -318,12 +318,12 @@ const styles = StyleSheet.create({
         paddingTop: spacing.lg,
     },
     startButton: {
-        backgroundColor: '#7C3AED',
+        backgroundColor: colors.primary,
         borderRadius: 16,
         paddingVertical: 18,
         paddingHorizontal: 24,
         alignItems: 'center',
-        shadowColor: '#7C3AED',
+        shadowColor: colors.primary,
         shadowOffset: { width: 0, height: 6 },
         shadowOpacity: 0.35,
         shadowRadius: 14,

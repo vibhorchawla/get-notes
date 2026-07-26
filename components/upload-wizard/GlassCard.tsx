@@ -8,6 +8,7 @@ interface GlassCardProps {
     style?: ViewStyle;
     delay?: number;
     noPadding?: boolean;
+    dark?: boolean;
 }
 
 export default function GlassCard({
@@ -15,9 +16,10 @@ export default function GlassCard({
     style,
     delay = 0,
     noPadding = false,
+    dark = false,
 }: GlassCardProps) {
     return (
-        <View style={[styles.card, noPadding && styles.cardFlush, style]}>
+        <View style={[styles.card, dark && styles.cardDark, noPadding && styles.cardFlush, style]}>
             {children}
         </View>
     );
@@ -32,9 +34,14 @@ const styles = StyleSheet.create({
         borderColor: colors.border,
         shadowColor: colors.shadow,
         shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.06,
+        shadowOpacity: 0.08,
         shadowRadius: 8,
         elevation: 2,
+    },
+    cardDark: {
+        backgroundColor: colors.dark.cardBg,
+        borderColor: colors.dark.cardBorder,
+        shadowColor: colors.dark.shadow,
     },
     cardFlush: {
         padding: 0,

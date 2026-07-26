@@ -18,15 +18,18 @@ interface DriveFilePickerModalProps {
     visible: boolean;
     onClose: () => void;
     onSelect: (file: PickedDriveFile) => void;
+    dark?: boolean;
 }
 
 export default function DriveFilePickerModal({
     visible,
     onClose,
     onSelect,
+    dark = false,
 }: DriveFilePickerModalProps) {
     const [isPicking, setIsPicking] = useState(false);
     const [error, setError] = useState<string | null>(null);
+    const d = colors.dark;
 
     const handleBrowse = useCallback(async () => {
         setIsPicking(true);
@@ -58,37 +61,37 @@ export default function DriveFilePickerModal({
 
     return (
         <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
-            <Pressable style={styles.backdrop} onPress={onClose}>
-                <View style={styles.sheet} onStartShouldSetResponder={() => true}>
-                    <View style={styles.handle} />
+            <Pressable style={[styles.backdrop, dark && styles.backdropDark]} onPress={onClose}>
+                <View style={[styles.sheet, dark && styles.sheetDark]} onStartShouldSetResponder={() => true}>
+                    <View style={[styles.handle, dark && styles.handleDark]} />
                     <View style={styles.header}>
-                        <Ionicons name="logo-google" size={24} color={colors.primary} />
-                        <Text style={styles.title}>Choose a file</Text>
+                        <Ionicons name="logo-google" size={24} color={dark ? d.primary : colors.primary} />
+                        <Text style={[styles.title, dark && styles.titleDark]}>Choose a file</Text>
                     </View>
-                    <Text style={styles.subtitle}>
+                    <Text style={[styles.subtitle, dark && styles.subtitleDark]}>
                         Pick a PDF, document, or image from Google Drive or your device
                     </Text>
 
                     {isPicking ? (
                         <View style={styles.loadingBlock}>
-                            <ActivityIndicator size="large" color={colors.primary} />
-                            <Text style={styles.loadingText}>Opening file browser…</Text>
+                            <ActivityIndicator size="large" color={dark ? d.primary : colors.primary} />
+                            <Text style={[styles.loadingText, dark && styles.loadingTextDark]}>Opening file browser…</Text>
                         </View>
                     ) : (
                         <TouchableOpacity
-                            style={styles.browseBtn}
+                            style={[styles.browseBtn, dark && styles.browseBtnDark]}
                             onPress={handleBrowse}
                             activeOpacity={0.85}
                         >
-                            <Ionicons name="folder-open-outline" size={22} color={colors.primary} />
-                            <Text style={styles.browseText}>Browse Google Drive & files</Text>
+                            <Ionicons name="folder-open-outline" size={22} color={dark ? d.primary : colors.primary} />
+                            <Text style={[styles.browseText, dark && styles.browseTextDark]}>Browse Google Drive & files</Text>
                         </TouchableOpacity>
                     )}
 
-                    {error ? <Text style={styles.errorText}>{error}</Text> : null}
+                    {error ? <Text style={[styles.errorText, dark && styles.errorTextDark]}>{error}</Text> : null}
 
                     <TouchableOpacity style={styles.cancelBtn} onPress={onClose}>
-                        <Text style={styles.cancelText}>Cancel</Text>
+                        <Text style={[styles.cancelText, dark && styles.cancelTextDark]}>Cancel</Text>
                     </TouchableOpacity>
                 </View>
             </Pressable>
@@ -102,14 +105,21 @@ const styles = StyleSheet.create({
         backgroundColor: 'rgba(0, 0, 0, 0.6)',
         justifyContent: 'flex-end',
     },
+    backdropDark: {
+        backgroundColor: colors.dark.overlay,
+    },
     sheet: {
-        backgroundColor: '#1A1A2E',
+        backgroundColor: '#121826',
         borderTopLeftRadius: 28,
         borderTopRightRadius: 28,
         paddingHorizontal: spacing.screenPadding,
         paddingBottom: spacing.xl,
         borderTopWidth: 1,
-        borderTopColor: 'rgba(124, 58, 237, 0.2)',
+        borderTopColor: 'rgba(91, 127, 255, 0.15)',
+    },
+    sheetDark: {
+        backgroundColor: colors.dark.surface,
+        borderTopColor: colors.dark.border,
     },
     handle: {
         alignSelf: 'center',
@@ -118,6 +128,9 @@ const styles = StyleSheet.create({
         borderRadius: 2,
         backgroundColor: 'rgba(255, 255, 255, 0.15)',
         marginVertical: spacing.sm,
+    },
+    handleDark: {
+        backgroundColor: colors.dark.textMuted,
     },
     header: {
         flexDirection: 'row',
@@ -130,10 +143,16 @@ const styles = StyleSheet.create({
         fontWeight: typography.fontWeight.bold,
         color: '#FFFFFF',
     },
+    titleDark: {
+        color: colors.dark.text,
+    },
     subtitle: {
         fontSize: typography.fontSize.sm,
         color: 'rgba(255, 255, 255, 0.5)',
         marginBottom: spacing.lg,
+    },
+    subtitleDark: {
+        color: colors.dark.textSecondary,
     },
     loadingBlock: {
         alignItems: 'center',
@@ -144,23 +163,33 @@ const styles = StyleSheet.create({
         fontSize: typography.fontSize.sm,
         color: 'rgba(255, 255, 255, 0.5)',
     },
+    loadingTextDark: {
+        color: colors.dark.textSecondary,
+    },
     browseBtn: {
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'center',
         gap: spacing.sm,
-        backgroundColor: 'rgba(124, 58, 237, 0.15)',
-        borderRadius: 14,
+        backgroundColor: 'rgba(91, 127, 255, 0.10)',
+        borderRadius: 16,
         paddingVertical: 16,
         borderWidth: 1.5,
-        borderColor: 'rgba(124, 58, 237, 0.4)',
+        borderColor: 'rgba(91, 127, 255, 0.25)',
         marginBottom: spacing.md,
         minHeight: 52,
     },
+    browseBtnDark: {
+        backgroundColor: colors.dark.chipBg,
+        borderColor: colors.dark.chipBorder,
+    },
     browseText: {
-        color: '#7C3AED',
+        color: colors.primary,
         fontWeight: typography.fontWeight.semibold,
         fontSize: typography.fontSize.md,
+    },
+    browseTextDark: {
+        color: colors.dark.primary,
     },
     errorText: {
         textAlign: 'center',
@@ -168,6 +197,9 @@ const styles = StyleSheet.create({
         fontSize: typography.fontSize.sm,
         marginBottom: spacing.md,
         paddingHorizontal: spacing.md,
+    },
+    errorTextDark: {
+        color: colors.dark.textSecondary,
     },
     cancelBtn: {
         alignItems: 'center',
@@ -177,5 +209,8 @@ const styles = StyleSheet.create({
         color: 'rgba(255, 255, 255, 0.4)',
         fontWeight: typography.fontWeight.medium,
         fontSize: typography.fontSize.md,
+    },
+    cancelTextDark: {
+        color: colors.dark.textMuted,
     },
 });

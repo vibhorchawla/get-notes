@@ -59,10 +59,10 @@ export default function MarketplaceCard({
 
                 <View style={styles.meta}>
                     <View style={styles.ratingContainer}>
-                        <Ionicons name="star" size={14} color="#FFC107" />
+                        <Ionicons name="star" size={13} color="#F59E0B" />
                         <Text style={styles.ratingText}>{rating}</Text>
                     </View>
-                    <Text style={styles.dot}>•</Text>
+                    <Text style={styles.dot}>·</Text>
                     <Text style={styles.students}>{students} students</Text>
                 </View>
             </View>
@@ -73,13 +73,10 @@ export default function MarketplaceCard({
 const styles = StyleSheet.create({
     container: {
         backgroundColor: colors.cardBackground,
-        borderRadius: 16,
-        shadowColor: colors.shadow,
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.1,
-        shadowRadius: 8,
-        elevation: 3,
+        borderRadius: 20,
         overflow: 'hidden',
+        borderWidth: 1,
+        borderColor: colors.border,
     },
     verticalContainer: {
         width: '100%',
@@ -90,7 +87,7 @@ const styles = StyleSheet.create({
         marginRight: spacing.md,
     },
     imagePlaceholder: {
-        backgroundColor: colors.background,
+        backgroundColor: 'rgba(91, 127, 255, 0.06)',
         justifyContent: 'center',
         alignItems: 'center',
         position: 'relative',
@@ -105,19 +102,21 @@ const styles = StyleSheet.create({
         position: 'absolute',
         top: 10,
         left: 10,
-        backgroundColor: 'rgba(255,255,255,0.9)',
+        backgroundColor: 'rgba(18, 24, 38, 0.80)',
         paddingHorizontal: 10,
         paddingVertical: 4,
         borderRadius: 8,
+        borderWidth: 1,
+        borderColor: colors.border,
     },
     badgeText: {
         fontSize: 10,
         fontWeight: '700',
-        color: colors.primary,
+        color: colors.textPrimary,
         textTransform: 'uppercase',
     },
     details: {
-        padding: spacing.md,
+        padding: spacing.cardPadding,
     },
     title: {
         fontSize: typography.fontSize.md,

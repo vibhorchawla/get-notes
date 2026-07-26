@@ -14,6 +14,7 @@ interface GradientButtonProps {
     loadingLabel?: string;
     icon?: keyof typeof Ionicons.glyphMap;
     style?: ViewStyle;
+    dark?: boolean;
 }
 
 export default function GradientButton({
@@ -24,7 +25,10 @@ export default function GradientButton({
     loadingLabel,
     icon,
     style,
+    dark = false,
 }: GradientButtonProps) {
+    const d = colors.dark;
+
     return (
         <Pressable
             style={[styles.wrapper, style]}
@@ -39,26 +43,32 @@ export default function GradientButton({
             <LinearGradient
                 colors={
                     disabled
-                        ? [colors.border, colors.border]
-                        : ['#4F46E5', '#6D28D9']
+                        ? (dark ? [d.border, d.border] : [colors.border, colors.border])
+                        : dark
+                        ? [d.primary, d.primaryDark]
+                        : ['#5B7FFF', '#4F70F7']
                 }
                 start={{ x: 0, y: 0 }}
                 end={{ x: 1, y: 0 }}
                 style={styles.gradient}
             >
                 {loading ? (
-                    <ActivityIndicator size="small" color={colors.textOnPrimary} />
+                    <ActivityIndicator size="small" color={dark ? d.textOnAccent : colors.textOnPrimary} />
                 ) : icon ? (
                     <Ionicons
                         name={icon}
                         size={20}
-                        color={disabled ? colors.textLight : colors.textOnPrimary}
+                        color={disabled
+                            ? (dark ? d.textMuted : colors.textLight)
+                            : (dark ? d.textOnAccent : colors.textOnPrimary)
+                        }
                     />
                 ) : null}
                 <Text
                     style={[
                         styles.label,
                         disabled && styles.labelDisabled,
+                        dark && { color: disabled ? d.textMuted : d.textOnAccent },
                     ]}
                 >
                     {loading ? loadingLabel || 'Processing...' : label}
@@ -70,11 +80,11 @@ export default function GradientButton({
 
 const styles = StyleSheet.create({
     wrapper: {
-        borderRadius: 18,
+        borderRadius: 16,
         overflow: 'hidden',
         shadowColor: colors.primary,
         shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.25,
+        shadowOpacity: 0.3,
         shadowRadius: 12,
         elevation: 6,
     },

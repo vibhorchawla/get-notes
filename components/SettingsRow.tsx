@@ -32,7 +32,7 @@ export default function SettingsRow({
                 <View style={[styles.iconWrap, destructive && styles.destructiveIcon]}>
                     <Ionicons
                         name={icon}
-                        size={22}
+                        size={20}
                         color={destructive ? colors.error : colors.primary}
                     />
                 </View>
@@ -45,14 +45,14 @@ export default function SettingsRow({
                 <Switch
                     value={toggle.value}
                     onValueChange={toggle.onValueChange}
-                    trackColor={{ false: colors.border, true: colors.primary }}
+                    trackColor={{ false: 'rgba(255,255,255,0.1)', true: colors.primary }}
                     accessibilityRole="switch"
                     accessibilityLabel={label}
                 />
             ) : rightContent ? (
                 rightContent
             ) : showChevron ? (
-                <Ionicons name="chevron-forward" size={18} color={colors.textLight} />
+                <Ionicons name="chevron-forward" size={16} color={colors.textLight} />
             ) : null}
         </View>
     );
@@ -78,7 +78,7 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'space-between',
-        paddingVertical: spacing.sm + 2,
+        paddingVertical: spacing.sm + 4,
         minHeight: 56,
     },
     destructiveRow: {
@@ -93,7 +93,7 @@ const styles = StyleSheet.create({
         width: 40,
         height: 40,
         borderRadius: 12,
-        backgroundColor: 'rgba(79, 70, 229, 0.1)',
+        backgroundColor: 'rgba(91, 127, 255, 0.10)',
         justifyContent: 'center',
         alignItems: 'center',
         marginRight: spacing.md,

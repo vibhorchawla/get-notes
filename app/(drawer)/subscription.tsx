@@ -16,6 +16,7 @@ import { useAuth } from '../../context/AuthContext';
 import { usePayment, PlanId } from '../../hooks/usePayment';
 import { spacing } from '../../constants/spacing';
 import { typography } from '../../constants/typography';
+import { colors } from '../../constants/colors';
 
 interface PlanConfig {
     id: PlanId;
@@ -37,7 +38,7 @@ const PLANS: PlanConfig[] = [
         yearlyPrice: '₹499',
         period: '/month',
         description: 'Perfect for trying Premium',
-        accentColor: '#6D28D9',
+        accentColor: '#5B7FFF',
         features: [
             { label: 'Unlimited notes access', included: true },
             { label: 'Download notes offline', included: true },
@@ -54,7 +55,7 @@ const PLANS: PlanConfig[] = [
         yearlyPrice: '₹1,099',
         period: '/3 months',
         description: 'Best value for serious learners',
-        accentColor: '#7C3AED',
+        accentColor: '#7C93FF',
         features: [
             { label: 'Everything in Monthly', included: true },
             { label: 'Save ₹18/month', included: true },
@@ -72,7 +73,7 @@ const PLANS: PlanConfig[] = [
         yearlyPrice: '₹3,499',
         period: '/year',
         description: 'Ultimate learning experience',
-        accentColor: '#5B21B6',
+        accentColor: '#5B7FFF',
         features: [
             { label: 'Everything in Quarterly', included: true },
             { label: 'Best price — ₹33/month', included: true },
@@ -201,7 +202,7 @@ export default function SubscriptionScreen() {
 const styles = StyleSheet.create({
     darkRoot: {
         flex: 1,
-        backgroundColor: '#1A1A2E',
+        backgroundColor: '#121826',
     },
     container: {
         flex: 1,
@@ -218,11 +219,11 @@ const styles = StyleSheet.create({
         width: 42,
         height: 42,
         borderRadius: 14,
-        backgroundColor: 'rgba(255, 255, 255, 0.1)',
+        backgroundColor: colors.cardBackground,
         justifyContent: 'center',
         alignItems: 'center',
         borderWidth: 1,
-        borderColor: 'rgba(255, 255, 255, 0.08)',
+        borderColor: colors.border,
     },
     headerTitle: {
         fontSize: typography.fontSize.lg,
@@ -283,11 +284,12 @@ const styles = StyleSheet.create({
         paddingBottom: spacing.xxl,
     },
     heading: {
-        fontSize: typography.fontSize.xxl + 4,
+        fontSize: typography.fontSize.xxxl,
         fontWeight: typography.fontWeight.bold,
         color: '#FFFFFF',
         textAlign: 'center',
         marginTop: spacing.md,
+        letterSpacing: -0.5,
     },
     subheading: {
         fontSize: typography.fontSize.sm,
